@@ -363,3 +363,9 @@ export const META_ACTION_COSTS = {
 } as const
 
 export const KORUPSI_SUCCESS_RATE = 0.6 // 60% success, 40% caught
+export const KORUPSI_STEAL_AMOUNT: RupiahAmount = jt(5) // taken from bank on success
+export const KORUPSI_FINE: RupiahAmount = jt(3) // paid to bank when caught (matches Korupsi Terungkap card)
+
+// Sabotage applies a temporary rent_multiplier effect to one tile.
+export const SABOTAGE_RENT_MULTIPLIER = 0.5 // halves the target tile's rent
+export const SABOTAGE_DURATION_ROUNDS = 2

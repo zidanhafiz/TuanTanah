@@ -98,6 +98,8 @@ export interface TurnState {
   rolledDoubles: boolean
   // An unowned property the current player just landed on and may buy.
   pendingBuyTileId: TileId | null
+  // One optional meta action per turn (turn structure step 5).
+  usedMetaAction: boolean
 }
 
 export interface LogEntry {

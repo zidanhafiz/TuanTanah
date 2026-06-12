@@ -2,10 +2,13 @@ import {
   BOARD,
   REGIONS,
   TRANSPORT_BUY_PRICE,
+  type MetaActionType,
   type TileId,
 } from '@tuan-tanah/shared'
+import { useEffect, useState } from 'react'
 import { Board } from '../components/Board/Board.js'
 import { EventLog } from '../components/EventLog/EventLog.js'
+import { MetaActionBar, type MetaActionDef } from '../components/MetaActionBar/MetaActionBar.js'
 import { PlayerPanel } from '../components/PlayerPanel/PlayerPanel.js'
 import { formatRupiah, useGame } from '../store/gameStore.js'
 
@@ -21,8 +24,20 @@ export function Game() {
   const isMyTurn = useGame((s) => s.isMyTurn)()
   const roll = useGame((s) => s.roll)
   const buy = useGame((s) => s.buy)
+  const metaAction = useGame((s) => s.metaAction)
   const payJail = useGame((s) => s.payJail)
   const endTurn = useGame((s) => s.endTurn)
+
+  const [pendingMeta, setPendingMeta] = useState<{
+    action: MetaActionType
+    target: 'player' | 'tile'
+  } | null>(null)
+
+  const usedMetaAction = state?.turn.usedMetaAction ?? false
+  // Clear any in-progress target selection when it's no longer actionable.
+  useEffect(() => {
+    if (!isMyTurn || usedMetaAction) setPendingMeta(null)
+  }, [isMyTurn, usedMetaAction])
 
   if (!state) return null
 
@@ -30,11 +45,36 @@ export function Game() {
   const pending = turn.pendingBuyTileId
   const current = state.players[state.currentPlayerIndex]
 
+  const handlePickMeta = (def: MetaActionDef) => {
+    if (def.target === 'none') {
+      metaAction(def.action)
+      setPendingMeta(null)
+      return
+    }
+    const target = def.target
+    setPendingMeta((cur) =>
+      cur?.action === def.action ? null : { action: def.action, target },
+    )
+  }
+  const handleSelectPlayer = (id: string) => {
+    if (!pendingMeta) return
+    metaAction(pendingMeta.action, id)
+    setPendingMeta(null)
+  }
+  const handleSelectTile = (tileId: TileId) => {
+    if (!pendingMeta) return
+    metaAction(pendingMeta.action, undefined, tileId)
+    setPendingMeta(null)
+  }
+
   return (
     <div className="mx-auto flex max-w-[1400px] flex-col gap-4 p-4 lg:flex-row">
       {/* Board */}
       <div className="flex flex-1 justify-center">
-        <Board state={state} />
+        <Board
+          state={state}
+          onSelectTile={pendingMeta?.target === 'tile' ? handleSelectTile : undefined}
+        />
       </div>
 
       {/* Sidebar */}
@@ -88,6 +128,24 @@ export function Game() {
                       {pending !== null ? 'Skip & end turn' : 'End turn'}
                     </button>
                   )}
+                  {!turn.usedMetaAction && (
+                    <MetaActionBar
+                      turn={turn}
+                      pendingAction={pendingMeta?.action ?? null}
+                      onPick={handlePickMeta}
+                    />
+                  )}
+                  {pendingMeta && (
+                    <div className="flex items-center justify-between rounded-lg bg-sky-500/15 px-3 py-2 text-xs text-sky-200">
+                      <span>Select a {pendingMeta.target} on the {pendingMeta.target === 'tile' ? 'board' : 'players list'}…</span>
+                      <button
+                        onClick={() => setPendingMeta(null)}
+                        className="font-semibold text-sky-300 hover:text-sky-100"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="rounded-lg bg-slate-900 py-3 text-center text-sm text-slate-400">
@@ -102,7 +160,11 @@ export function Game() {
           )}
         </div>
 
-        <PlayerPanel state={state} myId={me?.id ?? null} />
+        <PlayerPanel
+          state={state}
+          myId={me?.id ?? null}
+          onSelect={pendingMeta?.target === 'player' ? handleSelectPlayer : undefined}
+        />
 
         <div className="h-56 rounded-xl bg-slate-800/60 p-3">
           <EventLog state={state} />

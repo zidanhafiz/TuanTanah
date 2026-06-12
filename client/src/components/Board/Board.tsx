@@ -25,8 +25,15 @@ const TYPE_LABEL: Record<string, string> = {
   parking: 'Parkir',
 }
 
-export function Board({ state }: { state: GameState }) {
+export function Board({
+  state,
+  onSelectTile,
+}: {
+  state: GameState
+  onSelectTile?: (id: TileId) => void
+}) {
   const current = state.players[state.currentPlayerIndex]
+  const selectable = Boolean(onSelectTile)
 
   return (
     <div className="aspect-square w-full max-w-[min(82vh,860px)]">
@@ -44,9 +51,10 @@ export function Board({ state }: { state: GameState }) {
             <div
               key={def.id}
               style={{ gridRow: row, gridColumn: col }}
+              onClick={onSelectTile ? () => onSelectTile(def.id) : undefined}
               className={`relative flex flex-col overflow-hidden rounded-[5px] bg-slate-900 p-1 text-[9px] leading-tight ${
                 isPending ? 'ring-2 ring-amber-400' : isCurrent ? 'ring-1 ring-white/40' : ''
-              }`}
+              } ${selectable ? 'cursor-pointer hover:ring-2 hover:ring-sky-400' : ''}`}
             >
               {region && <div className="h-1.5 w-full rounded-sm" style={{ background: region.color }} />}
               <div className="mt-0.5 line-clamp-2 font-semibold text-slate-200">{def.name}</div>

@@ -40,7 +40,7 @@ import { defaultRng, pushLog, shuffle, uid, type Rng } from './util.js'
 
 export class EngineError extends Error {}
 
-const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString('id-ID')}`
+export const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString('id-ID')}`
 
 // ---- Lobby lifecycle ----
 
@@ -57,7 +57,13 @@ export function createGameState(roomId: string, now: number): GameState {
       track: null,
       tier: 0,
     })),
-    turn: { hasRolled: false, lastDice: null, rolledDoubles: false, pendingBuyTileId: null },
+    turn: {
+      hasRolled: false,
+      lastDice: null,
+      rolledDoubles: false,
+      pendingBuyTileId: null,
+      usedMetaAction: false,
+    },
     activeEffects: [],
     kejadianDeck: [],
     hustleDeck: [],
@@ -180,7 +186,7 @@ export function startGame(state: GameState, playerId: string, rng: Rng = default
 
 // ---- In-game actions ----
 
-function requireTurn(state: GameState, playerId: string): Player {
+export function requireTurn(state: GameState, playerId: string): Player {
   if (state.phase !== 'playing') throw new EngineError('Game is not in progress')
   const current = state.players[state.currentPlayerIndex]
   if (!current || current.id !== playerId) throw new EngineError('Not your turn')
@@ -292,7 +298,7 @@ function resolveTile(
   }
 }
 
-function sendToJail(state: GameState, player: Player): void {
+export function sendToJail(state: GameState, player: Player): void {
   player.position = JAIL_TILE_ID
   player.inJail = true
   player.jailTurnsLeft = JAIL_DURATION_TURNS
@@ -334,13 +340,14 @@ export function computeRent(state: GameState, tileId: TileId): RupiahAmount {
   return Math.round(rent)
 }
 
-export function buyProperty(state: GameState, playerId: string, tileId: TileId): void {
-  const player = requireTurn(state, playerId)
-  if (state.turn.pendingBuyTileId !== tileId) {
-    throw new EngineError('You can only buy the tile you just landed on')
-  }
+/** Purchase a buyable (property/transport) tile for a player. No turn/landing constraint. */
+export function buyTile(state: GameState, player: Player, tileId: TileId): void {
   const def = getTileDef(tileId)
-  const tile = state.tiles[tileId]!
+  if (def.type !== 'property' && def.type !== 'transport') {
+    throw new EngineError('That tile cannot be bought')
+  }
+  const tile = state.tiles[tileId]
+  if (!tile) throw new EngineError('Invalid tile')
   if (tile.ownerId !== null) throw new EngineError('Tile already owned')
 
   const basePrice = def.type === 'transport' ? TRANSPORT_BUY_PRICE : REGIONS[def.region!].buyPrice
@@ -349,11 +356,19 @@ export function buyProperty(state: GameState, playerId: string, tileId: TileId):
 
   player.cash -= price
   state.bank += price
-  tile.ownerId = playerId
+  tile.ownerId = player.id
   tile.track = null
   tile.tier = 0
-  state.turn.pendingBuyTileId = null
   pushLog(state, `${player.name} bought ${def.name} for ${rupiah(price)}`, player.id)
+}
+
+export function buyProperty(state: GameState, playerId: string, tileId: TileId): void {
+  const player = requireTurn(state, playerId)
+  if (state.turn.pendingBuyTileId !== tileId) {
+    throw new EngineError('You can only buy the tile you just landed on')
+  }
+  buyTile(state, player, tileId)
+  state.turn.pendingBuyTileId = null
 }
 
 export function payJail(state: GameState, playerId: string): void {

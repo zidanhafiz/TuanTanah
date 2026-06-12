@@ -39,7 +39,23 @@ function resetTurnState(state: GameState): void {
     lastDice: null,
     rolledDoubles: false,
     pendingBuyTileId: null,
+    usedMetaAction: false,
   }
+}
+
+/**
+ * If the given player has a pending `turn_skip` effect (e.g. from a Lobby meta
+ * action), consume it and return true. Mutates state.
+ */
+function consumeTurnSkip(state: GameState, playerId: string): boolean {
+  const idx = state.activeEffects.findIndex(
+    (e) => e.type === 'turn_skip' && e.targetPlayerId === playerId,
+  )
+  if (idx === -1) return false
+  state.activeEffects.splice(idx, 1)
+  const player = state.players.find((p) => p.id === playerId)
+  if (player) pushLog(state, `${player.name}'s turn was skipped`, playerId)
+  return true
 }
 
 /** Run start-of-turn upkeep for the current player. */
@@ -73,6 +89,12 @@ export function advanceTurn(state: GameState): void {
   if (wrapped) {
     state.round += 1
     tickEffects(state)
+  }
+  const next = state.players[index]
+  if (next && consumeTurnSkip(state, next.id)) {
+    // This player's turn is skipped (e.g. from a Lobby meta action); move on.
+    advanceTurn(state)
+    return
   }
   startTurn(state)
 }

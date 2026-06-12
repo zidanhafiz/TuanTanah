@@ -1,3 +1,4 @@
+import { performMetaAction } from '../engine/actions.js'
 import { buyProperty, endTurn, payJail, rollDice } from '../engine/index.js'
 import { mutateRoom } from '../rooms.js'
 import type { GameStore } from '../store.js'
@@ -45,10 +46,27 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
     }),
   )
 
+  socket.on('meta_action', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      const result = await mutateRoom(store, roomId, (state) =>
+        performMetaAction(state, {
+          action: payload.action,
+          playerId,
+          targetId: payload.targetId,
+          tileId: payload.tileId,
+        }),
+      )
+      await broadcastState(io, store, roomId)
+      if (result.card) {
+        io.to(roomId).emit('card_drawn', { type: 'hustle', card: result.card.cardId, playerId })
+      }
+    }),
+  )
+
   // ---- Not yet implemented (later milestones) ----
   const notImplemented = () => socket.emit('error', { message: NOT_IMPLEMENTED })
   socket.on('upgrade_property', notImplemented)
-  socket.on('meta_action', notImplemented)
   socket.on('take_pinjol', notImplemented)
   socket.on('propose_deal', notImplemented)
   socket.on('respond_deal', notImplemented)
