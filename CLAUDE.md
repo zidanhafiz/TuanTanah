@@ -17,12 +17,17 @@ pnpm install
 pnpm dev                  # server :3000 + client :5173 in parallel
 pnpm dev:server           # backend only (pnpm --filter server dev)
 pnpm dev:client           # frontend only
-pnpm typecheck            # tsc --noEmit across all workspaces (this is the only check — no lint, no tests yet)
+pnpm typecheck            # tsc --noEmit across all workspaces
+pnpm lint                 # eslint . (flat config; 0 errors required)
+pnpm lint:fix             # eslint . --fix
+pnpm format               # prettier --write .
+pnpm format:check         # prettier --check .
+pnpm check                # typecheck + lint + format:check — the full gate
 pnpm build                # builds client to client/dist
 pnpm redis                # docker compose -f docker-compose.dev.yml up -d redis
 ```
 
-There is **no test runner and no linter** configured. `pnpm typecheck` is the sole automated gate; run it after changes. The engine is written to be pure and testable (RNG is injectable via the `Rng` param), so a test harness can be added later without refactoring.
+**There is no test runner yet**, but Prettier + ESLint are configured. `pnpm check` (typecheck + lint + format) is the automated gate; run it after changes. A PostToolUse hook (`.claude/hooks/format-and-lint.sh`, wired in `.claude/settings.json`) auto-runs `prettier --write` + `eslint --fix` on every file Claude edits and surfaces any unfixable lint errors. Config: `.prettierrc.json`, `eslint.config.js`. The engine is written to be pure and testable (RNG is injectable via the `Rng` param), so a test harness can be added later without refactoring.
 
 To exercise the game locally, open http://localhost:5173 in two browser tabs to create + join a room.
 
@@ -78,21 +83,23 @@ This project is managed in the **Tuan Tanah Game** Notion teamspace via the conn
 
 **Canonical IDs** (pass to `notion-fetch` / as `data_source_url` for `notion-search`):
 
-| Thing | ID |
-|---|---|
-| Teamspace "Tuan Tanah Game" | `37c01c5a-d049-815a-9168-0042fbce481e` (use as `teamspace_id` filter; not directly fetchable) |
-| **Tasks Tracker** database | `37c01c5a-d049-80fa-8d47-f0072913043f` |
-| Tasks Tracker data source | `collection://37c01c5a-d049-80d1-a958-000bf10981cf` |
-| **Document Hub** database | `37c01c5a-d049-80ab-bb1a-d8b0c8a4dc01` |
-| Document Hub data source | `collection://37c01c5a-d049-807e-a9f8-000b3959700c` |
-| Game Design doc (master spec) | `37d01c5a-d049-809d-8a1f-c46a07b60b86` |
+| Thing                         | ID                                                                                            |
+| ----------------------------- | --------------------------------------------------------------------------------------------- |
+| Teamspace "Tuan Tanah Game"   | `37c01c5a-d049-815a-9168-0042fbce481e` (use as `teamspace_id` filter; not directly fetchable) |
+| **Tasks Tracker** database    | `37c01c5a-d049-80fa-8d47-f0072913043f`                                                        |
+| Tasks Tracker data source     | `collection://37c01c5a-d049-80d1-a958-000bf10981cf`                                           |
+| **Document Hub** database     | `37c01c5a-d049-80ab-bb1a-d8b0c8a4dc01`                                                        |
+| Document Hub data source      | `collection://37c01c5a-d049-807e-a9f8-000b3959700c`                                           |
+| Game Design doc (master spec) | `37d01c5a-d049-809d-8a1f-c46a07b60b86`                                                        |
 
 **Tasks Tracker schema** — when creating a task page in the Tasks Tracker data source, set:
+
 - `Task name` (title), `Status` (`Not started` / `In progress` / `Done`), `Priority` (`High` / `Medium` / `Low`), `Effort level` (`Small` / `Medium` / `Large`), `Task type` (multi: `🐞 Bug` / `💬 Feature request` / `💅 Polish`), `Description`, `Due date`, `Assignee`.
 
 **Document Hub schema** — `Doc name` (title), `Category` (multi: `Proposal` / `Customer research` / `Strategy doc` / `Planning`).
 
 **CRUD mapping** (the connection is already authenticated — no setup needed):
+
 - **Read** → `notion-search` (semantic; pass `data_source_url` to scope to a database) or `notion-fetch` (by ID).
 - **Create** → `notion-create-pages` with the target data source as parent.
 - **Update** (status, props, body) → `notion-update-page`.

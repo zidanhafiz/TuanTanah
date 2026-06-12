@@ -97,11 +97,13 @@ export const useGame = create<GameStore>((set, get) => ({
   startGame: () => socket.emit('start_game'),
   roll: () => socket.emit('roll_dice'),
   buy: (tileId) => socket.emit('buy_property', { tileId }),
-  metaAction: (action, targetId, tileId) => socket.emit('meta_action', { action, targetId, tileId }),
+  metaAction: (action, targetId, tileId) =>
+    socket.emit('meta_action', { action, targetId, tileId }),
   payJail: () => socket.emit('pay_jail'),
   endTurn: () => socket.emit('end_turn'),
   clearError: () => set({ error: null }),
   dismissCard: () => set({ lastCard: null }),
 }))
 
-export const formatRupiah = (n: RupiahAmount): string => `Rp ${Math.round(n).toLocaleString('id-ID')}`
+export const formatRupiah = (n: RupiahAmount): string =>
+  `Rp ${Math.round(n).toLocaleString('id-ID')}`

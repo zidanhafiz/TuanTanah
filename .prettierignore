@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+client/dist
+server/dist
+pnpm-lock.yaml
+*.tsbuildinfo
+coverage
+.cache

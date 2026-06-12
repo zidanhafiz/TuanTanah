@@ -56,7 +56,9 @@ export function Board({
                 isPending ? 'ring-2 ring-amber-400' : isCurrent ? 'ring-1 ring-white/40' : ''
               } ${selectable ? 'cursor-pointer hover:ring-2 hover:ring-sky-400' : ''}`}
             >
-              {region && <div className="h-1.5 w-full rounded-sm" style={{ background: region.color }} />}
+              {region && (
+                <div className="h-1.5 w-full rounded-sm" style={{ background: region.color }} />
+              )}
               <div className="mt-0.5 line-clamp-2 font-semibold text-slate-200">{def.name}</div>
               <div className="mt-auto flex items-center justify-between">
                 <span className="text-[8px] text-slate-500">

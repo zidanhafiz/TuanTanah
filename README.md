@@ -16,7 +16,7 @@ server/   ← Fastify + Socket.io + pure game engine
 client/   ← React + Vite + Tailwind + Zustand
 ```
 
-The server is the source of truth. Clients only emit *requests*; the engine resolves them and the server broadcasts the full `GameState`.
+The server is the source of truth. Clients only emit _requests_; the engine resolves them and the server broadcasts the full `GameState`.
 
 ## Prerequisites
 

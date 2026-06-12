@@ -233,7 +233,12 @@ export interface RoleDef {
   ability: string
 }
 export const ROLES: Record<Role, RoleDef> = {
-  pengusaha: { id: 'pengusaha', name: 'Pengusaha', salary: jt(3), ability: 'Upgrade 2 tiers per turn' },
+  pengusaha: {
+    id: 'pengusaha',
+    name: 'Pengusaha',
+    salary: jt(3),
+    ability: 'Upgrade 2 tiers per turn',
+  },
   politisi: { id: 'politisi', name: 'Politisi', salary: jt(4), ability: 'Lobby costs 50% less' },
   freelancer: {
     id: 'freelancer',
@@ -318,18 +323,62 @@ export interface KejadianCard {
 export const KEJADIAN_CARDS: KejadianCard[] = [
   { id: 'lebaran', name: 'Lebaran', effect: 'Everyone receives THR bonus (Rp 2 juta)' },
   { id: 'kenaikan_bbm', name: 'Kenaikan BBM', effect: 'Everyone pays Rp 500rb travel tax' },
-  { id: 'banjir_jakarta', name: 'Banjir Jakarta', effect: 'All Jakarta tiles drop 1 tier for 3 rounds' },
+  {
+    id: 'banjir_jakarta',
+    name: 'Banjir Jakarta',
+    effect: 'All Jakarta tiles drop 1 tier for 3 rounds',
+  },
   { id: 'mudik_season', name: 'Mudik Season', effect: 'All transport tiles earn 2× for 3 rounds' },
-  { id: 'viral_medsos', name: 'Viral di Medsos', effect: 'One random property earns 3× for 3 rounds' },
-  { id: 'reshuffle_kabinet', name: 'Reshuffle Kabinet', effect: 'All lobby effects immediately reset' },
-  { id: 'inspeksi_pajak', name: 'Inspeksi Pajak', effect: 'Richest player pays 10% of their cash as fine' },
-  { id: 'gempa_bumi', name: 'Gempa Bumi', effect: "One random region's tiles lose rent bonus for 2 rounds" },
-  { id: 'demo_buruh', name: 'Demo Buruh', effect: 'Property track passive income halved for 2 rounds' },
-  { id: 'festival_budaya', name: 'Festival Budaya', effect: 'Yogyakarta tiles earn 2× for 3 rounds' },
-  { id: 'boom_tambang', name: 'Boom Tambang', effect: 'Kalimantan + Papua tiles earn 2× for 3 rounds' },
-  { id: 'musim_liburan', name: 'Musim Liburan', effect: 'Bali + Lombok tiles earn 2× for 3 rounds' },
-  { id: 'korupsi_terungkap', name: 'Korupsi Terungkap', effect: 'Player with most pinjol loans pays Rp 3 juta fine' },
-  { id: 'investasi_asing', name: 'Investasi Asing', effect: 'All property track owners earn Rp 1 juta bonus' },
+  {
+    id: 'viral_medsos',
+    name: 'Viral di Medsos',
+    effect: 'One random property earns 3× for 3 rounds',
+  },
+  {
+    id: 'reshuffle_kabinet',
+    name: 'Reshuffle Kabinet',
+    effect: 'All lobby effects immediately reset',
+  },
+  {
+    id: 'inspeksi_pajak',
+    name: 'Inspeksi Pajak',
+    effect: 'Richest player pays 10% of their cash as fine',
+  },
+  {
+    id: 'gempa_bumi',
+    name: 'Gempa Bumi',
+    effect: "One random region's tiles lose rent bonus for 2 rounds",
+  },
+  {
+    id: 'demo_buruh',
+    name: 'Demo Buruh',
+    effect: 'Property track passive income halved for 2 rounds',
+  },
+  {
+    id: 'festival_budaya',
+    name: 'Festival Budaya',
+    effect: 'Yogyakarta tiles earn 2× for 3 rounds',
+  },
+  {
+    id: 'boom_tambang',
+    name: 'Boom Tambang',
+    effect: 'Kalimantan + Papua tiles earn 2× for 3 rounds',
+  },
+  {
+    id: 'musim_liburan',
+    name: 'Musim Liburan',
+    effect: 'Bali + Lombok tiles earn 2× for 3 rounds',
+  },
+  {
+    id: 'korupsi_terungkap',
+    name: 'Korupsi Terungkap',
+    effect: 'Player with most pinjol loans pays Rp 3 juta fine',
+  },
+  {
+    id: 'investasi_asing',
+    name: 'Investasi Asing',
+    effect: 'All property track owners earn Rp 1 juta bonus',
+  },
   { id: 'pemilu', name: 'Pemilu', effect: 'All players vote — most voted player skips next turn' },
 ]
 

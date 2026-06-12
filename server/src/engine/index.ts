@@ -146,7 +146,10 @@ export function updateSettings(
   if (!player.isRoomMaster) throw new EngineError('Only the room master can change settings')
   const next = { ...state.settings, ...partial }
   if (partial.startingCash !== undefined) {
-    next.startingCash = Math.min(STARTING_CASH_MAX, Math.max(STARTING_CASH_MIN, partial.startingCash))
+    next.startingCash = Math.min(
+      STARTING_CASH_MAX,
+      Math.max(STARTING_CASH_MIN, partial.startingCash),
+    )
   }
   if (partial.enabledRoles) {
     // Unpick any roles that became disabled.
@@ -177,8 +180,14 @@ export function startGame(state: GameState, playerId: string, rng: Rng = default
     p.isEliminated = false
     p.usedAbility = false
   }
-  state.kejadianDeck = shuffle(KEJADIAN_CARDS.map((c) => c.id), rng)
-  state.hustleDeck = shuffle(HUSTLE_CARDS.map((c) => c.id), rng)
+  state.kejadianDeck = shuffle(
+    KEJADIAN_CARDS.map((c) => c.id),
+    rng,
+  )
+  state.hustleDeck = shuffle(
+    HUSTLE_CARDS.map((c) => c.id),
+    rng,
+  )
   state.startedAt = state.updatedAt
   pushLog(state, 'Game started!')
   startTurn(state)
@@ -209,7 +218,11 @@ export function rollDice(state: GameState, playerId: string, rng: Rng = defaultR
   state.turn.hasRolled = true
   state.turn.lastDice = [d1, d2]
   state.turn.rolledDoubles = doubles
-  pushLog(state, `${player.name} rolled ${d1} + ${d2} = ${d1 + d2}${doubles ? ' (doubles!)' : ''}`, player.id)
+  pushLog(
+    state,
+    `${player.name} rolled ${d1} + ${d2} = ${d1 + d2}${doubles ? ' (doubles!)' : ''}`,
+    player.id,
+  )
 
   if (player.inJail) {
     if (doubles) {
@@ -222,7 +235,11 @@ export function rollDice(state: GameState, playerId: string, rng: Rng = defaultR
         player.inJail = false
         pushLog(state, `${player.name} served their time and is released`, player.id)
       } else {
-        pushLog(state, `${player.name} stays in jail (${player.jailTurnsLeft} turn(s) left)`, player.id)
+        pushLog(
+          state,
+          `${player.name} stays in jail (${player.jailTurnsLeft} turn(s) left)`,
+          player.id,
+        )
       }
       return { dice: [d1, d2] }
     }

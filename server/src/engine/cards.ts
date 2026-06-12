@@ -17,13 +17,20 @@ function drawFrom(deck: string[]): string | null {
   return id
 }
 
-export function drawHustle(state: GameState, player: Player): { cardId: string; name: string } | null {
+export function drawHustle(
+  state: GameState,
+  player: Player,
+): { cardId: string; name: string } | null {
   const id = drawFrom(state.hustleDeck)
   if (!id) return null
   const card = HUSTLE_BY_ID.get(id)!
   player.cash += card.earn
   state.bank -= card.earn
-  pushLog(state, `${player.name} hustled "${card.name}" (+Rp ${card.earn.toLocaleString('id-ID')})`, player.id)
+  pushLog(
+    state,
+    `${player.name} hustled "${card.name}" (+Rp ${card.earn.toLocaleString('id-ID')})`,
+    player.id,
+  )
   return { cardId: id, name: card.name }
 }
 

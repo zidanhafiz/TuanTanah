@@ -1,9 +1,5 @@
 // Turn state machine: start-of-turn upkeep, turn advancement, round ticks.
-import {
-  PROPERTY_TIERS,
-  REGIONS,
-  REGION_SET_PASSIVE_MULTIPLIER,
-} from '@tuan-tanah/shared'
+import { PROPERTY_TIERS, REGIONS, REGION_SET_PASSIVE_MULTIPLIER } from '@tuan-tanah/shared'
 import type { GameState, Player, RupiahAmount } from '@tuan-tanah/shared'
 import { getTileDef, ownsFullRegion } from './board.js'
 import { tickEffects } from './effects.js'
@@ -28,7 +24,11 @@ export function collectPassiveIncome(state: GameState, player: Player): RupiahAm
   if (total > 0) {
     player.cash += total
     state.bank -= total
-    pushLog(state, `${player.name} collected Rp ${total.toLocaleString('id-ID')} passive income`, player.id)
+    pushLog(
+      state,
+      `${player.name} collected Rp ${total.toLocaleString('id-ID')} passive income`,
+      player.id,
+    )
   }
   return total
 }

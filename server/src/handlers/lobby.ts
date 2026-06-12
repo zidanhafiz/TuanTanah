@@ -1,9 +1,4 @@
-import {
-  addPlayer,
-  pickRole,
-  startGame,
-  updateSettings,
-} from '../engine/index.js'
+import { addPlayer, pickRole, startGame, updateSettings } from '../engine/index.js'
 import { createRoom, mutateRoom } from '../rooms.js'
 import { clearSession, setSession } from '../sessions.js'
 import type { GameStore } from '../store.js'

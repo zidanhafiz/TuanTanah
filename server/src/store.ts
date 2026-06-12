@@ -69,7 +69,10 @@ export async function createStore(): Promise<GameStore> {
     console.log('[store] connected to Redis')
     return new RedisStore(redis)
   } catch (err) {
-    console.warn('[store] Redis unavailable, falling back to in-memory store:', (err as Error).message)
+    console.warn(
+      '[store] Redis unavailable, falling back to in-memory store:',
+      (err as Error).message,
+    )
     return new MemoryStore()
   }
 }

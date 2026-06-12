@@ -52,9 +52,7 @@ export function Game() {
       return
     }
     const target = def.target
-    setPendingMeta((cur) =>
-      cur?.action === def.action ? null : { action: def.action, target },
-    )
+    setPendingMeta((cur) => (cur?.action === def.action ? null : { action: def.action, target }))
   }
   const handleSelectPlayer = (id: string) => {
     if (!pendingMeta) return
@@ -137,7 +135,10 @@ export function Game() {
                   )}
                   {pendingMeta && (
                     <div className="flex items-center justify-between rounded-lg bg-sky-500/15 px-3 py-2 text-xs text-sky-200">
-                      <span>Select a {pendingMeta.target} on the {pendingMeta.target === 'tile' ? 'board' : 'players list'}…</span>
+                      <span>
+                        Select a {pendingMeta.target} on the{' '}
+                        {pendingMeta.target === 'tile' ? 'board' : 'players list'}…
+                      </span>
                       <button
                         onClick={() => setPendingMeta(null)}
                         className="font-semibold text-sky-300 hover:text-sky-100"

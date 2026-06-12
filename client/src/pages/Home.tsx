@@ -36,7 +36,8 @@ export function Home() {
         </button>
 
         <div className="flex items-center gap-3 text-xs text-slate-500">
-          <span className="h-px flex-1 bg-slate-700" /> or join <span className="h-px flex-1 bg-slate-700" />
+          <span className="h-px flex-1 bg-slate-700" /> or join{' '}
+          <span className="h-px flex-1 bg-slate-700" />
         </div>
 
         <div className="flex gap-2">

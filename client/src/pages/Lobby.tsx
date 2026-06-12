@@ -136,5 +136,7 @@ export function Lobby() {
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
-  return <div className="flex min-h-screen items-center justify-center text-slate-400">{children}</div>
+  return (
+    <div className="flex min-h-screen items-center justify-center text-slate-400">{children}</div>
+  )
 }

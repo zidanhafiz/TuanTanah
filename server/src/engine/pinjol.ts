@@ -1,11 +1,7 @@
 // Pinjol (loan) system — STUB for a later milestone.
 // Rules: 3 loan sizes (2/5/10jt), 10% interest per round, max 3 loans,
 // borrow limit 3× total property value, Rentenir can lend directly.
-import {
-  PINJOL_AMOUNTS,
-  PINJOL_INTEREST_RATE,
-  PINJOL_MAX_LOANS,
-} from '@tuan-tanah/shared'
+import { PINJOL_AMOUNTS, PINJOL_INTEREST_RATE, PINJOL_MAX_LOANS } from '@tuan-tanah/shared'
 import type { GameState, Player, RupiahAmount } from '@tuan-tanah/shared'
 
 export function canTakeLoan(player: Player, _amount: RupiahAmount): boolean {

@@ -7,5 +7,18 @@
       "mcp__claude_ai_Notion__notion-get-users",
       "mcp__claude_ai_Notion__notion-get-comments"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/miku/projects/tuan-tanah/.claude/hooks/format-and-lint.sh"
+          }
+        ]
+      }
+    ]
   }
 }

@@ -11,34 +11,37 @@ A real-time multiplayer web-based Monopoly game with Indonesian theme, supportin
 ## 2. Tech Stack
 
 ### Frontend
-| Technology | Version | Purpose |
-|---|---|---|
-| React | 18+ | UI component framework |
-| TypeScript | 5+ | Type safety across client and shared types |
-| Vite | 5+ | Dev server and build tool |
-| Tailwind CSS | 3+ | Utility-first styling |
-| Framer Motion | 11+ | Animations (dice roll, token movement, card draw) |
-| Socket.io-client | 4+ | Real-time WebSocket connection to game server |
-| Zustand | 4+ | Client-side game state store |
+
+| Technology       | Version | Purpose                                           |
+| ---------------- | ------- | ------------------------------------------------- |
+| React            | 18+     | UI component framework                            |
+| TypeScript       | 5+      | Type safety across client and shared types        |
+| Vite             | 5+      | Dev server and build tool                         |
+| Tailwind CSS     | 3+      | Utility-first styling                             |
+| Framer Motion    | 11+     | Animations (dice roll, token movement, card draw) |
+| Socket.io-client | 4+      | Real-time WebSocket connection to game server     |
+| Zustand          | 4+      | Client-side game state store                      |
 
 ### Backend
-| Technology | Version | Purpose |
-|---|---|---|
-| Node.js | 20 LTS | Runtime |
-| TypeScript | 5+ | Type safety |
-| Fastify | 4+ | HTTP server (lobby, room creation, health check) |
-| Socket.io | 4+ | Real-time WebSocket event handling |
-| ioredis | 5+ | Redis client for game state persistence |
-| @supabase/supabase-js | 2+ | Auth and Postgres client |
+
+| Technology            | Version | Purpose                                          |
+| --------------------- | ------- | ------------------------------------------------ |
+| Node.js               | 20 LTS  | Runtime                                          |
+| TypeScript            | 5+      | Type safety                                      |
+| Fastify               | 4+      | HTTP server (lobby, room creation, health check) |
+| Socket.io             | 4+      | Real-time WebSocket event handling               |
+| ioredis               | 5+      | Redis client for game state persistence          |
+| @supabase/supabase-js | 2+      | Auth and Postgres client                         |
 
 ### Infrastructure
-| Service | Purpose | Cost |
-|---|---|---|
-| Contabo VPS (Europe) | Hosts all containers | Already owned |
-| Docker + Docker Compose | Container orchestration | Free |
-| Nginx (Docker) | Reverse proxy, static file serving, WebSocket proxy | Free |
-| Redis (Docker) | In-memory game state storage with TTL | Free |
-| Supabase (hosted) | PostgreSQL database + Auth | Free tier |
+
+| Service                 | Purpose                                             | Cost          |
+| ----------------------- | --------------------------------------------------- | ------------- |
+| Contabo VPS (Europe)    | Hosts all containers                                | Already owned |
+| Docker + Docker Compose | Container orchestration                             | Free          |
+| Nginx (Docker)          | Reverse proxy, static file serving, WebSocket proxy | Free          |
+| Redis (Docker)          | In-memory game state storage with TTL               | Free          |
+| Supabase (hosted)       | PostgreSQL database + Auth                          | Free tier     |
 
 ---
 
@@ -170,7 +173,7 @@ Server: io.to(roomId).emit('game_state', newState)
 All clients: Zustand store updates → React re-renders
 ```
 
-**Principle:** Clients only emit *requests*. The server validates, the engine resolves, and the server broadcasts the new canonical state. Clients never mutate state themselves.
+**Principle:** Clients only emit _requests_. The server validates, the engine resolves, and the server broadcasts the new canonical state. Clients never mutate state themselves.
 
 ---
 
@@ -179,8 +182,8 @@ All clients: Zustand store updates → React re-renders
 ```typescript
 // shared/types/game.ts
 
-type RupiahAmount = number  // always in rupiah (e.g. 2_000_000 = Rp 2 juta)
-type TileId = number        // 0–39
+type RupiahAmount = number // always in rupiah (e.g. 2_000_000 = Rp 2 juta)
+type TileId = number // 0–39
 
 interface GameState {
   roomId: string
@@ -210,14 +213,14 @@ interface Player {
   loans: PinjolLoan[]
   isEliminated: boolean
   isRoomMaster: boolean
-  usedAbility: boolean        // for once-per-game role abilities
+  usedAbility: boolean // for once-per-game role abilities
 }
 
 interface TileState {
   id: TileId
   ownerId: string | null
-  track: 'house' | 'property' | null   // locked once first bought
-  tier: number                          // 0 = unbuilt, 1–4 house, 1–5 property
+  track: 'house' | 'property' | null // locked once first bought
+  tier: number // 0 = unbuilt, 1–4 house, 1–5 property
 }
 
 interface ActiveEffect {
@@ -241,9 +244,9 @@ type EffectType =
 
 interface PinjolLoan {
   id: string
-  amount: RupiahAmount          // 2jt / 5jt / 10jt
+  amount: RupiahAmount // 2jt / 5jt / 10jt
   interestPerRound: RupiahAmount
-  lenderId: string | null       // null = bank, playerId = Rentenir
+  lenderId: string | null // null = bank, playerId = Rentenir
   roundBorrowed: number
 }
 
@@ -251,14 +254,21 @@ interface RoomSettings {
   winCondition: 'time' | 'wealth' | 'both'
   timeLimitMinutes?: 30 | 60 | 90 | 120
   targetWealth?: RupiahAmount
-  startingCash: RupiahAmount    // Rp 5jt – Rp 50jt
+  startingCash: RupiahAmount // Rp 5jt – Rp 50jt
   enabledRoles: Role[]
 }
 
 type Role =
-  | 'pengusaha' | 'politisi' | 'freelancer' | 'investor'
-  | 'kontraktor' | 'ojol_driver' | 'influencer'
-  | 'pejabat' | 'rentenir' | 'sales'
+  | 'pengusaha'
+  | 'politisi'
+  | 'freelancer'
+  | 'investor'
+  | 'kontraktor'
+  | 'ojol_driver'
+  | 'influencer'
+  | 'pejabat'
+  | 'rentenir'
+  | 'sales'
 ```
 
 ---
@@ -266,32 +276,34 @@ type Role =
 ## 7. Socket.io Event Map
 
 ### Client → Server
-| Event | Payload | Description |
-|---|---|---|
-| `join_room` | `{ roomId, playerName }` | Join or create a room |
-| `pick_role` | `{ role }` | Select role in lobby |
-| `start_game` | `{}` | Room master starts game |
-| `roll_dice` | `{}` | Roll dice on your turn |
-| `buy_property` | `{ tileId }` | Buy unowned tile |
-| `upgrade_property` | `{ tileId }` | Upgrade tier on your tile |
-| `meta_action` | `{ action, targetId? }` | Perform a meta action |
-| `pay_jail` | `{}` | Pay Rp 1jt to exit jail |
-| `take_pinjol` | `{ amount }` | Borrow from bank or Rentenir |
-| `propose_deal` | `{ deal: NegotiationDeal }` | Start a negotiation |
-| `respond_deal` | `{ dealId, accept: boolean }` | Accept or reject a deal |
-| `sell_property` | `{ tileId }` | Sell property back to bank |
-| `end_turn` | `{}` | End your turn |
+
+| Event              | Payload                       | Description                  |
+| ------------------ | ----------------------------- | ---------------------------- |
+| `join_room`        | `{ roomId, playerName }`      | Join or create a room        |
+| `pick_role`        | `{ role }`                    | Select role in lobby         |
+| `start_game`       | `{}`                          | Room master starts game      |
+| `roll_dice`        | `{}`                          | Roll dice on your turn       |
+| `buy_property`     | `{ tileId }`                  | Buy unowned tile             |
+| `upgrade_property` | `{ tileId }`                  | Upgrade tier on your tile    |
+| `meta_action`      | `{ action, targetId? }`       | Perform a meta action        |
+| `pay_jail`         | `{}`                          | Pay Rp 1jt to exit jail      |
+| `take_pinjol`      | `{ amount }`                  | Borrow from bank or Rentenir |
+| `propose_deal`     | `{ deal: NegotiationDeal }`   | Start a negotiation          |
+| `respond_deal`     | `{ dealId, accept: boolean }` | Accept or reject a deal      |
+| `sell_property`    | `{ tileId }`                  | Sell property back to bank   |
+| `end_turn`         | `{}`                          | End your turn                |
 
 ### Server → Client
-| Event | Payload | Description |
-|---|---|---|
-| `game_state` | `GameState` | Full state broadcast after every change |
-| `room_joined` | `{ roomId, playerId }` | Confirm join + assign ID |
-| `card_drawn` | `{ type, card }` | Show card animation to all |
-| `deal_proposed` | `{ deal }` | Notify target player of incoming deal |
-| `player_eliminated` | `{ playerId }` | Player went bankrupt |
-| `game_over` | `{ winner, finalStandings }` | Game ended |
-| `error` | `{ message }` | Invalid action feedback |
+
+| Event               | Payload                      | Description                             |
+| ------------------- | ---------------------------- | --------------------------------------- |
+| `game_state`        | `GameState`                  | Full state broadcast after every change |
+| `room_joined`       | `{ roomId, playerId }`       | Confirm join + assign ID                |
+| `card_drawn`        | `{ type, card }`             | Show card animation to all              |
+| `deal_proposed`     | `{ deal }`                   | Notify target player of incoming deal   |
+| `player_eliminated` | `{ playerId }`               | Player went bankrupt                    |
+| `game_over`         | `{ winner, finalStandings }` | Game ended                              |
+| `error`             | `{ message }`                | Invalid action feedback                 |
 
 ---
 
@@ -350,8 +362,8 @@ Cards like "Banjir Jakarta for 3 rounds" require effects that decay over time. T
 
 function tickEffects(state: GameState): GameState {
   const alive = state.activeEffects
-    .map(e => ({ ...e, roundsRemaining: e.roundsRemaining - 1 }))
-    .filter(e => e.roundsRemaining > 0)
+    .map((e) => ({ ...e, roundsRemaining: e.roundsRemaining - 1 }))
+    .filter((e) => e.roundsRemaining > 0)
   return { ...state, activeEffects: alive }
 }
 
@@ -375,8 +387,8 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./client/dist:/usr/share/nginx/html:ro
@@ -442,13 +454,13 @@ server {
 
 ## 13. Dev vs Production
 
-| | Local Development | Production (VPS) |
-|---|---|---|
-| Frontend | `vite dev` (hot reload) | Built static files served by Nginx |
-| Backend | `tsx watch src/index.ts` | Docker container via PM2 or Docker restart policy |
-| Redis | Local install or Docker | Docker container with persistent volume |
-| Database | Supabase hosted (same) | Supabase hosted (same) |
-| Run command | `npm run dev` in each folder | `docker compose up -d` |
+|             | Local Development            | Production (VPS)                                  |
+| ----------- | ---------------------------- | ------------------------------------------------- |
+| Frontend    | `vite dev` (hot reload)      | Built static files served by Nginx                |
+| Backend     | `tsx watch src/index.ts`     | Docker container via PM2 or Docker restart policy |
+| Redis       | Local install or Docker      | Docker container with persistent volume           |
+| Database    | Supabase hosted (same)       | Supabase hosted (same)                            |
+| Run command | `npm run dev` in each folder | `docker compose up -d`                            |
 
 ---
 
@@ -511,14 +523,14 @@ docker compose up -d --build backend
 
 ## 17. Summary
 
-| Concern | Solution |
-|---|---|
-| Real-time sync | Socket.io — server is source of truth |
-| Game logic | Pure TypeScript engine — no I/O, fully testable |
-| State persistence | Redis on same VPS — survives server restart |
-| Timed card effects | `roundsRemaining` decremented per round tick |
-| Negotiation | Mini state machine in `negotiation.ts` |
-| Auth + history | Supabase (deferred to post-MVP) |
-| Deployment | Docker Compose on Contabo VPS |
-| Latency (170ms) | Acceptable — turn-based game, imperceptible |
-| Cost | Rp 0 extra — VPS already owned, Supabase free tier |
+| Concern            | Solution                                           |
+| ------------------ | -------------------------------------------------- |
+| Real-time sync     | Socket.io — server is source of truth              |
+| Game logic         | Pure TypeScript engine — no I/O, fully testable    |
+| State persistence  | Redis on same VPS — survives server restart        |
+| Timed card effects | `roundsRemaining` decremented per round tick       |
+| Negotiation        | Mini state machine in `negotiation.ts`             |
+| Auth + history     | Supabase (deferred to post-MVP)                    |
+| Deployment         | Docker Compose on Contabo VPS                      |
+| Latency (170ms)    | Acceptable — turn-based game, imperceptible        |
+| Cost               | Rp 0 extra — VPS already owned, Supabase free tier |

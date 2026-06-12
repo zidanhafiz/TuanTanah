@@ -135,7 +135,11 @@ export function performMetaAction(
       if (rng() < KORUPSI_SUCCESS_RATE) {
         player.cash += KORUPSI_STEAL_AMOUNT
         state.bank -= KORUPSI_STEAL_AMOUNT
-        pushLog(state, `${player.name} pulled off korupsi (+${rupiah(KORUPSI_STEAL_AMOUNT)})`, player.id)
+        pushLog(
+          state,
+          `${player.name} pulled off korupsi (+${rupiah(KORUPSI_STEAL_AMOUNT)})`,
+          player.id,
+        )
       } else {
         sendToJail(state, player)
         // Fine on top of jail. Can't-pay → elimination is handled later (TTG-16).

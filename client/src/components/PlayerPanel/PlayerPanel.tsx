@@ -23,7 +23,9 @@ export function PlayerPanel({
             className={`rounded-lg border p-2.5 ${
               isCurrent ? 'border-amber-400 bg-amber-500/10' : 'border-slate-700 bg-slate-800'
             } ${p.isEliminated ? 'opacity-40' : ''} ${
-              selectable ? 'cursor-pointer hover:border-sky-400 hover:ring-1 hover:ring-sky-400' : ''
+              selectable
+                ? 'cursor-pointer hover:border-sky-400 hover:ring-1 hover:ring-sky-400'
+                : ''
             }`}
           >
             <div className="flex items-center gap-2">
