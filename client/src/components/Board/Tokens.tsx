@@ -1,6 +1,7 @@
 import type { GameState, Player } from '@tuan-tanah/shared'
 import { motion, useAnimationControls } from 'framer-motion'
 import { useEffect, useRef } from 'react'
+import { useRollAnim } from '../../store/rollAnimation.js'
 import { tileCenter, tokenOffset } from './geometry.js'
 
 const STEP_SEC = 0.13 // per-tile hop duration
@@ -55,6 +56,7 @@ function PlayerToken({
   const bob = useAnimationControls()
   const prevPos = useRef(player.position)
   const off = tokenOffset(seatIndex, totalSeats)
+  const phase = useRollAnim((s) => s.phase)
 
   const coord = (id: number) => {
     const c = tileCenter(id)
@@ -65,10 +67,16 @@ function PlayerToken({
     const from = prevPos.current
     const to = player.position
     if (from === to) return
-    prevPos.current = to
 
     const d = (to - from + 40) % 40
     const isWalk = isRoller && d === expectedSteps && d > 0 && d <= 12
+
+    // Hold the roller's dice-walk until the dice have finished tumbling. Commit
+    // prevPos only once we actually start animating, so the held effect re-runs
+    // (phase is in the dep list) and still sees from→to once it advances to `move`.
+    if (isWalk && phase === 'dice') return
+    prevPos.current = to
+
     let cancelled = false
 
     const run = async () => {
@@ -100,10 +108,11 @@ function PlayerToken({
     return () => {
       cancelled = true
     }
-    // Re-runs only when the authoritative position changes; expectedSteps/isRoller
-    // are read fresh on each run and intentionally not in the dep list.
+    // Re-runs on position change and on cinematic phase change (so a held walk
+    // resumes when the dice settle). expectedSteps/isRoller are read fresh on
+    // each run and intentionally not in the dep list.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player.position])
+  }, [player.position, phase])
 
   return (
     <motion.div
@@ -113,7 +122,7 @@ function PlayerToken({
     >
       <motion.div animate={bob}>
         <div
-          className="h-3.5 w-3.5 rounded-full border-2 border-ink shadow-brutal-xs"
+          className="h-4 w-4 rounded-full border-2 border-ink shadow-brutal-xs"
           style={{ background: player.color }}
           title={player.name}
         />

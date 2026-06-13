@@ -14,6 +14,7 @@ import {
 } from '@tuan-tanah/shared'
 import { create } from 'zustand'
 import { socket } from '../socket.js'
+import { noteIncomingState, resetRollAnim } from './rollAnimation.js'
 
 const HUSTLE_NAME = new Map(HUSTLE_CARDS.map((c) => [c.id, c.name]))
 const KEJADIAN_NAME = new Map(KEJADIAN_CARDS.map((c) => [c.id, c.name]))
@@ -165,7 +166,12 @@ export const useGame = create<GameStore>((set, get) => ({
       attemptRejoin()
     })
     socket.on('disconnect', () => set({ connected: false }))
-    socket.on('game_state', (state) => set({ state }))
+    socket.on('game_state', (state) => {
+      // Drive the dice→move→reveal cinematic from the moment state lands, before
+      // React re-renders, so token effects never read a stale animation phase.
+      noteIncomingState(state)
+      set({ state })
+    })
     socket.on('room_joined', ({ roomId, playerId }) => set({ roomId, playerId }))
     socket.on('error', ({ message }) => set({ error: message }))
     socket.on('card_drawn', ({ type, card, playerId }) => {
@@ -201,6 +207,7 @@ export const useGame = create<GameStore>((set, get) => ({
     // in-game), then drop the local session so we don't auto-rejoin.
     socket.emit('leave_room')
     clearStoredSession()
+    resetRollAnim()
     set({ roomId: null, playerId: null, state: null, finalStandings: null, rejoining: false })
   },
 

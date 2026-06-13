@@ -21,6 +21,7 @@ import { PropertyModal } from '../components/PropertyModal/PropertyModal.js'
 import { LeaveButton } from '../components/RoomActions.js'
 import { Badge, Button, Card, Tooltip } from '../components/ui/index.js'
 import { formatRupiah, useGame } from '../store/gameStore.js'
+import { isRollAnimating, useRollAnim } from '../store/rollAnimation.js'
 
 function basePrice(tileId: TileId): number {
   const def = BOARD[tileId]!
@@ -48,6 +49,9 @@ export function Game() {
   const [showPinjol, setShowPinjol] = useState(false)
   const [selectedTile, setSelectedTile] = useState<TileId | null>(null)
   const [showNegotiate, setShowNegotiate] = useState(false)
+  // While the dice/token cinematic is playing, hold back post-roll actions so
+  // the buy button only appears once the token has arrived on its tile.
+  const rolling = useRollAnim((s) => isRollAnimating(s.phase))
 
   const usedMetaAction = state?.turn.usedMetaAction ?? false
   // Clear any in-progress target selection when it's no longer actionable.
@@ -141,11 +145,11 @@ export function Game() {
                     </Button>
                   )}
                   {!turn.hasRolled && (
-                    <Button block onClick={roll}>
+                    <Button block onClick={roll} disabled={rolling}>
                       🎲 {me?.inJail ? t('game.rollForDoubles') : t('game.rollDice')}
                     </Button>
                   )}
-                  {turn.hasRolled && pending !== null && (
+                  {turn.hasRolled && !rolling && pending !== null && (
                     <Button variant="success" block onClick={() => buy(pending)}>
                       {t('game.buy', {
                         name: tileName(t, pending),
@@ -153,7 +157,7 @@ export function Game() {
                       })}
                     </Button>
                   )}
-                  {turn.hasRolled && (
+                  {turn.hasRolled && !rolling && (
                     <Button variant="secondary" size="sm" block onClick={endTurn}>
                       {pending !== null ? t('game.skipEndTurn') : t('game.endTurn')}
                     </Button>

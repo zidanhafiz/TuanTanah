@@ -2,6 +2,7 @@ import { BOARD, REGIONS, type GameState, type TileId } from '@tuan-tanah/shared'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { tileName } from '../../i18n/gameData.js'
+import { isRollAnimating, useRollAnim } from '../../store/rollAnimation.js'
 import { DiceRoller } from '../DiceRoller/DiceRoller.js'
 import { gridPos } from './geometry.js'
 import { TokenLayer } from './Tokens.js'
@@ -16,16 +17,20 @@ export function Board({
   const { t } = useTranslation()
   const current = state.players[state.currentPlayerIndex]
   const selectable = Boolean(onSelectTile)
+  // Don't reveal the buy-target highlight until the token has finished walking.
+  const animating = useRollAnim((s) => isRollAnimating(s.phase))
 
   return (
-    <div className="aspect-square w-full max-w-[min(82vh,860px)]">
-      <div className="relative grid h-full w-full grid-cols-11 grid-rows-11 gap-[3px] rounded-xl border-2 border-ink bg-surface-sunken p-[3px] shadow-brutal-sm">
+    <div className="aspect-square w-full max-w-[min(90vh,1024px)]">
+      <div className="relative grid h-full w-full grid-cols-11 grid-rows-11 gap-[3px] rounded-xl border-2 border-ink bg-surface-sunken p-1 shadow-brutal-sm">
         {BOARD.map((def) => {
           const { row, col } = gridPos(def.id)
           const tile = state.tiles[def.id]
           const owner = tile?.ownerId ? state.players.find((p) => p.id === tile.ownerId) : null
           const region = def.region ? REGIONS[def.region] : null
-          const isPending = state.turn.pendingBuyTileId === def.id
+          // Hold the buy-target highlight until the cinematic finishes so it
+          // doesn't appear before the token has walked over to the tile.
+          const isPending = state.turn.pendingBuyTileId === def.id && !animating
           const isCurrent = current?.position === def.id
 
           return (
@@ -33,7 +38,7 @@ export function Board({
               key={def.id}
               style={{ gridRow: row, gridColumn: col }}
               onClick={onSelectTile ? () => onSelectTile(def.id) : undefined}
-              className={`relative flex flex-col overflow-hidden rounded-[5px] border border-ink bg-surface p-1 text-[9px] leading-tight transition-shadow ${
+              className={`relative flex flex-col overflow-hidden rounded-md border border-ink bg-surface p-1.5 text-[11px] leading-tight transition-shadow ${
                 isPending
                   ? 'ring-2 ring-accent-strong shadow-brutal-sm'
                   : isCurrent
@@ -43,20 +48,18 @@ export function Board({
             >
               {region && (
                 <div
-                  className="h-1.5 w-full rounded-sm border border-ink/50"
+                  className="h-2 w-full rounded-sm border border-ink/50"
                   style={{ background: region.color }}
                 />
               )}
-              <div className="mt-0.5 line-clamp-2 font-semibold text-ink">
-                {tileName(t, def.id)}
-              </div>
+              <div className="mt-1 line-clamp-3 font-semibold text-ink">{tileName(t, def.id)}</div>
               <div className="mt-auto flex items-center justify-between gap-0.5">
-                <span className="text-[8px] font-semibold uppercase text-ink-faint">
+                <span className="text-[9px] font-semibold uppercase text-ink-faint">
                   {region ? '' : t(`board.types.${def.type}`, { defaultValue: '' })}
                 </span>
                 {owner && (
                   <span
-                    className="flex items-center gap-0.5 rounded border border-ink px-1 text-[8px] font-bold leading-tight text-white"
+                    className="flex items-center gap-0.5 rounded border border-ink px-1 text-[9px] font-bold leading-tight text-white"
                     style={{ background: owner.color }}
                   >
                     {tile && tile.tier > 0 ? `T${tile.tier}` : '•'}
@@ -75,7 +78,7 @@ export function Board({
           style={{ gridRow: '2 / 11', gridColumn: '2 / 11' }}
           className="flex flex-col items-center justify-center rounded-lg border-2 border-ink bg-paper text-center shadow-brutal-sm"
         >
-          <div className="font-display text-3xl uppercase tracking-tight text-ink">
+          <div className="font-display text-4xl uppercase tracking-tight text-ink">
             {t('board.title')}
           </div>
           <div className="mt-1 text-xs font-semibold text-ink-muted">
