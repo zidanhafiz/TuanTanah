@@ -19,7 +19,7 @@ import { PinjolModal } from '../components/PinjolModal/PinjolModal.js'
 import { PlayerPanel } from '../components/PlayerPanel/PlayerPanel.js'
 import { PropertyModal } from '../components/PropertyModal/PropertyModal.js'
 import { LeaveButton } from '../components/RoomActions.js'
-import { Badge, Button, Card } from '../components/ui/index.js'
+import { Badge, Button, Card, Tooltip } from '../components/ui/index.js'
 import { formatRupiah, useGame } from '../store/gameStore.js'
 
 function basePrice(tileId: TileId): number {
@@ -166,9 +166,11 @@ export function Game() {
                     />
                   )}
                   {me && <AbilityBar me={me} onUse={useAbility} />}
-                  <Button variant="secondary" size="sm" block onClick={() => setShowPinjol(true)}>
-                    {t('game.pinjol')}
-                  </Button>
+                  <Tooltip content={t('game.pinjolDesc')} className="w-full">
+                    <Button variant="secondary" size="sm" block onClick={() => setShowPinjol(true)}>
+                      {t('game.pinjol')}
+                    </Button>
+                  </Tooltip>
                   {pendingMeta && (
                     <Card
                       tone="info"
@@ -206,9 +208,16 @@ export function Game() {
                 </Card>
               )}
               {me && !me.isEliminated && (
-                <Button variant="secondary" size="sm" block onClick={() => setShowNegotiate(true)}>
-                  {t('game.negotiate')}
-                </Button>
+                <Tooltip content={t('game.negotiateDesc')} className="w-full">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    block
+                    onClick={() => setShowNegotiate(true)}
+                  >
+                    {t('game.negotiate')}
+                  </Button>
+                </Tooltip>
               )}
             </div>
           )}

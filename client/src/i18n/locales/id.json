@@ -37,7 +37,9 @@
     "linkCopied": "✓ Tautan disalin",
     "shareLink": "🔗 Bagikan tautan",
     "copyPrompt": "Salin tautan ruangan ini:",
-    "leave": "Keluar"
+    "leave": "Keluar",
+    "leaveTitle": "Keluar permainan?",
+    "confirmLeave": "Keluar"
   },
   "lobby": {
     "loading": "Memuat lobi…",
@@ -90,7 +92,9 @@
       "wins": "{{name}} menang!",
       "you": "kamu",
       "eliminated": "tersingkir"
-    }
+    },
+    "pinjolDesc": "Ambil pinjaman cepat untuk uang tunai sekarang — bayar kembali dengan bunga tinggi.",
+    "negotiateDesc": "Ajukan kesepakatan ke pemain lain: tukar properti, jual-beli tunai, imunitas sewa, atau bagi hasil."
   },
   "board": {
     "title": "Tuan Tanah",
@@ -153,7 +157,15 @@
     "sabotage": "💣 Sabotase",
     "korupsi": "🕵️ Korupsi",
     "negotiate": "🤝 Negosiasi",
-    "chooseBeforeRolling": "Pilih sebelum melempar — melewati gerakanmu"
+    "chooseBeforeRolling": "Pilih sebelum melempar — melewati gerakanmu",
+    "descriptions": {
+      "invest": "Beli petak properti yang belum dimiliki dari papan — aksimu giliran ini.",
+      "work": "Lewati gerakanmu dan terima gajimu. Pilih sebelum melempar dadu.",
+      "hustle": "Ambil kartu Hustle — usaha sampingan berisiko dengan hasil acak.",
+      "lobby": "Bayar untuk membuat lawan melewati giliran berikutnya.",
+      "sabotage": "Bayar untuk memotong setengah sewa lawan di petak pilihan selama 2 ronde.",
+      "korupsi": "Bertaruh demi untung cepat — 60% berhasil curi dari bank, 40% dipenjara dan didenda."
+    }
   },
   "ability": {
     "title": "Kemampuan peran (sekali per permainan)",
@@ -258,9 +270,18 @@
       "39": "Pajak Hadiah"
     },
     "roles": {
-      "pengusaha": { "name": "Pengusaha", "ability": "Tingkatkan 2 tingkat per giliran" },
-      "politisi": { "name": "Politisi", "ability": "Biaya lobi 50% lebih murah" },
-      "freelancer": { "name": "Freelancer", "ability": "Gaji 1,5× saat melewati GO" },
+      "pengusaha": {
+        "name": "Pengusaha",
+        "ability": "Tingkatkan 2 tingkat per giliran"
+      },
+      "politisi": {
+        "name": "Politisi",
+        "ability": "Biaya lobi 50% lebih murah"
+      },
+      "freelancer": {
+        "name": "Freelancer",
+        "ability": "Gaji 1,5× saat melewati GO"
+      },
       "investor": {
         "name": "Investor",
         "ability": "Dapat 5% dari setiap sewa yang dibayar ke pemain lain"
@@ -306,7 +327,10 @@
       }
     },
     "kejadian": {
-      "lebaran": { "name": "Lebaran", "effect": "Semua orang menerima bonus THR (Rp 2 juta)" },
+      "lebaran": {
+        "name": "Lebaran",
+        "effect": "Semua orang menerima bonus THR (Rp 2 juta)"
+      },
       "kenaikan_bbm": {
         "name": "Kenaikan BBM",
         "effect": "Semua orang membayar pajak perjalanan Rp 500rb"

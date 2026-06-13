@@ -1,6 +1,6 @@
 import type { MetaActionType, TurnState } from '@tuan-tanah/shared'
 import { useTranslation } from 'react-i18next'
-import { Button } from '../ui/index.js'
+import { Button, Tooltip } from '../ui/index.js'
 
 export type MetaTarget = 'none' | 'player' | 'tile'
 
@@ -19,7 +19,8 @@ export const META_ACTIONS: MetaActionDef[] = [
   { action: 'lobby', target: 'player' },
   { action: 'sabotage', target: 'tile' },
   { action: 'korupsi', target: 'none' },
-  { action: 'negotiate', target: 'player' },
+  // Note: negotiation is offered as a dedicated button (opens the deal modal),
+  // not as a meta action — the engine's `negotiate` meta only signals intent.
 ]
 
 interface Props {
@@ -40,16 +41,21 @@ export function MetaActionBar({ turn, pendingAction, onPick }: Props) {
           const disabled = Boolean(def.needsUnrolled && turn.hasRolled)
           const active = pendingAction === def.action
           return (
-            <Button
+            <Tooltip
               key={def.action}
-              size="sm"
-              variant={active ? 'info' : 'secondary'}
-              disabled={disabled}
-              onClick={() => onPick(def)}
-              title={def.needsUnrolled ? t('meta.chooseBeforeRolling') : undefined}
+              content={t(`meta.descriptions.${def.action}`)}
+              className="w-full"
             >
-              {t(`meta.${def.action}`)}
-            </Button>
+              <Button
+                size="sm"
+                block
+                variant={active ? 'info' : 'secondary'}
+                disabled={disabled}
+                onClick={() => onPick(def)}
+              >
+                {t(`meta.${def.action}`)}
+              </Button>
+            </Tooltip>
           )
         })}
       </div>

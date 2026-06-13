@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useGame } from '../store/gameStore.js'
-import { Button } from './ui/index.js'
+import { Button, Modal } from './ui/index.js'
 
 /** Copies the shareable room link (`/room/CODE`) to the clipboard. */
 export function ShareLinkButton({ code, className }: { code: string; className?: string }) {
@@ -45,16 +45,40 @@ export function LeaveButton({
   const { t } = useTranslation()
   const leave = useGame((s) => s.leave)
   const navigate = useNavigate()
+  const [confirming, setConfirming] = useState(false)
 
-  const onClick = () => {
-    if (confirm && !window.confirm(confirm)) return
+  const doLeave = () => {
     leave()
     navigate('/')
   }
+  const onClick = () => {
+    if (confirm) setConfirming(true)
+    else doLeave()
+  }
 
   return (
-    <Button variant="danger" size="sm" onClick={onClick} className={`text-xs ${className ?? ''}`}>
-      {label ?? t('roomActions.leave')}
-    </Button>
+    <>
+      <Button variant="danger" size="sm" onClick={onClick} className={`text-xs ${className ?? ''}`}>
+        {label ?? t('roomActions.leave')}
+      </Button>
+      {confirm && (
+        <Modal
+          open={confirming}
+          onClose={() => setConfirming(false)}
+          title={t('roomActions.leaveTitle')}
+          size="sm"
+        >
+          <p className="text-sm text-ink">{confirm}</p>
+          <div className="mt-5 flex gap-2">
+            <Button variant="ghost" size="sm" block onClick={() => setConfirming(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="danger" size="sm" block onClick={doLeave}>
+              {t('roomActions.confirmLeave')}
+            </Button>
+          </div>
+        </Modal>
+      )}
+    </>
   )
 }

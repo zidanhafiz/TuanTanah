@@ -50,6 +50,7 @@ export default {
         panel: '10',
         toast: '40',
         modal: '50',
+        tooltip: '60',
       },
     },
   },

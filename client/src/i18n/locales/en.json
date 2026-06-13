@@ -37,7 +37,9 @@
     "linkCopied": "✓ Link copied",
     "shareLink": "🔗 Share link",
     "copyPrompt": "Copy this room link:",
-    "leave": "Leave"
+    "leave": "Leave",
+    "leaveTitle": "Leave game?",
+    "confirmLeave": "Leave"
   },
   "lobby": {
     "loading": "Loading lobby…",
@@ -90,7 +92,9 @@
       "wins": "{{name}} wins!",
       "you": "you",
       "eliminated": "eliminated"
-    }
+    },
+    "pinjolDesc": "Take a quick loan for cash now — repay it later with steep interest.",
+    "negotiateDesc": "Propose a deal to another player: swap properties, trade cash, rent immunity, or revenue share."
   },
   "board": {
     "title": "Tuan Tanah",
@@ -153,7 +157,15 @@
     "sabotage": "💣 Sabotage",
     "korupsi": "🕵️ Corruption",
     "negotiate": "🤝 Negotiate",
-    "chooseBeforeRolling": "Choose before rolling — skips your move"
+    "chooseBeforeRolling": "Choose before rolling — skips your move",
+    "descriptions": {
+      "invest": "Buy an unowned property tile you pick on the board — your action this turn.",
+      "work": "Skip your move and collect your salary instead. Choose before rolling.",
+      "hustle": "Draw a Hustle card — a risky side gig with a random payoff.",
+      "lobby": "Pay to make a rival skip their next turn.",
+      "sabotage": "Pay to halve the rent a rival collects on a chosen tile for 2 rounds.",
+      "korupsi": "Gamble for a quick payout — 60% you steal from the bank, 40% you're jailed and fined."
+    }
   },
   "ability": {
     "title": "Role ability (once per game)",
@@ -258,17 +270,38 @@
       "39": "Gift Tax"
     },
     "roles": {
-      "pengusaha": { "name": "Entrepreneur", "ability": "Upgrade 2 tiers per turn" },
-      "politisi": { "name": "Politician", "ability": "Lobby costs 50% less" },
-      "freelancer": { "name": "Freelancer", "ability": "Salary 1.5× when passing GO" },
-      "investor": { "name": "Investor", "ability": "Earn 5% from every rent paid to others" },
-      "kontraktor": { "name": "Contractor", "ability": "Build on others' property for 30% cut" },
-      "ojol_driver": { "name": "Ojol Driver", "ability": "Never pay travel/movement tax" },
+      "pengusaha": {
+        "name": "Entrepreneur",
+        "ability": "Upgrade 2 tiers per turn"
+      },
+      "politisi": {
+        "name": "Politician",
+        "ability": "Lobby costs 50% less"
+      },
+      "freelancer": {
+        "name": "Freelancer",
+        "ability": "Salary 1.5× when passing GO"
+      },
+      "investor": {
+        "name": "Investor",
+        "ability": "Earn 5% from every rent paid to others"
+      },
+      "kontraktor": {
+        "name": "Contractor",
+        "ability": "Build on others' property for 30% cut"
+      },
+      "ojol_driver": {
+        "name": "Ojol Driver",
+        "ability": "Never pay travel/movement tax"
+      },
       "influencer": {
         "name": "Influencer",
         "ability": "Once per game: viral boost 3× for 3 turns"
       },
-      "pejabat": { "name": "Official", "ability": "Once per game: block any kejadian card" },
+      "pejabat": {
+        "name": "Official",
+        "ability": "Once per game: block any kejadian card"
+      },
       "rentenir": {
         "name": "Loan Shark",
         "ability": "Force one player per round to take pinjol, earns the interest"
@@ -294,8 +327,14 @@
       }
     },
     "kejadian": {
-      "lebaran": { "name": "Lebaran", "effect": "Everyone receives THR bonus (Rp 2 juta)" },
-      "kenaikan_bbm": { "name": "Fuel Price Hike", "effect": "Everyone pays Rp 500rb travel tax" },
+      "lebaran": {
+        "name": "Lebaran",
+        "effect": "Everyone receives THR bonus (Rp 2 juta)"
+      },
+      "kenaikan_bbm": {
+        "name": "Fuel Price Hike",
+        "effect": "Everyone pays Rp 500rb travel tax"
+      },
       "banjir_jakarta": {
         "name": "Jakarta Flood",
         "effect": "All Jakarta tiles drop 1 tier for 3 rounds"
