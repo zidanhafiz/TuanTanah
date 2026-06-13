@@ -3,6 +3,7 @@ import { buyProperty, endTurn, payJail, rollDice, takeLoan, useAbility } from '.
 import { mutateRoom } from '../rooms.js'
 import type { GameStore } from '../store.js'
 import { broadcastState, guard, requireSession, type TTServer, type TTSocket } from './common.js'
+import { concludeIfWon } from './gameOver.js'
 
 const NOT_IMPLEMENTED = 'This action is not implemented yet'
 
@@ -43,6 +44,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       const { roomId, playerId } = requireSession(socket)
       await mutateRoom(store, roomId, (state) => endTurn(state, playerId))
       await broadcastState(io, store, roomId)
+      await concludeIfWon(io, store, roomId)
     }),
   )
 

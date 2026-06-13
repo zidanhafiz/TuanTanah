@@ -1,7 +1,9 @@
 import {
   BOARD,
   REGIONS,
+  ROLES,
   TRANSPORT_BUY_PRICE,
+  type FinalStanding,
   type MetaActionType,
   type TileId,
 } from '@tuan-tanah/shared'
@@ -30,6 +32,7 @@ export function Game() {
   const useAbility = useGame((s) => s.useAbility)
   const payJail = useGame((s) => s.payJail)
   const endTurn = useGame((s) => s.endTurn)
+  const finalStandings = useGame((s) => s.finalStandings)
 
   const [pendingMeta, setPendingMeta] = useState<{
     action: MetaActionType
@@ -184,6 +187,79 @@ export function Game() {
       </aside>
 
       <PinjolModal open={showPinjol} onClose={() => setShowPinjol(false)} />
+
+      {phase === 'ended' && (
+        <GameOverScreen
+          standings={finalStandings ?? fallbackStandings(state)}
+          winnerId={state.winner ?? null}
+          myId={me?.id ?? null}
+        />
+      )}
+    </div>
+  )
+}
+
+/** Derive a minimal standings list (no wealth) when the game_over event was missed. */
+function fallbackStandings(state: ReturnType<typeof useGame.getState>['state']): FinalStanding[] {
+  if (!state) return []
+  return state.players
+    .map((p) => ({
+      playerId: p.id,
+      name: p.name,
+      role: p.role,
+      wealth: p.cash,
+      eliminated: p.isEliminated,
+    }))
+    .sort((a, b) => {
+      if (a.playerId === state.winner) return -1
+      if (b.playerId === state.winner) return 1
+      return b.wealth - a.wealth
+    })
+}
+
+function GameOverScreen({
+  standings,
+  winnerId,
+  myId,
+}: {
+  standings: FinalStanding[]
+  winnerId: string | null
+  myId: string | null
+}) {
+  const winner = standings.find((s) => s.playerId === winnerId) ?? standings[0]
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl bg-slate-800 p-6 shadow-2xl">
+        <div className="text-center">
+          <div className="text-5xl">🏆</div>
+          <div className="mt-1 text-sm uppercase tracking-wide text-slate-400">Game over</div>
+          <div className="mt-1 text-2xl font-black text-amber-300">{winner?.name ?? '—'} wins!</div>
+        </div>
+
+        <ol className="mt-5 space-y-2">
+          {standings.map((s, i) => (
+            <li
+              key={s.playerId}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${
+                s.playerId === winnerId ? 'bg-amber-500/20' : 'bg-slate-900/60'
+              }`}
+            >
+              <span className="w-5 text-center font-bold text-slate-400">{i + 1}</span>
+              <span className="flex-1 truncate">
+                <span className="font-semibold">{s.name}</span>
+                {s.playerId === myId && (
+                  <span className="ml-1 text-[11px] text-sky-300">(you)</span>
+                )}
+                <span className="ml-1 text-[11px] text-slate-500">
+                  {s.role ? ROLES[s.role].name : '—'}
+                </span>
+                {s.eliminated && <span className="ml-1 text-[11px] text-red-400">eliminated</span>}
+              </span>
+              <span className="font-mono text-amber-200">{formatRupiah(s.wealth)}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
     </div>
   )
 }

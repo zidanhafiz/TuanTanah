@@ -2,6 +2,7 @@ import {
   HUSTLE_CARDS,
   KEJADIAN_CARDS,
   type AbilityType,
+  type FinalStanding,
   type GameState,
   type MetaActionType,
   type Role,
@@ -69,6 +70,7 @@ interface GameStore {
   error: string | null
   joining: boolean
   lastCard: DrawnCard | null
+  finalStandings: FinalStanding[] | null
 
   // derived
   me: () => GameState['players'][number] | null
@@ -99,6 +101,7 @@ export const useGame = create<GameStore>((set, get) => ({
   error: null,
   joining: false,
   lastCard: null,
+  finalStandings: null,
 
   me: () => {
     const { state, playerId } = get()
@@ -139,13 +142,14 @@ export const useGame = create<GameStore>((set, get) => ({
         lastCard: { type, cardId: card, name: name ?? card, playerId, at: Date.now() },
       })
     })
+    socket.on('game_over', ({ finalStandings }) => set({ finalStandings }))
 
     // autoConnect may have already fired 'connect' before this listener was registered.
     if (socket.connected) attemptRejoin()
   },
 
   join: (playerName, roomId) => {
-    set({ joining: true, error: null })
+    set({ joining: true, error: null, finalStandings: null })
     socket.emit('join_room', { roomId: roomId ?? '', playerName }, (res) => {
       set({ joining: false })
       if (res.ok) {

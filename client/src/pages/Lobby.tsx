@@ -3,7 +3,12 @@ import {
   ROLES,
   STARTING_CASH_MAX,
   STARTING_CASH_MIN,
+  TARGET_WEALTH_MAX,
+  TARGET_WEALTH_MIN,
+  TARGET_WEALTH_STEP,
+  TIME_LIMIT_OPTIONS,
   type Role,
+  type WinCondition,
 } from '@tuan-tanah/shared'
 import { formatRupiah, useGame } from '../store/gameStore.js'
 
@@ -20,6 +25,9 @@ export function Lobby() {
   const roleOwner = (role: Role) => state.players.find((p) => p.role === role)
   const everyoneReady = state.players.every((p) => p.role !== null)
   const canStart = isMaster && state.players.length >= 2 && everyoneReady
+  const { winCondition } = state.settings
+  const showTime = winCondition === 'time' || winCondition === 'both'
+  const showWealth = winCondition === 'wealth' || winCondition === 'both'
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -115,6 +123,74 @@ export function Lobby() {
               />
             )}
           </div>
+
+          <div>
+            <h2 className="mb-2 text-sm font-semibold uppercase text-slate-400">Win condition</h2>
+            <div className="grid grid-cols-3 gap-1">
+              {(['time', 'wealth', 'both'] as WinCondition[]).map((wc) => {
+                const active = state.settings.winCondition === wc
+                return (
+                  <button
+                    key={wc}
+                    disabled={!isMaster}
+                    onClick={() => updateSettings({ winCondition: wc })}
+                    className={`rounded-lg py-1.5 text-xs font-semibold capitalize transition ${
+                      active
+                        ? 'bg-amber-500 text-slate-900'
+                        : 'bg-slate-800 text-slate-300 enabled:hover:bg-slate-700 disabled:opacity-60'
+                    }`}
+                  >
+                    {wc}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {showTime && (
+            <div>
+              <h2 className="mb-2 text-sm font-semibold uppercase text-slate-400">Time limit</h2>
+              <div className="grid grid-cols-4 gap-1">
+                {TIME_LIMIT_OPTIONS.map((min) => {
+                  const active = state.settings.timeLimitMinutes === min
+                  return (
+                    <button
+                      key={min}
+                      disabled={!isMaster}
+                      onClick={() => updateSettings({ timeLimitMinutes: min })}
+                      className={`rounded-lg py-1.5 text-xs font-semibold transition ${
+                        active
+                          ? 'bg-amber-500 text-slate-900'
+                          : 'bg-slate-800 text-slate-300 enabled:hover:bg-slate-700 disabled:opacity-60'
+                      }`}
+                    >
+                      {min}m
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {showWealth && (
+            <div>
+              <h2 className="mb-2 text-sm font-semibold uppercase text-slate-400">Target wealth</h2>
+              <div className="text-lg font-bold text-amber-300">
+                {formatRupiah(state.settings.targetWealth ?? TARGET_WEALTH_MIN)}
+              </div>
+              {isMaster && (
+                <input
+                  type="range"
+                  min={TARGET_WEALTH_MIN}
+                  max={TARGET_WEALTH_MAX}
+                  step={TARGET_WEALTH_STEP}
+                  value={state.settings.targetWealth ?? TARGET_WEALTH_MIN}
+                  onChange={(e) => updateSettings({ targetWealth: Number(e.target.value) })}
+                  className="mt-2 w-full accent-amber-400"
+                />
+              )}
+            </div>
+          )}
 
           {isMaster ? (
             <button

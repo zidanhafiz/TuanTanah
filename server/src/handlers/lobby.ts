@@ -3,6 +3,7 @@ import { createRoom, mutateRoom } from '../rooms.js'
 import { clearSession, setSession } from '../sessions.js'
 import type { GameStore } from '../store.js'
 import { broadcastState, guard, requireSession, type TTServer, type TTSocket } from './common.js'
+import { scheduleTimeLimit } from './gameOver.js'
 
 export function registerLobbyHandlers(io: TTServer, socket: TTSocket, store: GameStore): void {
   socket.on('join_room', async (payload, ack) => {
@@ -80,6 +81,7 @@ export function registerLobbyHandlers(io: TTServer, socket: TTSocket, store: Gam
       const { roomId, playerId } = requireSession(socket)
       await mutateRoom(store, roomId, (state) => startGame(state, playerId))
       await broadcastState(io, store, roomId)
+      await scheduleTimeLimit(io, store, roomId)
     }),
   )
 

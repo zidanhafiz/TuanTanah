@@ -20,6 +20,9 @@ import {
   STARTING_CASH_DEFAULT,
   STARTING_CASH_MAX,
   STARTING_CASH_MIN,
+  TARGET_WEALTH_MAX,
+  TARGET_WEALTH_MIN,
+  TIME_LIMIT_OPTIONS,
   TRANSPORT_BUY_PRICE,
   TRANSPORT_RENT,
 } from '@tuan-tanah/shared'
@@ -151,6 +154,22 @@ export function updateSettings(
       STARTING_CASH_MAX,
       Math.max(STARTING_CASH_MIN, partial.startingCash),
     )
+  }
+  if (partial.winCondition !== undefined) {
+    if (!['time', 'wealth', 'both'].includes(partial.winCondition)) {
+      throw new EngineError('Invalid win condition')
+    }
+  }
+  if (partial.targetWealth !== undefined) {
+    next.targetWealth = Math.min(
+      TARGET_WEALTH_MAX,
+      Math.max(TARGET_WEALTH_MIN, partial.targetWealth),
+    )
+  }
+  if (partial.timeLimitMinutes !== undefined) {
+    if (!TIME_LIMIT_OPTIONS.includes(partial.timeLimitMinutes)) {
+      throw new EngineError('Invalid time limit')
+    }
   }
   if (partial.enabledRoles) {
     // Unpick any roles that became disabled.
@@ -427,3 +446,4 @@ export * from './board.js'
 export { collectPassiveIncome } from './turn.js'
 export { useAbility } from './abilities.js'
 export { takeLoan } from './pinjol.js'
+export { finalStandings, playerWealth, resolveGameOver } from './elimination.js'

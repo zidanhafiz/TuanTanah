@@ -18,6 +18,13 @@ export const STARTING_CASH_DEFAULT = jt(15)
 // Bank starts effectively unlimited; tracked for accounting.
 export const BANK_STARTING = jt(1_000_000)
 
+// ---- Win conditions (room master sets in lobby) ----
+export const TIME_LIMIT_OPTIONS = [30, 60, 90, 120] as const
+export const TARGET_WEALTH_MIN = jt(50) // Rp 50 juta
+export const TARGET_WEALTH_MAX = jt(500) // Rp 500 juta
+export const TARGET_WEALTH_DEFAULT = jt(100) // matches createGameState default
+export const TARGET_WEALTH_STEP = jt(10)
+
 // ---- Regions ----
 
 export type RegionId =
