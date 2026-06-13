@@ -426,3 +426,4 @@ export function endTurn(state: GameState, playerId: string): void {
 export * from './board.js'
 export { collectPassiveIncome } from './turn.js'
 export { useAbility } from './abilities.js'
+export { takeLoan } from './pinjol.js'

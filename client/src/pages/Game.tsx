@@ -10,6 +10,7 @@ import { AbilityBar } from '../components/AbilityBar/AbilityBar.js'
 import { Board } from '../components/Board/Board.js'
 import { EventLog } from '../components/EventLog/EventLog.js'
 import { MetaActionBar, type MetaActionDef } from '../components/MetaActionBar/MetaActionBar.js'
+import { PinjolModal } from '../components/PinjolModal/PinjolModal.js'
 import { PlayerPanel } from '../components/PlayerPanel/PlayerPanel.js'
 import { formatRupiah, useGame } from '../store/gameStore.js'
 
@@ -34,6 +35,7 @@ export function Game() {
     action: MetaActionType
     target: 'player' | 'tile'
   } | null>(null)
+  const [showPinjol, setShowPinjol] = useState(false)
 
   const usedMetaAction = state?.turn.usedMetaAction ?? false
   // Clear any in-progress target selection when it's no longer actionable.
@@ -136,6 +138,12 @@ export function Game() {
                     />
                   )}
                   {me && <AbilityBar me={me} onUse={useAbility} />}
+                  <button
+                    onClick={() => setShowPinjol(true)}
+                    className="w-full rounded-lg bg-slate-700 py-2 text-sm font-semibold hover:bg-slate-600"
+                  >
+                    🏦 Pinjol
+                  </button>
                   {pendingMeta && (
                     <div className="flex items-center justify-between rounded-lg bg-sky-500/15 px-3 py-2 text-xs text-sky-200">
                       <span>
@@ -174,6 +182,8 @@ export function Game() {
           <EventLog state={state} />
         </div>
       </aside>
+
+      <PinjolModal open={showPinjol} onClose={() => setShowPinjol(false)} />
     </div>
   )
 }

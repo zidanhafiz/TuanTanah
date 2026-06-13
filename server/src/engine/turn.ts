@@ -3,6 +3,7 @@ import { PROPERTY_TIERS, REGIONS, REGION_SET_PASSIVE_MULTIPLIER } from '@tuan-ta
 import type { GameState, Player, RupiahAmount } from '@tuan-tanah/shared'
 import { getTileDef, ownsFullRegion } from './board.js'
 import { applyPassiveMultiplier, tickEffects } from './effects.js'
+import { chargeInterest } from './pinjol.js'
 import { pushLog } from './util.js'
 
 /** Passive income from a player's Property-track tiles (collected each turn). */
@@ -64,8 +65,9 @@ export function startTurn(state: GameState): void {
   resetTurnState(state)
   const player = state.players[state.currentPlayerIndex]
   if (!player) return
-  // Per turn structure: collect passive income, then pinjol interest (TODO).
+  // Per turn structure: collect passive income, then pay pinjol interest.
   collectPassiveIncome(state, player)
+  chargeInterest(state, player)
   pushLog(state, `${player.name}'s turn`, player.id)
 }
 

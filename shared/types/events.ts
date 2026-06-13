@@ -48,7 +48,7 @@ export interface ClientToServerEvents {
   meta_action: (payload: { action: MetaActionType; targetId?: string; tileId?: TileId }) => void
   use_ability: (payload: { ability: AbilityType }) => void
   pay_jail: () => void
-  take_pinjol: (payload: { amount: RupiahAmount }) => void
+  take_pinjol: (payload: { amount: RupiahAmount; lenderId?: string }) => void
   propose_deal: (payload: { deal: NegotiationDeal }) => void
   respond_deal: (payload: { dealId: string; accept: boolean }) => void
   sell_property: (payload: { tileId: TileId }) => void

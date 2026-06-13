@@ -43,6 +43,13 @@ export function PlayerPanel({
                 {formatRupiah(p.cash)}
               </span>
             </div>
+            {p.loans.length > 0 && (
+              <div className="mt-1 text-[10px] text-amber-400">
+                🏦 {p.loans.length} loan(s) ·{' '}
+                {formatRupiah(p.loans.reduce((s, l) => s + l.amount, 0))} owed ·{' '}
+                {formatRupiah(p.loans.reduce((s, l) => s + l.interestPerRound, 0))}/round
+              </div>
+            )}
           </div>
         )
       })}
