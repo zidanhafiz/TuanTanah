@@ -17,6 +17,7 @@ import {
   PROPERTY_TIERS,
   REGIONS,
   REGION_SET_RENT_MULTIPLIER,
+  SELL_REFUND_RATE,
   STARTING_CASH_DEFAULT,
   STARTING_CASH_MAX,
   STARTING_CASH_MIN,
@@ -36,6 +37,7 @@ import type {
 } from '@tuan-tanah/shared'
 import { getTileDef, ownsFullRegion, transportOwnedCount } from './board.js'
 import { drawHustle, drawKejadian } from './cards.js'
+import { tileValue } from './elimination.js'
 import { applyRentEffects, effectiveTier } from './effects.js'
 import { buyPriceMultiplier, investorCut, isTaxImmune, salaryFor } from './roles.js'
 import { advanceTurn, startTurn } from './turn.js'
@@ -426,6 +428,26 @@ export function buyProperty(state: GameState, playerId: string, tileId: TileId):
   }
   buyTile(state, player, tileId)
   state.turn.pendingBuyTileId = null
+}
+
+/** Sell an owned tile back to the bank for a partial refund (SELL_REFUND_RATE of invested value). */
+export function sellProperty(state: GameState, playerId: string, tileId: TileId): void {
+  const player = requireTurn(state, playerId)
+  const tile = state.tiles[tileId]
+  if (!tile) throw new EngineError('Invalid tile')
+  if (tile.ownerId !== player.id) throw new EngineError("You don't own that tile")
+
+  const refund = Math.round(tileValue(tile) * SELL_REFUND_RATE)
+  player.cash += refund
+  state.bank -= refund
+  tile.ownerId = null
+  tile.track = null
+  tile.tier = 0
+  pushLog(
+    state,
+    `${player.name} sold ${getTileDef(tileId).name} back to the bank for ${rupiah(refund)}`,
+    player.id,
+  )
 }
 
 export function payJail(state: GameState, playerId: string): void {

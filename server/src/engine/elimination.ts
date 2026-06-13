@@ -6,7 +6,7 @@ import { rupiah } from './index.js'
 import { pushLog } from './util.js'
 
 /** Market value of a single owned tile at its current tier. */
-function tileValue(tile: TileState): RupiahAmount {
+export function tileValue(tile: TileState): RupiahAmount {
   const def = getTileDef(tile.id)
   const base =
     def.type === 'transport' ? TRANSPORT_BUY_PRICE : def.region ? REGIONS[def.region].buyPrice : 0

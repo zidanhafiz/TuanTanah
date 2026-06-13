@@ -84,6 +84,7 @@ interface GameStore {
   startGame: () => void
   roll: () => void
   buy: (tileId: TileId) => void
+  sell: (tileId: TileId) => void
   metaAction: (action: MetaActionType, targetId?: string, tileId?: TileId) => void
   useAbility: (ability: AbilityType) => void
   takePinjol: (amount: RupiahAmount, lenderId?: string) => void
@@ -165,6 +166,7 @@ export const useGame = create<GameStore>((set, get) => ({
   startGame: () => socket.emit('start_game'),
   roll: () => socket.emit('roll_dice'),
   buy: (tileId) => socket.emit('buy_property', { tileId }),
+  sell: (tileId) => socket.emit('sell_property', { tileId }),
   metaAction: (action, targetId, tileId) =>
     socket.emit('meta_action', { action, targetId, tileId }),
   useAbility: (ability) => socket.emit('use_ability', { ability }),

@@ -318,6 +318,10 @@ export const PINJOL_INTEREST_RATE = 0.1 // 10% per round
 export const PINJOL_MAX_LOANS = 3
 export const PINJOL_BORROW_LIMIT_MULTIPLE = 3 // ≤ 3× total property value
 
+// ---- Selling ----
+/** Fraction of a tile's invested value (buy price + build costs) refunded when sold back to the bank. */
+export const SELL_REFUND_RATE = 0.5
+
 // ---- Jail ----
 export const JAIL_DURATION_TURNS = 2
 export const JAIL_EXIT_COST = jt(1)

@@ -14,6 +14,7 @@ import { EventLog } from '../components/EventLog/EventLog.js'
 import { MetaActionBar, type MetaActionDef } from '../components/MetaActionBar/MetaActionBar.js'
 import { PinjolModal } from '../components/PinjolModal/PinjolModal.js'
 import { PlayerPanel } from '../components/PlayerPanel/PlayerPanel.js'
+import { PropertyModal } from '../components/PropertyModal/PropertyModal.js'
 import { formatRupiah, useGame } from '../store/gameStore.js'
 
 function basePrice(tileId: TileId): number {
@@ -39,6 +40,7 @@ export function Game() {
     target: 'player' | 'tile'
   } | null>(null)
   const [showPinjol, setShowPinjol] = useState(false)
+  const [selectedTile, setSelectedTile] = useState<TileId | null>(null)
 
   const usedMetaAction = state?.turn.usedMetaAction ?? false
   // Clear any in-progress target selection when it's no longer actionable.
@@ -71,15 +73,15 @@ export function Game() {
     metaAction(pendingMeta.action, undefined, tileId)
     setPendingMeta(null)
   }
+  // Clicking a tile (when not selecting a meta-action target) opens its property modal.
+  const handleTileClick =
+    pendingMeta?.target === 'tile' ? handleSelectTile : (tileId: TileId) => setSelectedTile(tileId)
 
   return (
     <div className="mx-auto flex max-w-[1400px] flex-col gap-4 p-4 lg:flex-row">
       {/* Board */}
       <div className="flex flex-1 justify-center">
-        <Board
-          state={state}
-          onSelectTile={pendingMeta?.target === 'tile' ? handleSelectTile : undefined}
-        />
+        <Board state={state} onSelectTile={handleTileClick} />
       </div>
 
       {/* Sidebar */}
@@ -187,6 +189,15 @@ export function Game() {
       </aside>
 
       <PinjolModal open={showPinjol} onClose={() => setShowPinjol(false)} />
+
+      {selectedTile !== null && (
+        <PropertyModal
+          key={selectedTile}
+          tileId={selectedTile}
+          open={selectedTile !== null}
+          onClose={() => setSelectedTile(null)}
+        />
+      )}
 
       {phase === 'ended' && (
         <GameOverScreen
