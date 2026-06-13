@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useGame } from '../store/gameStore.js'
 import { Button } from './ui/index.js'
 
 /** Copies the shareable room link (`/room/CODE`) to the clipboard. */
 export function ShareLinkButton({ code, className }: { code: string; className?: string }) {
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
 
   const share = async () => {
@@ -13,7 +15,7 @@ export function ShareLinkButton({ code, className }: { code: string; className?:
       await navigator.clipboard.writeText(url)
     } catch {
       // Clipboard blocked (insecure context / permissions) — fall back to prompt.
-      window.prompt('Copy this room link:', url)
+      window.prompt(t('roomActions.copyPrompt'), url)
       return
     }
     setCopied(true)
@@ -22,7 +24,7 @@ export function ShareLinkButton({ code, className }: { code: string; className?:
 
   return (
     <Button variant="secondary" size="sm" onClick={share} className={`text-xs ${className ?? ''}`}>
-      {copied ? '✓ Link copied' : '🔗 Share link'}
+      {copied ? t('roomActions.linkCopied') : t('roomActions.shareLink')}
     </Button>
   )
 }
@@ -33,13 +35,14 @@ export function ShareLinkButton({ code, className }: { code: string; className?:
  */
 export function LeaveButton({
   confirm,
-  label = 'Leave',
+  label,
   className,
 }: {
   confirm?: string
   label?: string
   className?: string
 }) {
+  const { t } = useTranslation()
   const leave = useGame((s) => s.leave)
   const navigate = useNavigate()
 
@@ -51,7 +54,7 @@ export function LeaveButton({
 
   return (
     <Button variant="danger" size="sm" onClick={onClick} className={`text-xs ${className ?? ''}`}>
-      {label}
+      {label ?? t('roomActions.leave')}
     </Button>
   )
 }

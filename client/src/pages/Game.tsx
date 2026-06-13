@@ -1,13 +1,14 @@
 import {
   BOARD,
   REGIONS,
-  ROLES,
   TRANSPORT_BUY_PRICE,
   type FinalStanding,
   type MetaActionType,
   type TileId,
 } from '@tuan-tanah/shared'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { roleName, tileName } from '../i18n/gameData.js'
 import { AbilityBar } from '../components/AbilityBar/AbilityBar.js'
 import { Board } from '../components/Board/Board.js'
 import { DebtPanel } from '../components/DebtPanel/DebtPanel.js'
@@ -28,6 +29,7 @@ function basePrice(tileId: TileId): number {
 }
 
 export function Game() {
+  const { t } = useTranslation()
   const state = useGame((s) => s.state)
   const me = useGame((s) => s.me)()
   const isMyTurn = useGame((s) => s.isMyTurn)()
@@ -99,25 +101,22 @@ export function Game() {
       <aside className="flex w-full flex-col gap-4 lg:w-80">
         <Card className="p-3">
           <div className="flex items-center justify-between text-xs text-ink-muted">
-            <span>Room {state.roomId}</span>
-            <span>Round {state.round}</span>
+            <span>{t('game.room', { code: state.roomId })}</span>
+            <span>{t('game.round', { round: state.round })}</span>
           </div>
           <div className="mt-2 flex justify-end">
             {phase === 'ended' ? (
-              <LeaveButton label="Back home" />
+              <LeaveButton label={t('common.backHome')} />
             ) : (
-              <LeaveButton
-                confirm="Leave the game? You'll forfeit your properties and can't rejoin."
-                label="Leave game"
-              />
+              <LeaveButton confirm={t('game.leaveConfirm')} label={t('game.leaveGame')} />
             )}
           </div>
 
           {phase === 'ended' ? (
             <Card tone="accent" flat className="mt-3 p-3 text-center">
-              <div className="text-sm text-ink-muted">Winner</div>
+              <div className="text-sm text-ink-muted">{t('game.winner')}</div>
               <div className="text-xl font-bold text-ink">
-                {state.players.find((p) => p.id === state.winner)?.name ?? '—'}
+                {state.players.find((p) => p.id === state.winner)?.name ?? t('common.dash')}
               </div>
             </Card>
           ) : myDebt ? (
@@ -126,11 +125,11 @@ export function Game() {
             </div>
           ) : debtor ? (
             <Card tone="danger" flat className="mt-3 py-3 text-center text-sm text-ink">
-              Paused — waiting for{' '}
+              {t('game.pausedWaitingPre')}{' '}
               <span className="font-semibold" style={{ color: debtor.color }}>
                 {debtor.name}
               </span>{' '}
-              to settle a debt…
+              {t('game.pausedWaitingPost')}
             </Card>
           ) : (
             <div className="mt-3 space-y-2">
@@ -138,22 +137,25 @@ export function Game() {
                 <>
                   {me?.inJail && !turn.hasRolled && (
                     <Button variant="secondary" size="sm" block onClick={payJail}>
-                      Pay bail (Rp 1 juta)
+                      {t('game.payBail')}
                     </Button>
                   )}
                   {!turn.hasRolled && (
                     <Button block onClick={roll}>
-                      🎲 {me?.inJail ? 'Roll for doubles' : 'Roll dice'}
+                      🎲 {me?.inJail ? t('game.rollForDoubles') : t('game.rollDice')}
                     </Button>
                   )}
                   {turn.hasRolled && pending !== null && (
                     <Button variant="success" block onClick={() => buy(pending)}>
-                      Buy {BOARD[pending]!.name} — {formatRupiah(basePrice(pending))}
+                      {t('game.buy', {
+                        name: tileName(t, pending),
+                        price: formatRupiah(basePrice(pending)),
+                      })}
                     </Button>
                   )}
                   {turn.hasRolled && (
                     <Button variant="secondary" size="sm" block onClick={endTurn}>
-                      {pending !== null ? 'Skip & end turn' : 'End turn'}
+                      {pending !== null ? t('game.skipEndTurn') : t('game.endTurn')}
                     </Button>
                   )}
                   {!turn.usedMetaAction && (
@@ -165,7 +167,7 @@ export function Game() {
                   )}
                   {me && <AbilityBar me={me} onUse={useAbility} />}
                   <Button variant="secondary" size="sm" block onClick={() => setShowPinjol(true)}>
-                    🏦 Pinjol
+                    {t('game.pinjol')}
                   </Button>
                   {pendingMeta && (
                     <Card
@@ -174,21 +176,29 @@ export function Game() {
                       className="flex items-center justify-between px-3 py-2 text-xs text-ink"
                     >
                       <span>
-                        Select a {pendingMeta.target} on the{' '}
-                        {pendingMeta.target === 'tile' ? 'board' : 'players list'}…
+                        {t('game.selectTarget', {
+                          target:
+                            pendingMeta.target === 'tile'
+                              ? t('game.targetTile')
+                              : t('game.targetPlayer'),
+                          location:
+                            pendingMeta.target === 'tile'
+                              ? t('game.locationBoard')
+                              : t('game.locationPlayers'),
+                        })}
                       </span>
                       <button
                         onClick={() => setPendingMeta(null)}
                         className="font-bold text-ink hover:text-info-strong"
                       >
-                        Cancel
+                        {t('common.cancel')}
                       </button>
                     </Card>
                   )}
                 </>
               ) : (
                 <Card tone="sunken" flat className="py-3 text-center text-sm text-ink-muted">
-                  Waiting for{' '}
+                  {t('game.waitingFor')}{' '}
                   <span className="font-semibold" style={{ color: current?.color }}>
                     {current?.name}
                   </span>
@@ -197,7 +207,7 @@ export function Game() {
               )}
               {me && !me.isEliminated && (
                 <Button variant="secondary" size="sm" block onClick={() => setShowNegotiate(true)}>
-                  🤝 Negotiate
+                  {t('game.negotiate')}
                 </Button>
               )}
             </div>
@@ -265,14 +275,19 @@ function GameOverScreen({
   winnerId: string | null
   myId: string | null
 }) {
+  const { t } = useTranslation()
   const winner = standings.find((s) => s.playerId === winnerId) ?? standings[0]
   return (
     <div className="fixed inset-0 z-modal flex items-center justify-center bg-ink/40 p-4">
       <div className="w-full max-w-md rounded-xl border-2 border-ink bg-surface p-6 shadow-brutal-xl">
         <div className="text-center">
           <div className="text-5xl">🏆</div>
-          <div className="mt-1 text-sm uppercase tracking-wide text-ink-muted">Game over</div>
-          <div className="mt-1 text-2xl font-black text-ink">{winner?.name ?? '—'} wins!</div>
+          <div className="mt-1 text-sm uppercase tracking-wide text-ink-muted">
+            {t('game.gameOver.title')}
+          </div>
+          <div className="mt-1 text-2xl font-black text-ink">
+            {t('game.gameOver.wins', { name: winner?.name ?? t('common.dash') })}
+          </div>
         </div>
 
         <ol className="mt-5 space-y-2">
@@ -288,15 +303,15 @@ function GameOverScreen({
                 <span className="font-semibold text-ink">{s.name}</span>
                 {s.playerId === myId && (
                   <Badge tone="info" className="ml-1">
-                    you
+                    {t('game.gameOver.you')}
                   </Badge>
                 )}
                 <span className="ml-1 text-[11px] text-ink-faint">
-                  {s.role ? ROLES[s.role].name : '—'}
+                  {s.role ? roleName(t, s.role) : t('common.dash')}
                 </span>
                 {s.eliminated && (
                   <Badge tone="danger" className="ml-1">
-                    eliminated
+                    {t('game.gameOver.eliminated')}
                   </Badge>
                 )}
               </span>
@@ -306,7 +321,7 @@ function GameOverScreen({
         </ol>
 
         <div className="mt-5 flex justify-center">
-          <LeaveButton label="🏠 Back to home" />
+          <LeaveButton label={t('common.backHomeIcon')} />
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useGame } from '../../store/gameStore.js'
 
 /**
@@ -7,6 +8,7 @@ import { useGame } from '../../store/gameStore.js'
  * state from the store and shows once per transition (not on every re-render).
  */
 export function TurnBanner() {
+  const { t } = useTranslation()
   const isMyTurn = useGame((s) => s.isMyTurn)()
   const phase = useGame((s) => s.state?.phase)
   const [show, setShow] = useState(false)
@@ -33,7 +35,7 @@ export function TurnBanner() {
           className="pointer-events-none fixed left-1/2 top-6 z-toast -translate-x-1/2 rounded-xl border-2 border-ink bg-accent px-6 py-2.5 font-display text-xl uppercase tracking-tight text-ink shadow-brutal-lg"
           role="status"
         >
-          Your turn!
+          {t('turnBanner.yourTurn')}
         </motion.div>
       )}
     </AnimatePresence>

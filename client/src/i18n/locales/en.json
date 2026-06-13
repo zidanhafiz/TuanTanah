@@ -1,0 +1,370 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "you": "you",
+    "youParen": " (you)",
+    "host": "host",
+    "offline": "offline",
+    "backHome": "Back home",
+    "backHomeIcon": "🏠 Back to home",
+    "dash": "—"
+  },
+  "connection": {
+    "connected": "Connected to server",
+    "connecting": "Connecting…"
+  },
+  "home": {
+    "title": "Tuan Tanah",
+    "subtitle": "Indonesian-flavored Monopoly 🇮🇩",
+    "yourName": "Your name",
+    "namePlaceholder": "e.g. Budi",
+    "createRoom": "Create new room",
+    "orJoin": "or join",
+    "roomCodePlaceholder": "ROOM CODE",
+    "join": "Join"
+  },
+  "roomGate": {
+    "invited": "You've been invited to a room",
+    "roomCode": "Room code",
+    "joining": "Joining…",
+    "joinRoom": "Join room",
+    "backHome": "← Back home",
+    "reconnecting": "Reconnecting to your game…",
+    "connecting": "Connecting to server…"
+  },
+  "roomActions": {
+    "linkCopied": "✓ Link copied",
+    "shareLink": "🔗 Share link",
+    "copyPrompt": "Copy this room link:",
+    "leave": "Leave"
+  },
+  "lobby": {
+    "loading": "Loading lobby…",
+    "title": "Lobby",
+    "subtitle": "Pick a role and wait for the room master to start.",
+    "roomCode": "Room code",
+    "leaveRoom": "Leave room",
+    "roles": "Roles",
+    "salary": "Salary {{amount}}",
+    "players": "Players ({{count}})",
+    "startingCash": "Starting cash",
+    "winCondition": "Win condition",
+    "timeLimit": "Time limit",
+    "timeLimitValue": "{{count}}m",
+    "targetWealth": "Target wealth",
+    "enabledRoles": "Enabled roles",
+    "startGame": "Start game",
+    "waitingForRoles": "Waiting for roles…",
+    "waitingForHost": "Waiting for the host to start…",
+    "winConditions": {
+      "time": "Time",
+      "wealth": "Wealth",
+      "both": "Both"
+    }
+  },
+  "game": {
+    "room": "Room {{code}}",
+    "round": "Round {{round}}",
+    "winner": "Winner",
+    "leaveGame": "Leave game",
+    "leaveConfirm": "Leave the game? You'll forfeit your properties and can't rejoin.",
+    "payBail": "Pay bail (Rp 1 million)",
+    "rollForDoubles": "Roll for doubles",
+    "rollDice": "Roll dice",
+    "buy": "Buy {{name}} — {{price}}",
+    "skipEndTurn": "Skip & end turn",
+    "endTurn": "End turn",
+    "pinjol": "🏦 Pinjol",
+    "negotiate": "🤝 Negotiate",
+    "selectTarget": "Select a {{target}} on the {{location}}…",
+    "targetPlayer": "player",
+    "targetTile": "tile",
+    "locationBoard": "board",
+    "locationPlayers": "players list",
+    "waitingFor": "Waiting for",
+    "pausedWaitingPre": "Paused — waiting for",
+    "pausedWaitingPost": "to settle a debt…",
+    "gameOver": {
+      "title": "Game over",
+      "wins": "{{name}} wins!",
+      "you": "you",
+      "eliminated": "eliminated"
+    }
+  },
+  "board": {
+    "title": "Tuan Tanah",
+    "round": "Round {{round}}",
+    "turn": "Turn:",
+    "types": {
+      "go": "GO",
+      "tax": "Tax",
+      "transport": "Transport",
+      "event": "Event",
+      "hustle": "Hustle",
+      "jail_visit": "Visiting",
+      "jail_go": "Jail!",
+      "parking": "Parking"
+    }
+  },
+  "eventLog": {
+    "title": "Event log",
+    "empty": "No events yet.",
+    "roundPrefix": "R{{round}} · "
+  },
+  "card": {
+    "hustle": "Hustle",
+    "kejadianNasional": "National Event",
+    "earn": "Earn {{amount}}",
+    "drawnBy": "Drawn by"
+  },
+  "debt": {
+    "title": "⚠️ Debt due",
+    "owePre": "You owe",
+    "oweTo": " to {{name}}",
+    "cashShort": "Cash {{cash}} · short {{shortfall}}",
+    "autoSettleHint": "Raise the cash and it settles automatically — click one of your properties on the board to sell it, or take a pinjol.",
+    "takePinjol": "🏦 Take a pinjol",
+    "giveUpConfirm": "Give up and be eliminated? Your properties return to the bank.",
+    "confirmBankruptcy": "Confirm — declare bankruptcy",
+    "keepPlaying": "Keep playing",
+    "giveUp": "Give up (declare bankruptcy)"
+  },
+  "pinjol": {
+    "title": "🏦 Pinjol — Take a loan",
+    "terms": "10% interest/round · max {{maxLoans}} loans · borrow up to {{limit}}",
+    "lender": "Lender",
+    "bank": "Bank",
+    "notEnoughToLend": "Not enough cash to lend",
+    "activeLoans_one": "{{count}} active loan · {{owed}} owed",
+    "activeLoans_other": "{{count}} active loans · {{owed}} owed",
+    "maxLoansReached": "Max loans reached",
+    "overBorrowLimit": "Over borrow limit",
+    "lenderShort": "Lender short on cash",
+    "borrow": "Borrow {{amount}}",
+    "cancel": "Cancel"
+  },
+  "meta": {
+    "title": "Meta action (1 per turn)",
+    "invest": "💰 Invest",
+    "work": "💼 Work",
+    "hustle": "🎴 Hustle",
+    "lobby": "🗣️ Lobby",
+    "sabotage": "💣 Sabotage",
+    "korupsi": "🕵️ Corruption",
+    "negotiate": "🤝 Negotiate",
+    "chooseBeforeRolling": "Choose before rolling — skips your move"
+  },
+  "ability": {
+    "title": "Role ability (once per game)",
+    "viralBoost": "✨ Viral Boost",
+    "viralBoostHint": "3× passive income for 3 rounds — once per game",
+    "blockKejadian": "🛡️ Block Event",
+    "blockKejadianHint": "Nullify the next National Event card — once per game"
+  },
+  "negotiation": {
+    "title": "🤝 Propose a deal",
+    "with": "With",
+    "selectPlayer": "Select a player…",
+    "dealType": "Deal type",
+    "dealTypes": {
+      "property_swap": "Property swap",
+      "cash_for_property": "Cash for property",
+      "rent_immunity": "Rent immunity",
+      "revenue_share": "Revenue share"
+    },
+    "yourTileToGive": "Your tile to give",
+    "selectYourTile": "Select your tile…",
+    "theirTileImmunity": "Their tile for immunity",
+    "theirTileWant": "Their tile you want",
+    "selectTheirTile": "Select their tile…",
+    "pickPlayerFirst": "Pick a player first",
+    "priceYouPay": "Price you pay (juta)",
+    "yourOffer": "Your offer (juta)",
+    "sharePercent": "Share %",
+    "whoShares": "Who shares income",
+    "youShare": "You share",
+    "theyShare": "They share",
+    "duration": "Duration (rounds)",
+    "sendProposal": "Send proposal",
+    "cancel": "Cancel",
+    "proposes": "🤝 {{name}} proposes",
+    "reject": "Reject",
+    "accept": "Accept",
+    "someone": "Someone",
+    "tileFallback": "tile {{id}}",
+    "desc": {
+      "property_swap": "{{from}} offers their {{offer}} in exchange for your {{request}}.",
+      "cash_for_property": "{{from}} offers {{cash}} to buy your {{request}}.",
+      "rent_immunity": "{{from}} pays you {{cash}} for {{rounds}}-round rent immunity on your {{request}}.",
+      "revenue_share_proposer": "{{from}} will share {{percent}}% of their passive income with you for {{rounds}} rounds.",
+      "revenue_share_target": "You would share {{percent}}% of your passive income with {{from}} for {{rounds}} rounds."
+    }
+  },
+  "voting": {
+    "title": "🗳️ Vote to skip a turn",
+    "instruction": "The most-voted player skips their next turn. {{cast}}/{{eligible}} voted.",
+    "votedForPre": "You voted for",
+    "votedForPost": ". Waiting for the others…"
+  },
+  "property": {
+    "transport": "Transport",
+    "tile": "Tile",
+    "owner": "Owner",
+    "unowned": "Unowned",
+    "level": "Level",
+    "house": "House",
+    "property": "Property",
+    "investedValue": "Invested value",
+    "cantOwn": "This tile can't be owned.",
+    "unbuilt": "Unbuilt",
+    "tierFallback": "Tier {{tier}}",
+    "buildRentCut": "Build on this tile — you earn a rent cut:",
+    "chooseTrack": "Choose a track to build:",
+    "buildHouse": "Build House ({{name}}) — {{cost}}",
+    "buildProperty": "Build Property ({{name}}) — {{cost}}",
+    "upgradeTo": "Upgrade to {{name}} — {{cost}}",
+    "sellConfirm": "Sell {{name}} back to the bank for {{refund}}?",
+    "confirmSell": "Confirm sell",
+    "sellBack": "Sell back to bank — {{refund}}",
+    "close": "Close"
+  },
+  "player": {
+    "players": "Players",
+    "jail": "🔒 jail",
+    "offline": "offline",
+    "loans_one": "🏦 {{count}} loan · {{owed}} owed · {{perRound}}/round",
+    "loans_other": "🏦 {{count}} loans · {{owed}} owed · {{perRound}}/round"
+  },
+  "turnBanner": {
+    "yourTurn": "Your turn!"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "id": "Bahasa Indonesia"
+  },
+  "data": {
+    "tiles": {
+      "4": "Income Tax",
+      "10": "Visiting Jail",
+      "16": "National Event",
+      "19": "Free Parking",
+      "20": "Go to Jail",
+      "29": "National Event",
+      "30": "Luxury Tax",
+      "37": "National Event",
+      "38": "Free Parking",
+      "39": "Gift Tax"
+    },
+    "roles": {
+      "pengusaha": { "name": "Entrepreneur", "ability": "Upgrade 2 tiers per turn" },
+      "politisi": { "name": "Politician", "ability": "Lobby costs 50% less" },
+      "freelancer": { "name": "Freelancer", "ability": "Salary 1.5× when passing GO" },
+      "investor": { "name": "Investor", "ability": "Earn 5% from every rent paid to others" },
+      "kontraktor": { "name": "Contractor", "ability": "Build on others' property for 30% cut" },
+      "ojol_driver": { "name": "Ojol Driver", "ability": "Never pay travel/movement tax" },
+      "influencer": {
+        "name": "Influencer",
+        "ability": "Once per game: viral boost 3× for 3 turns"
+      },
+      "pejabat": { "name": "Official", "ability": "Once per game: block any kejadian card" },
+      "rentenir": {
+        "name": "Loan Shark",
+        "ability": "Force one player per round to take pinjol, earns the interest"
+      },
+      "sales": {
+        "name": "Sales",
+        "ability": "Buy property 25% cheaper + earn 15% bank bonus on initiated deals"
+      }
+    },
+    "tiers": {
+      "house": {
+        "1": "Small House",
+        "2": "Medium House",
+        "3": "Large House",
+        "4": "Villa / Hotel"
+      },
+      "property": {
+        "1": "Food Stall",
+        "2": "Shop",
+        "3": "Minimarket",
+        "4": "Mall",
+        "5": "Conglomerate"
+      }
+    },
+    "kejadian": {
+      "lebaran": { "name": "Lebaran", "effect": "Everyone receives THR bonus (Rp 2 juta)" },
+      "kenaikan_bbm": { "name": "Fuel Price Hike", "effect": "Everyone pays Rp 500rb travel tax" },
+      "banjir_jakarta": {
+        "name": "Jakarta Flood",
+        "effect": "All Jakarta tiles drop 1 tier for 3 rounds"
+      },
+      "mudik_season": {
+        "name": "Mudik Season",
+        "effect": "All transport tiles earn 2× for 3 rounds"
+      },
+      "viral_medsos": {
+        "name": "Viral on Social Media",
+        "effect": "One random property earns 3× for 3 rounds"
+      },
+      "reshuffle_kabinet": {
+        "name": "Cabinet Reshuffle",
+        "effect": "All lobby effects immediately reset"
+      },
+      "inspeksi_pajak": {
+        "name": "Tax Inspection",
+        "effect": "Richest player pays 10% of their cash as fine"
+      },
+      "gempa_bumi": {
+        "name": "Earthquake",
+        "effect": "One random region's tiles lose rent bonus for 2 rounds"
+      },
+      "demo_buruh": {
+        "name": "Labor Protest",
+        "effect": "Property track passive income halved for 2 rounds"
+      },
+      "festival_budaya": {
+        "name": "Cultural Festival",
+        "effect": "Yogyakarta tiles earn 2× for 3 rounds"
+      },
+      "boom_tambang": {
+        "name": "Mining Boom",
+        "effect": "Kalimantan + Papua tiles earn 2× for 3 rounds"
+      },
+      "musim_liburan": {
+        "name": "Holiday Season",
+        "effect": "Bali + Lombok tiles earn 2× for 3 rounds"
+      },
+      "korupsi_terungkap": {
+        "name": "Corruption Exposed",
+        "effect": "Player with most pinjol loans pays Rp 3 juta fine"
+      },
+      "investasi_asing": {
+        "name": "Foreign Investment",
+        "effect": "All property track owners earn Rp 1 juta bonus"
+      },
+      "pemilu": {
+        "name": "Election",
+        "effect": "All players vote — most voted player skips next turn"
+      }
+    },
+    "hustle": {
+      "gofood_driver": "GoFood Driver",
+      "dropshipper": "Dropshipper",
+      "jual_online": "Online Selling",
+      "freelance_design": "Freelance Design",
+      "endorse_produk": "Product Endorsement",
+      "ojek_wisata": "Tour Ojek",
+      "rental_motor_bali": "Bali Motorbike Rental",
+      "jual_pulsa": "Phone Credit Sales",
+      "warung_dadakan": "Pop-up Stall",
+      "content_creator": "Content Creator",
+      "reseller_thrift": "Thrift Reseller",
+      "joki_tugas": "Assignment Ghostwriting",
+      "ngamen_online": "Online Busking",
+      "affiliate_marketing": "Affiliate Marketing",
+      "jualan_snack_viral": "Viral Snack Sales"
+    }
+  }
+}

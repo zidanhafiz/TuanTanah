@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { Button, Card } from '../components/ui/index.js'
 import { useGame } from '../store/gameStore.js'
@@ -32,18 +33,20 @@ export function RoomGate() {
 }
 
 function Reconnecting() {
+  const { t } = useTranslation()
   const connected = useGame((s) => s.connected)
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 text-ink-muted">
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-ink border-t-accent" />
       <p className="font-semibold">
-        {connected ? 'Reconnecting to your game…' : 'Connecting to server…'}
+        {connected ? t('roomGate.reconnecting') : t('roomGate.connecting')}
       </p>
     </div>
   )
 }
 
 function JoinRoomForm({ code }: { code: string }) {
+  const { t } = useTranslation()
   const join = useGame((s) => s.join)
   const joining = useGame((s) => s.joining)
   const connected = useGame((s) => s.connected)
@@ -59,14 +62,14 @@ function JoinRoomForm({ code }: { code: string }) {
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
       <div className="-rotate-1">
         <h1 className="rounded-xl border-2 border-ink bg-accent px-6 py-2 font-display text-4xl uppercase tracking-tight text-ink shadow-brutal-lg">
-          Tuan Tanah
+          {t('home.title')}
         </h1>
       </div>
-      <p className="mt-4 font-semibold text-ink-muted">You&apos;ve been invited to a room</p>
+      <p className="mt-4 font-semibold text-ink-muted">{t('roomGate.invited')}</p>
 
       <Card className="mt-8 w-full max-w-sm space-y-4 p-6">
         <Card tone="sunken" flat className="px-4 py-3 text-center">
-          <div className="text-xs font-bold uppercase text-ink-faint">Room code</div>
+          <div className="text-xs font-bold uppercase text-ink-faint">{t('roomGate.roomCode')}</div>
           <div className="font-mono text-2xl font-bold tracking-[0.3em] text-ink">{code}</div>
         </Card>
 
@@ -77,12 +80,12 @@ function JoinRoomForm({ code }: { code: string }) {
         )}
 
         <label className="block">
-          <span className="text-sm font-bold text-ink">Your name</span>
+          <span className="text-sm font-bold text-ink">{t('home.yourName')}</span>
           <input
             className="mt-1 w-full rounded-lg border-2 border-ink bg-surface px-3 py-2 font-medium outline-none transition focus:shadow-brutal-sm"
             value={name}
             maxLength={20}
-            placeholder="e.g. Budi"
+            placeholder={t('home.namePlaceholder')}
             autoFocus
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submit()}
@@ -90,11 +93,11 @@ function JoinRoomForm({ code }: { code: string }) {
         </label>
 
         <Button block disabled={!canSubmit} onClick={submit}>
-          {joining ? 'Joining…' : 'Join room'}
+          {joining ? t('roomGate.joining') : t('roomGate.joinRoom')}
         </Button>
 
         <Link to="/" className="block text-center text-xs font-bold text-ink-muted hover:text-ink">
-          ← Back home
+          {t('roomGate.backHome')}
         </Link>
       </Card>
     </div>

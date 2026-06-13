@@ -1,19 +1,10 @@
 import { BOARD, REGIONS, type GameState, type TileId } from '@tuan-tanah/shared'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
+import { tileName } from '../../i18n/gameData.js'
 import { DiceRoller } from '../DiceRoller/DiceRoller.js'
 import { gridPos } from './geometry.js'
 import { TokenLayer } from './Tokens.js'
-
-const TYPE_LABEL: Record<string, string> = {
-  go: 'GO',
-  tax: 'Pajak',
-  transport: 'Transport',
-  event: 'Kejadian',
-  hustle: 'Hustle',
-  jail_visit: 'Jenguk',
-  jail_go: 'Penjara!',
-  parking: 'Parkir',
-}
 
 export function Board({
   state,
@@ -22,6 +13,7 @@ export function Board({
   state: GameState
   onSelectTile?: (id: TileId) => void
 }) {
+  const { t } = useTranslation()
   const current = state.players[state.currentPlayerIndex]
   const selectable = Boolean(onSelectTile)
 
@@ -55,10 +47,12 @@ export function Board({
                   style={{ background: region.color }}
                 />
               )}
-              <div className="mt-0.5 line-clamp-2 font-semibold text-ink">{def.name}</div>
+              <div className="mt-0.5 line-clamp-2 font-semibold text-ink">
+                {tileName(t, def.id)}
+              </div>
               <div className="mt-auto flex items-center justify-between gap-0.5">
                 <span className="text-[8px] font-semibold uppercase text-ink-faint">
-                  {region ? '' : (TYPE_LABEL[def.type] ?? '')}
+                  {region ? '' : t(`board.types.${def.type}`, { defaultValue: '' })}
                 </span>
                 {owner && (
                   <span
@@ -81,14 +75,18 @@ export function Board({
           style={{ gridRow: '2 / 11', gridColumn: '2 / 11' }}
           className="flex flex-col items-center justify-center rounded-lg border-2 border-ink bg-paper text-center shadow-brutal-sm"
         >
-          <div className="font-display text-3xl uppercase tracking-tight text-ink">Tuan Tanah</div>
-          <div className="mt-1 text-xs font-semibold text-ink-muted">Round {state.round}</div>
+          <div className="font-display text-3xl uppercase tracking-tight text-ink">
+            {t('board.title')}
+          </div>
+          <div className="mt-1 text-xs font-semibold text-ink-muted">
+            {t('board.round', { round: state.round })}
+          </div>
           <div className="mt-4 flex min-h-[2.5rem] items-center justify-center">
             <DiceRoller state={state} />
           </div>
           {current && (
             <div className="mt-4 h-5 text-sm">
-              <span className="text-ink-muted">Turn: </span>
+              <span className="text-ink-muted">{t('board.turn')} </span>
               <AnimatePresence mode="wait">
                 <motion.span
                   key={current.id}

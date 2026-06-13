@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Badge, Button, Card, Modal } from '../ui/index.js'
 import { useGame } from '../../store/gameStore.js'
 
@@ -7,6 +8,7 @@ import { useGame } from '../../store/gameStore.js'
  * a live tally while waiting for the rest. Clears when the server resolves.
  */
 export function VotingModal() {
+  const { t } = useTranslation()
   const state = useGame((s) => s.state)
   const me = useGame((s) => s.me)()
   const castVote = useGame((s) => s.castVote)
@@ -21,18 +23,18 @@ export function VotingModal() {
   const hasVoted = myVoteTargetId != null
 
   return (
-    <Modal open onClose={() => {}} title="🗳️ Vote to skip a turn" size="sm" dismissable={false}>
+    <Modal open onClose={() => {}} title={t('voting.title')} size="sm" dismissable={false}>
       <div className="text-xs text-ink-muted">
-        The most-voted player skips their next turn. {votesCast}/{eligibleCount} voted.
+        {t('voting.instruction', { cast: votesCast, eligible: eligibleCount })}
       </div>
 
       {hasVoted ? (
         <Card flat tone="info" className="mt-4 p-3 text-center text-sm text-ink">
-          You voted for{' '}
+          {t('voting.votedForPre')}{' '}
           <span className="font-semibold">
-            {state.players.find((p) => p.id === myVoteTargetId)?.name ?? '—'}
+            {state.players.find((p) => p.id === myVoteTargetId)?.name ?? t('common.dash')}
           </span>
-          . Waiting for the others…
+          {t('voting.votedForPost')}
         </Card>
       ) : (
         <div className="mt-4 flex flex-col gap-2">

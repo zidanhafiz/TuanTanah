@@ -11,6 +11,8 @@ import {
   type TileState,
 } from '@tuan-tanah/shared'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { tierName, tileName } from '../../i18n/gameData.js'
 import { Badge, Button, Card, Modal } from '../ui/index.js'
 import { formatRupiah, useGame } from '../../store/gameStore.js'
 
@@ -32,24 +34,26 @@ function tileValue(tile: TileState): RupiahAmount {
   return value
 }
 
-function tierLabel(tile: TileState): string {
-  if (tile.tier < 1) return 'Unbuilt'
-  const tiers = tile.track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
-  return tiers[tile.tier - 1]?.name ?? `Tier ${tile.tier}`
+type TFunc = ReturnType<typeof useTranslation>['t']
+
+function tierLabel(tile: TileState, t: TFunc): string {
+  if (tile.tier < 1) return t('property.unbuilt')
+  if (!tile.track) return t('property.tierFallback', { tier: tile.tier })
+  return tierName(t, tile.track, tile.tier)
 }
 
-/** Name + build cost of the tier above `currentTier` on a track, or null if maxed. */
+/** Tier number + build cost of the tier above `currentTier` on a track, or null if maxed. */
 function nextTierInfo(
   def: (typeof BOARD)[number],
   track: PropertyTrack,
   currentTier: number,
-): { name: string; cost: RupiahAmount } | null {
+): { tier: number; cost: RupiahAmount } | null {
   if (!def.region) return null
   const tiers = track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
   const tierDef = tiers[currentTier] // next tier (1-based) → 0-based index currentTier
   if (!tierDef) return null
   return {
-    name: tierDef.name,
+    tier: tierDef.tier,
     cost: Math.round(REGIONS[def.region].buyPrice * tierDef.buildCostMult),
   }
 }
@@ -63,6 +67,7 @@ export function PropertyModal({
   open: boolean
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const state = useGame((s) => s.state)
   const me = useGame((s) => s.me)()
   const isMyTurn = useGame((s) => s.isMyTurn)()
@@ -104,7 +109,7 @@ export function PropertyModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={def.name} size="sm">
+    <Modal open={open} onClose={onClose} title={tileName(t, tileId)} size="sm">
       {/* Region accent + subtitle */}
       {region && (
         <div
@@ -113,39 +118,45 @@ export function PropertyModal({
         />
       )}
       <div className="mt-2 text-xs font-bold uppercase tracking-wide text-ink-muted">
-        {region ? region.name : def.type === 'transport' ? 'Transport' : 'Tile'}
+        {region
+          ? region.name
+          : def.type === 'transport'
+            ? t('property.transport')
+            : t('property.tile')}
       </div>
 
       {ownable ? (
         <Card flat tone="sunken" className="mt-4 space-y-2 p-3 text-sm">
-          <Row label="Owner">
+          <Row label={t('property.owner')}>
             {owner ? (
               <Badge color={owner.color}>
                 {owner.name}
-                {owner.id === me?.id && ' (you)'}
+                {owner.id === me?.id && t('common.youParen')}
               </Badge>
             ) : (
-              <span className="text-ink-faint">Unowned</span>
+              <span className="text-ink-faint">{t('property.unowned')}</span>
             )}
           </Row>
           {owner && (
             <>
-              <Row label="Level">
+              <Row label={t('property.level')}>
                 {tile.tier >= 1 ? (
                   <Badge tone="accent">
-                    {tierLabel(tile)}
-                    {tile.track ? ` · ${tile.track === 'house' ? 'Rumah' : 'Properti'}` : ''}
+                    {tierLabel(tile, t)}
+                    {tile.track
+                      ? ` · ${tile.track === 'house' ? t('property.house') : t('property.property')}`
+                      : ''}
                   </Badge>
                 ) : (
-                  <span className="text-ink-faint">{tierLabel(tile)}</span>
+                  <span className="text-ink-faint">{tierLabel(tile, t)}</span>
                 )}
               </Row>
-              <Row label="Invested value">{formatRupiah(tileValue(tile))}</Row>
+              <Row label={t('property.investedValue')}>{formatRupiah(tileValue(tile))}</Row>
             </>
           )}
         </Card>
       ) : (
-        <div className="mt-4 text-sm text-ink-muted">This tile can&apos;t be owned.</div>
+        <div className="mt-4 text-sm text-ink-muted">{t('property.cantOwn')}</div>
       )}
 
       {canUpgrade && (
@@ -153,9 +164,7 @@ export function PropertyModal({
           {tile.tier === 0 ? (
             <>
               <div className="text-xs text-ink-muted">
-                {canKontraktorBuild
-                  ? 'Build on this tile — you earn a rent cut:'
-                  : 'Choose a track to build:'}
+                {canKontraktorBuild ? t('property.buildRentCut') : t('property.chooseTrack')}
               </div>
               {(['house', 'property'] as const).map((track) => {
                 const info = nextTierInfo(def, track, 0)
@@ -170,8 +179,15 @@ export function PropertyModal({
                     disabled={tooPoor}
                     onClick={() => upgrade(tileId, track)}
                   >
-                    {track === 'house' ? 'Bangun Rumah' : 'Bangun Properti'} ({info.name}) —{' '}
-                    {formatRupiah(info.cost)}
+                    {track === 'house'
+                      ? t('property.buildHouse', {
+                          name: tierName(t, track, info.tier),
+                          cost: formatRupiah(info.cost),
+                        })
+                      : t('property.buildProperty', {
+                          name: tierName(t, track, info.tier),
+                          cost: formatRupiah(info.cost),
+                        })}
                   </Button>
                 )
               })}
@@ -182,9 +198,13 @@ export function PropertyModal({
               const info = nextTierInfo(def, tile.track, tile.tier)
               if (!info) return null
               const tooPoor = (me?.cash ?? 0) < info.cost
+              const track = tile.track
               return (
                 <Button block variant="info" disabled={tooPoor} onClick={() => upgrade(tileId)}>
-                  Upgrade to {info.name} — {formatRupiah(info.cost)}
+                  {t('property.upgradeTo', {
+                    name: tierName(t, track, info.tier),
+                    cost: formatRupiah(info.cost),
+                  })}
                 </Button>
               )
             })()
@@ -200,23 +220,26 @@ export function PropertyModal({
               tone="accent"
               className="px-3 py-2 text-center text-xs font-semibold text-ink"
             >
-              Sell {def.name} back to the bank for {formatRupiah(refund)}?
+              {t('property.sellConfirm', {
+                name: tileName(t, tileId),
+                refund: formatRupiah(refund),
+              })}
             </Card>
             <Button block variant="danger" onClick={handleSell}>
-              Confirm sell
+              {t('property.confirmSell')}
             </Button>
             <Button block variant="ghost" size="sm" onClick={() => setConfirming(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
           </div>
         ) : (
           <Button block variant="danger" className="mt-5" onClick={() => setConfirming(true)}>
-            Sell back to bank — {formatRupiah(refund)}
+            {t('property.sellBack', { refund: formatRupiah(refund) })}
           </Button>
         ))}
 
       <Button block variant="ghost" size="sm" className="mt-2" onClick={onClose}>
-        Close
+        {t('property.close')}
       </Button>
     </Modal>
   )

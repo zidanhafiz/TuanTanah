@@ -1,37 +1,55 @@
-import { BOARD, type GameState, type NegotiationDeal } from '@tuan-tanah/shared'
+import { type GameState, type NegotiationDeal } from '@tuan-tanah/shared'
+import { useTranslation } from 'react-i18next'
+import { tileName } from '../../i18n/gameData.js'
 import { Button, Card, Modal } from '../ui/index.js'
 import { formatRupiah, useGame } from '../../store/gameStore.js'
 
-function playerName(state: GameState, id: string): string {
-  return state.players.find((p) => p.id === id)?.name ?? 'Someone'
+type TFunc = ReturnType<typeof useTranslation>['t']
+
+function playerName(state: GameState, id: string, t: TFunc): string {
+  return state.players.find((p) => p.id === id)?.name ?? t('negotiation.someone')
 }
 
-const tileName = (id: number) => BOARD[id]?.name ?? `tile ${id}`
-
 /** Plain-language summary of a deal from the target (responder)'s point of view. */
-function describeDeal(state: GameState, deal: NegotiationDeal): string {
-  const from = playerName(state, deal.fromPlayerId)
+function describeDeal(state: GameState, deal: NegotiationDeal, t: TFunc): string {
+  const from = playerName(state, deal.fromPlayerId, t)
   switch (deal.type) {
     case 'property_swap':
-      return `${from} offers their ${tileName(deal.offerTileId!)} in exchange for your ${tileName(
-        deal.requestTileId!,
-      )}.`
+      return t('negotiation.desc.property_swap', {
+        from,
+        offer: tileName(t, deal.offerTileId!),
+        request: tileName(t, deal.requestTileId!),
+      })
     case 'cash_for_property':
-      return `${from} offers ${formatRupiah(deal.cashAmount ?? 0)} to buy your ${tileName(
-        deal.requestTileId!,
-      )}.`
+      return t('negotiation.desc.cash_for_property', {
+        from,
+        cash: formatRupiah(deal.cashAmount ?? 0),
+        request: tileName(t, deal.requestTileId!),
+      })
     case 'rent_immunity':
-      return `${from} pays you ${formatRupiah(deal.cashAmount ?? 0)} for ${deal.rounds}-round rent immunity on your ${tileName(
-        deal.requestTileId!,
-      )}.`
+      return t('negotiation.desc.rent_immunity', {
+        from,
+        cash: formatRupiah(deal.cashAmount ?? 0),
+        rounds: deal.rounds,
+        request: tileName(t, deal.requestTileId!),
+      })
     case 'revenue_share':
       return deal.shareFrom === 'proposer'
-        ? `${from} will share ${deal.sharePercent}% of their passive income with you for ${deal.rounds} rounds.`
-        : `You would share ${deal.sharePercent}% of your passive income with ${from} for ${deal.rounds} rounds.`
+        ? t('negotiation.desc.revenue_share_proposer', {
+            from,
+            percent: deal.sharePercent,
+            rounds: deal.rounds,
+          })
+        : t('negotiation.desc.revenue_share_target', {
+            from,
+            percent: deal.sharePercent,
+            rounds: deal.rounds,
+          })
   }
 }
 
 export function IncomingDealModal() {
+  const { t } = useTranslation()
   const state = useGame((s) => s.state)
   const deal = useGame((s) => s.incomingDeal)
   const respondDeal = useGame((s) => s.respondDeal)
@@ -48,20 +66,20 @@ export function IncomingDealModal() {
     <Modal
       open
       onClose={() => respond(false)}
-      title={`🤝 ${playerName(state, deal.fromPlayerId)} proposes`}
+      title={t('negotiation.proposes', { name: playerName(state, deal.fromPlayerId, t) })}
       size="sm"
       dismissable={false}
     >
       <Card flat tone="sunken" className="p-3 text-sm text-ink">
-        {describeDeal(state, deal)}
+        {describeDeal(state, deal, t)}
       </Card>
 
       <div className="mt-5 grid grid-cols-2 gap-2">
         <Button variant="secondary" size="sm" block onClick={() => respond(false)}>
-          Reject
+          {t('negotiation.reject')}
         </Button>
         <Button variant="success" size="sm" block onClick={() => respond(true)}>
-          Accept
+          {t('negotiation.accept')}
         </Button>
       </div>
     </Modal>

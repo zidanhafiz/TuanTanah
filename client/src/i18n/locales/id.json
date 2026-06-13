@@ -1,0 +1,385 @@
+{
+  "common": {
+    "cancel": "Batal",
+    "close": "Tutup",
+    "you": "kamu",
+    "youParen": " (kamu)",
+    "host": "host",
+    "offline": "offline",
+    "backHome": "Kembali ke beranda",
+    "backHomeIcon": "🏠 Kembali ke beranda",
+    "dash": "—"
+  },
+  "connection": {
+    "connected": "Terhubung ke server",
+    "connecting": "Menghubungkan…"
+  },
+  "home": {
+    "title": "Tuan Tanah",
+    "subtitle": "Monopoli rasa Indonesia 🇮🇩",
+    "yourName": "Nama kamu",
+    "namePlaceholder": "mis. Budi",
+    "createRoom": "Buat ruangan baru",
+    "orJoin": "atau gabung",
+    "roomCodePlaceholder": "KODE RUANGAN",
+    "join": "Gabung"
+  },
+  "roomGate": {
+    "invited": "Kamu diundang ke sebuah ruangan",
+    "roomCode": "Kode ruangan",
+    "joining": "Bergabung…",
+    "joinRoom": "Gabung ruangan",
+    "backHome": "← Kembali ke beranda",
+    "reconnecting": "Menyambung kembali ke permainanmu…",
+    "connecting": "Menghubungkan ke server…"
+  },
+  "roomActions": {
+    "linkCopied": "✓ Tautan disalin",
+    "shareLink": "🔗 Bagikan tautan",
+    "copyPrompt": "Salin tautan ruangan ini:",
+    "leave": "Keluar"
+  },
+  "lobby": {
+    "loading": "Memuat lobi…",
+    "title": "Lobi",
+    "subtitle": "Pilih peran dan tunggu room master memulai.",
+    "roomCode": "Kode ruangan",
+    "leaveRoom": "Keluar ruangan",
+    "roles": "Peran",
+    "salary": "Gaji {{amount}}",
+    "players": "Pemain ({{count}})",
+    "startingCash": "Modal awal",
+    "winCondition": "Syarat menang",
+    "timeLimit": "Batas waktu",
+    "timeLimitValue": "{{count}}m",
+    "targetWealth": "Target kekayaan",
+    "enabledRoles": "Peran aktif",
+    "startGame": "Mulai permainan",
+    "waitingForRoles": "Menunggu pemilihan peran…",
+    "waitingForHost": "Menunggu host memulai…",
+    "winConditions": {
+      "time": "Waktu",
+      "wealth": "Kekayaan",
+      "both": "Keduanya"
+    }
+  },
+  "game": {
+    "room": "Ruangan {{code}}",
+    "round": "Ronde {{round}}",
+    "winner": "Pemenang",
+    "leaveGame": "Keluar permainan",
+    "leaveConfirm": "Keluar dari permainan? Kamu akan kehilangan propertimu dan tidak bisa bergabung lagi.",
+    "payBail": "Bayar jaminan (Rp 1 juta)",
+    "rollForDoubles": "Lempar untuk dadu kembar",
+    "rollDice": "Lempar dadu",
+    "buy": "Beli {{name}} — {{price}}",
+    "skipEndTurn": "Lewati & akhiri giliran",
+    "endTurn": "Akhiri giliran",
+    "pinjol": "🏦 Pinjol",
+    "negotiate": "🤝 Negosiasi",
+    "selectTarget": "Pilih {{target}} di {{location}}…",
+    "targetPlayer": "pemain",
+    "targetTile": "petak",
+    "locationBoard": "papan",
+    "locationPlayers": "daftar pemain",
+    "waitingFor": "Menunggu",
+    "pausedWaitingPre": "Dijeda — menunggu",
+    "pausedWaitingPost": "melunasi utang…",
+    "gameOver": {
+      "title": "Permainan selesai",
+      "wins": "{{name}} menang!",
+      "you": "kamu",
+      "eliminated": "tersingkir"
+    }
+  },
+  "board": {
+    "title": "Tuan Tanah",
+    "round": "Ronde {{round}}",
+    "turn": "Giliran:",
+    "types": {
+      "go": "GO",
+      "tax": "Pajak",
+      "transport": "Transport",
+      "event": "Kejadian",
+      "hustle": "Hustle",
+      "jail_visit": "Jenguk",
+      "jail_go": "Penjara!",
+      "parking": "Parkir"
+    }
+  },
+  "eventLog": {
+    "title": "Catatan kejadian",
+    "empty": "Belum ada kejadian.",
+    "roundPrefix": "R{{round}} · "
+  },
+  "card": {
+    "hustle": "Hustle",
+    "kejadianNasional": "Kejadian Nasional",
+    "earn": "Dapat {{amount}}",
+    "drawnBy": "Diambil oleh"
+  },
+  "debt": {
+    "title": "⚠️ Utang jatuh tempo",
+    "owePre": "Kamu berutang",
+    "oweTo": " ke {{name}}",
+    "cashShort": "Kas {{cash}} · kurang {{shortfall}}",
+    "autoSettleHint": "Kumpulkan uangnya dan utang lunas otomatis — klik salah satu propertimu di papan untuk menjualnya, atau ambil pinjol.",
+    "takePinjol": "🏦 Ambil pinjol",
+    "giveUpConfirm": "Menyerah dan tersingkir? Propertimu akan kembali ke bank.",
+    "confirmBankruptcy": "Konfirmasi — nyatakan bangkrut",
+    "keepPlaying": "Lanjut bermain",
+    "giveUp": "Menyerah (nyatakan bangkrut)"
+  },
+  "pinjol": {
+    "title": "🏦 Pinjol — Ambil pinjaman",
+    "terms": "Bunga 10%/ronde · maks {{maxLoans}} pinjaman · pinjam hingga {{limit}}",
+    "lender": "Pemberi pinjaman",
+    "bank": "Bank",
+    "notEnoughToLend": "Kas tidak cukup untuk meminjamkan",
+    "activeLoans_one": "{{count}} pinjaman aktif · {{owed}} terutang",
+    "activeLoans_other": "{{count}} pinjaman aktif · {{owed}} terutang",
+    "maxLoansReached": "Batas pinjaman tercapai",
+    "overBorrowLimit": "Melebihi batas pinjam",
+    "lenderShort": "Kas pemberi pinjaman kurang",
+    "borrow": "Pinjam {{amount}}",
+    "cancel": "Batal"
+  },
+  "meta": {
+    "title": "Aksi meta (1 per giliran)",
+    "invest": "💰 Investasi",
+    "work": "💼 Kerja",
+    "hustle": "🎴 Hustle",
+    "lobby": "🗣️ Lobi",
+    "sabotage": "💣 Sabotase",
+    "korupsi": "🕵️ Korupsi",
+    "negotiate": "🤝 Negosiasi",
+    "chooseBeforeRolling": "Pilih sebelum melempar — melewati gerakanmu"
+  },
+  "ability": {
+    "title": "Kemampuan peran (sekali per permainan)",
+    "viralBoost": "✨ Viral Boost",
+    "viralBoostHint": "Pendapatan pasif 3× selama 3 ronde — sekali per permainan",
+    "blockKejadian": "🛡️ Blokir Kejadian",
+    "blockKejadianHint": "Batalkan kartu Kejadian Nasional berikutnya — sekali per permainan"
+  },
+  "negotiation": {
+    "title": "🤝 Ajukan kesepakatan",
+    "with": "Dengan",
+    "selectPlayer": "Pilih pemain…",
+    "dealType": "Jenis kesepakatan",
+    "dealTypes": {
+      "property_swap": "Tukar properti",
+      "cash_for_property": "Uang untuk properti",
+      "rent_immunity": "Kebal sewa",
+      "revenue_share": "Bagi hasil"
+    },
+    "yourTileToGive": "Petakmu yang diberikan",
+    "selectYourTile": "Pilih petakmu…",
+    "theirTileImmunity": "Petak mereka untuk kebal sewa",
+    "theirTileWant": "Petak mereka yang kamu mau",
+    "selectTheirTile": "Pilih petak mereka…",
+    "pickPlayerFirst": "Pilih pemain dulu",
+    "priceYouPay": "Harga yang kamu bayar (juta)",
+    "yourOffer": "Tawaranmu (juta)",
+    "sharePercent": "Bagi %",
+    "whoShares": "Siapa yang berbagi pendapatan",
+    "youShare": "Kamu berbagi",
+    "theyShare": "Mereka berbagi",
+    "duration": "Durasi (ronde)",
+    "sendProposal": "Kirim usulan",
+    "cancel": "Batal",
+    "proposes": "🤝 {{name}} mengajukan",
+    "reject": "Tolak",
+    "accept": "Terima",
+    "someone": "Seseorang",
+    "tileFallback": "petak {{id}}",
+    "desc": {
+      "property_swap": "{{from}} menawarkan {{offer}} miliknya untuk ditukar dengan {{request}} milikmu.",
+      "cash_for_property": "{{from}} menawarkan {{cash}} untuk membeli {{request}} milikmu.",
+      "rent_immunity": "{{from}} membayarmu {{cash}} untuk kebal sewa selama {{rounds}} ronde di {{request}} milikmu.",
+      "revenue_share_proposer": "{{from}} akan membagi {{percent}}% pendapatan pasifnya denganmu selama {{rounds}} ronde.",
+      "revenue_share_target": "Kamu akan membagi {{percent}}% pendapatan pasifmu dengan {{from}} selama {{rounds}} ronde."
+    }
+  },
+  "voting": {
+    "title": "🗳️ Voting lewati giliran",
+    "instruction": "Pemain dengan suara terbanyak melewati giliran berikutnya. {{cast}}/{{eligible}} sudah memilih.",
+    "votedForPre": "Kamu memilih",
+    "votedForPost": ". Menunggu yang lain…"
+  },
+  "property": {
+    "transport": "Transport",
+    "tile": "Petak",
+    "owner": "Pemilik",
+    "unowned": "Belum dimiliki",
+    "level": "Tingkat",
+    "house": "Rumah",
+    "property": "Properti",
+    "investedValue": "Nilai investasi",
+    "cantOwn": "Petak ini tidak bisa dimiliki.",
+    "unbuilt": "Belum dibangun",
+    "tierFallback": "Tingkat {{tier}}",
+    "buildRentCut": "Bangun di petak ini — kamu dapat potongan sewa:",
+    "chooseTrack": "Pilih jalur untuk dibangun:",
+    "buildHouse": "Bangun Rumah ({{name}}) — {{cost}}",
+    "buildProperty": "Bangun Properti ({{name}}) — {{cost}}",
+    "upgradeTo": "Tingkatkan ke {{name}} — {{cost}}",
+    "sellConfirm": "Jual {{name}} kembali ke bank seharga {{refund}}?",
+    "confirmSell": "Konfirmasi jual",
+    "sellBack": "Jual ke bank — {{refund}}",
+    "close": "Tutup"
+  },
+  "player": {
+    "players": "Pemain",
+    "jail": "🔒 penjara",
+    "offline": "offline",
+    "loans_one": "🏦 {{count}} pinjaman · {{owed}} terutang · {{perRound}}/ronde",
+    "loans_other": "🏦 {{count}} pinjaman · {{owed}} terutang · {{perRound}}/ronde"
+  },
+  "turnBanner": {
+    "yourTurn": "Giliranmu!"
+  },
+  "language": {
+    "label": "Bahasa",
+    "en": "English",
+    "id": "Bahasa Indonesia"
+  },
+  "data": {
+    "tiles": {
+      "4": "Pajak Penghasilan",
+      "10": "Visiting Penjara",
+      "16": "Kejadian Nasional",
+      "19": "Parkir Bebas",
+      "20": "Masuk Penjara",
+      "29": "Kejadian Nasional",
+      "30": "Pajak Kemewahan",
+      "37": "Kejadian Nasional",
+      "38": "Parkir Bebas",
+      "39": "Pajak Hadiah"
+    },
+    "roles": {
+      "pengusaha": { "name": "Pengusaha", "ability": "Tingkatkan 2 tingkat per giliran" },
+      "politisi": { "name": "Politisi", "ability": "Biaya lobi 50% lebih murah" },
+      "freelancer": { "name": "Freelancer", "ability": "Gaji 1,5× saat melewati GO" },
+      "investor": {
+        "name": "Investor",
+        "ability": "Dapat 5% dari setiap sewa yang dibayar ke pemain lain"
+      },
+      "kontraktor": {
+        "name": "Kontraktor",
+        "ability": "Bangun di properti pemain lain untuk potongan 30%"
+      },
+      "ojol_driver": {
+        "name": "Ojol Driver",
+        "ability": "Tidak pernah bayar pajak perjalanan/perpindahan"
+      },
+      "influencer": {
+        "name": "Influencer",
+        "ability": "Sekali per permainan: viral boost 3× selama 3 giliran"
+      },
+      "pejabat": {
+        "name": "Pejabat",
+        "ability": "Sekali per permainan: blokir kartu kejadian apa pun"
+      },
+      "rentenir": {
+        "name": "Rentenir",
+        "ability": "Paksa satu pemain per ronde mengambil pinjol, dapat bunganya"
+      },
+      "sales": {
+        "name": "Sales",
+        "ability": "Beli properti 25% lebih murah + dapat bonus bank 15% atas kesepakatan yang diajukan"
+      }
+    },
+    "tiers": {
+      "house": {
+        "1": "Rumah Kecil",
+        "2": "Rumah Sedang",
+        "3": "Rumah Besar",
+        "4": "Villa / Hotel"
+      },
+      "property": {
+        "1": "Warung",
+        "2": "Toko",
+        "3": "Minimarket",
+        "4": "Mall",
+        "5": "Konglomerat"
+      }
+    },
+    "kejadian": {
+      "lebaran": { "name": "Lebaran", "effect": "Semua orang menerima bonus THR (Rp 2 juta)" },
+      "kenaikan_bbm": {
+        "name": "Kenaikan BBM",
+        "effect": "Semua orang membayar pajak perjalanan Rp 500rb"
+      },
+      "banjir_jakarta": {
+        "name": "Banjir Jakarta",
+        "effect": "Semua petak Jakarta turun 1 tingkat selama 3 ronde"
+      },
+      "mudik_season": {
+        "name": "Mudik Season",
+        "effect": "Semua petak transport menghasilkan 2× selama 3 ronde"
+      },
+      "viral_medsos": {
+        "name": "Viral di Medsos",
+        "effect": "Satu properti acak menghasilkan 3× selama 3 ronde"
+      },
+      "reshuffle_kabinet": {
+        "name": "Reshuffle Kabinet",
+        "effect": "Semua efek lobi langsung di-reset"
+      },
+      "inspeksi_pajak": {
+        "name": "Inspeksi Pajak",
+        "effect": "Pemain terkaya membayar denda 10% dari kasnya"
+      },
+      "gempa_bumi": {
+        "name": "Gempa Bumi",
+        "effect": "Petak satu wilayah acak kehilangan bonus sewa selama 2 ronde"
+      },
+      "demo_buruh": {
+        "name": "Demo Buruh",
+        "effect": "Pendapatan pasif jalur properti dipotong setengah selama 2 ronde"
+      },
+      "festival_budaya": {
+        "name": "Festival Budaya",
+        "effect": "Petak Yogyakarta menghasilkan 2× selama 3 ronde"
+      },
+      "boom_tambang": {
+        "name": "Boom Tambang",
+        "effect": "Petak Kalimantan + Papua menghasilkan 2× selama 3 ronde"
+      },
+      "musim_liburan": {
+        "name": "Musim Liburan",
+        "effect": "Petak Bali + Lombok menghasilkan 2× selama 3 ronde"
+      },
+      "korupsi_terungkap": {
+        "name": "Korupsi Terungkap",
+        "effect": "Pemain dengan pinjol terbanyak membayar denda Rp 3 juta"
+      },
+      "investasi_asing": {
+        "name": "Investasi Asing",
+        "effect": "Semua pemilik jalur properti dapat bonus Rp 1 juta"
+      },
+      "pemilu": {
+        "name": "Pemilu",
+        "effect": "Semua pemain memilih — pemain dengan suara terbanyak melewati giliran berikutnya"
+      }
+    },
+    "hustle": {
+      "gofood_driver": "GoFood Driver",
+      "dropshipper": "Dropshipper",
+      "jual_online": "Jual Online",
+      "freelance_design": "Freelance Design",
+      "endorse_produk": "Endorse Produk",
+      "ojek_wisata": "Ojek Wisata",
+      "rental_motor_bali": "Rental Motor Bali",
+      "jual_pulsa": "Jual Pulsa",
+      "warung_dadakan": "Warung Dadakan",
+      "content_creator": "Content Creator",
+      "reseller_thrift": "Reseller Thrift",
+      "joki_tugas": "Joki Tugas",
+      "ngamen_online": "Ngamen Online",
+      "affiliate_marketing": "Affiliate Marketing",
+      "jualan_snack_viral": "Jualan Snack Viral"
+    }
+  }
+}

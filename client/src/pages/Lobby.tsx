@@ -9,20 +9,23 @@ import {
   TIME_LIMIT_OPTIONS,
   WIN_CONDITIONS,
   type Role,
-  type WinCondition,
 } from '@tuan-tanah/shared'
+import { useTranslation } from 'react-i18next'
+import { roleAbility, roleName } from '../i18n/gameData.js'
+import { LanguageSwitcher } from '../components/LanguageSwitcher.js'
 import { LeaveButton, ShareLinkButton } from '../components/RoomActions.js'
 import { Badge, Button, Card } from '../components/ui/index.js'
 import { formatRupiah, useGame } from '../store/gameStore.js'
 
 export function Lobby() {
+  const { t } = useTranslation()
   const state = useGame((s) => s.state)
   const me = useGame((s) => s.me)()
   const pickRole = useGame((s) => s.pickRole)
   const updateSettings = useGame((s) => s.updateSettings)
   const startGame = useGame((s) => s.startGame)
 
-  if (!state) return <Centered>Loading lobby…</Centered>
+  if (!state) return <Centered>{t('lobby.loading')}</Centered>
 
   const isMaster = !!me?.isRoomMaster
   const roleOwner = (role: Role) => state.players.find((p) => p.role === role)
@@ -38,23 +41,22 @@ export function Lobby() {
         <div>
           <div className="-rotate-1">
             <h1 className="inline-block rounded-xl border-2 border-ink bg-accent px-4 py-1 font-display text-3xl uppercase tracking-tight text-ink shadow-brutal">
-              Lobby
+              {t('lobby.title')}
             </h1>
           </div>
-          <p className="mt-3 font-semibold text-ink-muted">
-            Pick a role and wait for the room master to start.
-          </p>
+          <p className="mt-3 font-semibold text-ink-muted">{t('lobby.subtitle')}</p>
         </div>
         <div className="flex flex-col items-end gap-2">
+          <LanguageSwitcher />
           <Card tone="sunken" className="px-5 py-3 text-center">
-            <div className="text-xs font-bold uppercase text-ink-faint">Room code</div>
+            <div className="text-xs font-bold uppercase text-ink-faint">{t('lobby.roomCode')}</div>
             <div className="font-mono text-2xl font-bold tracking-[0.3em] text-ink">
               {state.roomId}
             </div>
           </Card>
           <div className="flex gap-2">
             <ShareLinkButton code={state.roomId} />
-            <LeaveButton label="Leave room" />
+            <LeaveButton label={t('lobby.leaveRoom')} />
           </div>
         </div>
       </div>
@@ -62,7 +64,7 @@ export function Lobby() {
       <div className="mt-8 grid gap-6 md:grid-cols-[1fr_280px]">
         {/* Roles grid */}
         <div>
-          <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">Roles</h2>
+          <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">{t('lobby.roles')}</h2>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {ALL_ROLES.map((role) => {
               const def = ROLES[role]
@@ -83,12 +85,16 @@ export function Lobby() {
                         : 'bg-surface shadow-brutal-sm brutal-press'
                   }`}
                 >
-                  <div className="font-bold text-ink">{def.name}</div>
-                  <div className="text-[11px] text-ink-muted">Gaji {formatRupiah(def.salary)}</div>
-                  <div className="mt-1 text-[11px] leading-tight text-ink-faint">{def.ability}</div>
+                  <div className="font-bold text-ink">{roleName(t, role)}</div>
+                  <div className="text-[11px] text-ink-muted">
+                    {t('lobby.salary', { amount: formatRupiah(def.salary) })}
+                  </div>
+                  <div className="mt-1 text-[11px] leading-tight text-ink-faint">
+                    {roleAbility(t, role)}
+                  </div>
                   {owner && (
                     <div className="mt-2">
-                      <Badge color={owner.color}>{mine ? 'You' : owner.name}</Badge>
+                      <Badge color={owner.color}>{mine ? t('common.you') : owner.name}</Badge>
                     </div>
                   )}
                 </button>
@@ -101,7 +107,7 @@ export function Lobby() {
         <div className="space-y-6">
           <div>
             <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">
-              Players ({state.players.length})
+              {t('lobby.players', { count: state.players.length })}
             </h2>
             <ul className="space-y-1">
               {state.players.map((p) => (
@@ -116,16 +122,16 @@ export function Lobby() {
                   <span className="font-bold text-ink">{p.name}</span>
                   {p.isRoomMaster && (
                     <Badge tone="accent" className="text-[10px]">
-                      ★ host
+                      ★ {t('common.host')}
                     </Badge>
                   )}
                   {!p.isConnected && (
                     <Badge tone="danger" className="text-[10px]">
-                      offline
+                      {t('common.offline')}
                     </Badge>
                   )}
                   <span className="ml-auto text-xs font-medium text-ink-muted">
-                    {p.role ? ROLES[p.role].name : '—'}
+                    {p.role ? roleName(t, p.role) : t('common.dash')}
                   </span>
                 </li>
               ))}
@@ -133,7 +139,9 @@ export function Lobby() {
           </div>
 
           <div>
-            <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">Starting cash</h2>
+            <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">
+              {t('lobby.startingCash')}
+            </h2>
             <div className="text-lg font-bold text-ink">
               {formatRupiah(state.settings.startingCash)}
             </div>
@@ -151,7 +159,9 @@ export function Lobby() {
           </div>
 
           <div>
-            <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">Win condition</h2>
+            <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">
+              {t('lobby.winCondition')}
+            </h2>
             <div className="grid grid-cols-3 gap-1">
               {WIN_CONDITIONS.map((wc) => {
                 const active = state.settings.winCondition === wc
@@ -166,7 +176,7 @@ export function Lobby() {
                         : 'bg-surface-sunken text-ink-muted enabled:hover:bg-surface disabled:opacity-60'
                     }`}
                   >
-                    {WIN_CONDITION_LABELS[wc]}
+                    {t(`lobby.winConditions.${wc}`)}
                   </button>
                 )
               })}
@@ -175,7 +185,9 @@ export function Lobby() {
 
           {showTime && (
             <div>
-              <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">Time limit</h2>
+              <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">
+                {t('lobby.timeLimit')}
+              </h2>
               <div className="grid grid-cols-4 gap-1">
                 {TIME_LIMIT_OPTIONS.map((min) => {
                   const active = state.settings.timeLimitMinutes === min
@@ -190,7 +202,7 @@ export function Lobby() {
                           : 'bg-surface-sunken text-ink-muted enabled:hover:bg-surface disabled:opacity-60'
                       }`}
                     >
-                      {min}m
+                      {t('lobby.timeLimitValue', { count: min })}
                     </button>
                   )
                 })}
@@ -200,7 +212,9 @@ export function Lobby() {
 
           {showWealth && (
             <div>
-              <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">Target wealth</h2>
+              <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">
+                {t('lobby.targetWealth')}
+              </h2>
               <div className="text-lg font-bold text-ink">
                 {formatRupiah(state.settings.targetWealth ?? TARGET_WEALTH_MIN)}
               </div>
@@ -219,7 +233,9 @@ export function Lobby() {
           )}
 
           <div>
-            <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">Enabled roles</h2>
+            <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">
+              {t('lobby.enabledRoles')}
+            </h2>
             <ul className="space-y-1">
               {ALL_ROLES.map((role) => {
                 const enabled = state.settings.enabledRoles.includes(role)
@@ -246,7 +262,7 @@ export function Lobby() {
                       <span
                         className={enabled ? 'font-medium text-ink' : 'text-ink-faint line-through'}
                       >
-                        {ROLES[role].name}
+                        {roleName(t, role)}
                       </span>
                     </label>
                   </li>
@@ -257,23 +273,17 @@ export function Lobby() {
 
           {isMaster ? (
             <Button block size="lg" disabled={!canStart} onClick={startGame}>
-              {everyoneReady ? 'Start game' : 'Waiting for roles…'}
+              {everyoneReady ? t('lobby.startGame') : t('lobby.waitingForRoles')}
             </Button>
           ) : (
             <Card tone="sunken" flat className="p-3 text-center text-sm font-medium text-ink-muted">
-              Waiting for the host to start…
+              {t('lobby.waitingForHost')}
             </Card>
           )}
         </div>
       </div>
     </div>
   )
-}
-
-const WIN_CONDITION_LABELS: Record<WinCondition, string> = {
-  time: 'Waktu',
-  wealth: 'Kekayaan',
-  both: 'Keduanya',
 }
 
 function Centered({ children }: { children: React.ReactNode }) {

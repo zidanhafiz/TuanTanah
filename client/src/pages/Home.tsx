@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { LanguageSwitcher } from '../components/LanguageSwitcher.js'
 import { Button, Card } from '../components/ui/index.js'
 import { useGame } from '../store/gameStore.js'
 
 export function Home() {
+  const { t } = useTranslation()
   const join = useGame((s) => s.join)
   const joining = useGame((s) => s.joining)
   const connected = useGame((s) => s.connected)
@@ -16,31 +19,34 @@ export function Home() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
+      <div className="absolute right-4 top-4">
+        <LanguageSwitcher />
+      </div>
       <div className="-rotate-1">
         <h1 className="rounded-xl border-2 border-ink bg-accent px-6 py-2 font-display text-5xl uppercase tracking-tight text-ink shadow-brutal-lg">
-          Tuan Tanah
+          {t('home.title')}
         </h1>
       </div>
-      <p className="mt-4 font-semibold text-ink-muted">Monopoli rasa Indonesia 🇮🇩</p>
+      <p className="mt-4 font-semibold text-ink-muted">{t('home.subtitle')}</p>
 
       <Card className="mt-10 w-full max-w-sm space-y-4 p-6">
         <label className="block">
-          <span className="text-sm font-bold text-ink">Your name</span>
+          <span className="text-sm font-bold text-ink">{t('home.yourName')}</span>
           <input
             className="mt-1 w-full rounded-lg border-2 border-ink bg-surface px-3 py-2 font-medium outline-none transition focus:shadow-brutal-sm"
             value={name}
             maxLength={20}
-            placeholder="e.g. Budi"
+            placeholder={t('home.namePlaceholder')}
             onChange={(e) => setName(e.target.value)}
           />
         </label>
 
         <Button block disabled={!canSubmit} onClick={() => join(name, undefined, goToRoom)}>
-          Create new room
+          {t('home.createRoom')}
         </Button>
 
         <div className="flex items-center gap-3 text-xs font-bold uppercase text-ink-faint">
-          <span className="h-0.5 flex-1 bg-ink/20" /> or join{' '}
+          <span className="h-0.5 flex-1 bg-ink/20" /> {t('home.orJoin')}{' '}
           <span className="h-0.5 flex-1 bg-ink/20" />
         </div>
 
@@ -49,7 +55,7 @@ export function Home() {
             className="w-full rounded-lg border-2 border-ink bg-surface px-3 py-2 font-bold uppercase tracking-widest outline-none transition focus:shadow-brutal-sm"
             value={code}
             maxLength={6}
-            placeholder="ROOM CODE"
+            placeholder={t('home.roomCodePlaceholder')}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
           />
           <Button
@@ -58,7 +64,7 @@ export function Home() {
             onClick={() => join(name, code.trim(), goToRoom)}
             className="shrink-0"
           >
-            Join
+            {t('home.join')}
           </Button>
         </div>
       </Card>
@@ -67,7 +73,7 @@ export function Home() {
         <span
           className={`inline-block h-2.5 w-2.5 rounded-full border-2 border-ink ${connected ? 'bg-success' : 'bg-danger'}`}
         />
-        {connected ? 'Connected to server' : 'Connecting…'}
+        {connected ? t('connection.connected') : t('connection.connecting')}
       </p>
     </div>
   )

@@ -9,6 +9,7 @@ import {
   type RupiahAmount,
 } from '@tuan-tanah/shared'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button, Card, Modal } from '../ui/index.js'
 import { formatRupiah, useGame } from '../../store/gameStore.js'
 
@@ -26,6 +27,7 @@ function propertyValue(state: GameState, player: Player): RupiahAmount {
 }
 
 export function PinjolModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation()
   const state = useGame((s) => s.state)
   const me = useGame((s) => s.me)()
   const takePinjol = useGame((s) => s.takePinjol)
@@ -52,9 +54,9 @@ export function PinjolModal({ open, onClose }: { open: boolean; onClose: () => v
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="🏦 Pinjol — Take a loan" size="sm">
+    <Modal open={open} onClose={onClose} title={t('pinjol.title')} size="sm">
       <div className="text-xs text-ink-muted">
-        10% interest/round · max {PINJOL_MAX_LOANS} loans · borrow up to {formatRupiah(limit)}
+        {t('pinjol.terms', { maxLoans: PINJOL_MAX_LOANS, limit: formatRupiah(limit) })}
       </div>
 
       {/* Loan size */}
@@ -77,7 +79,7 @@ export function PinjolModal({ open, onClose }: { open: boolean; onClose: () => v
 
       {/* Lender */}
       <div className="mt-4 text-[10px] font-bold uppercase tracking-wide text-ink-faint">
-        Lender
+        {t('pinjol.lender')}
       </div>
       <div className="mt-1 flex flex-wrap gap-2">
         <Button
@@ -85,7 +87,7 @@ export function PinjolModal({ open, onClose }: { open: boolean; onClose: () => v
           variant={lender === BANK ? 'info' : 'secondary'}
           onClick={() => setLender(BANK)}
         >
-          Bank
+          {t('pinjol.bank')}
         </Button>
         {rentenirs.map((r) => (
           <Button
@@ -93,7 +95,7 @@ export function PinjolModal({ open, onClose }: { open: boolean; onClose: () => v
             size="sm"
             variant={lender === r.id ? 'info' : 'secondary'}
             disabled={r.cash < amount}
-            title={r.cash < amount ? 'Not enough cash to lend' : undefined}
+            title={r.cash < amount ? t('pinjol.notEnoughToLend') : undefined}
             onClick={() => setLender(r.id)}
           >
             {r.name} 🤝
@@ -104,21 +106,21 @@ export function PinjolModal({ open, onClose }: { open: boolean; onClose: () => v
       {/* Current loans */}
       {me.loans.length > 0 && (
         <Card flat tone="sunken" className="mt-4 p-2 text-xs text-ink-muted">
-          {me.loans.length} active loan(s) · {formatRupiah(outstanding)} owed
+          {t('pinjol.activeLoans', { count: me.loans.length, owed: formatRupiah(outstanding) })}
         </Card>
       )}
 
       <Button block className="mt-4" disabled={!canBorrow} onClick={borrow}>
         {maxLoansReached
-          ? 'Max loans reached'
+          ? t('pinjol.maxLoansReached')
           : overLimit(amount)
-            ? 'Over borrow limit'
+            ? t('pinjol.overBorrowLimit')
             : lenderShort
-              ? 'Lender short on cash'
-              : `Borrow ${formatRupiah(amount)}`}
+              ? t('pinjol.lenderShort')
+              : t('pinjol.borrow', { amount: formatRupiah(amount) })}
       </Button>
       <Button block variant="ghost" size="sm" className="mt-2" onClick={onClose}>
-        Cancel
+        {t('pinjol.cancel')}
       </Button>
     </Modal>
   )

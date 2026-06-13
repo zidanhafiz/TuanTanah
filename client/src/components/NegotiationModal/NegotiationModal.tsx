@@ -6,14 +6,16 @@ import {
   type TileId,
 } from '@tuan-tanah/shared'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { tileName } from '../../i18n/gameData.js'
 import { Button, Modal } from '../ui/index.js'
 import { useGame } from '../../store/gameStore.js'
 
-const DEAL_TYPES: { value: NegotiationDealType; label: string }[] = [
-  { value: 'property_swap', label: 'Property swap' },
-  { value: 'cash_for_property', label: 'Cash for property' },
-  { value: 'rent_immunity', label: 'Rent immunity' },
-  { value: 'revenue_share', label: 'Revenue share' },
+const DEAL_TYPES: NegotiationDealType[] = [
+  'property_swap',
+  'cash_for_property',
+  'rent_immunity',
+  'revenue_share',
 ]
 
 const JUTA = 1_000_000
@@ -29,6 +31,7 @@ const inputClass =
 const labelClass = 'mt-3 text-[10px] font-semibold uppercase tracking-wide text-ink-faint'
 
 export function NegotiationModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation()
   const state = useGame((s) => s.state)
   const me = useGame((s) => s.me)()
   const proposeDeal = useGame((s) => s.proposeDeal)
@@ -80,9 +83,9 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="🤝 Propose a deal" size="sm">
+    <Modal open={open} onClose={onClose} title={t('negotiation.title')} size="sm">
       {/* Target player */}
-      <div className={labelClass}>With</div>
+      <div className={labelClass}>{t('negotiation.with')}</div>
       <select
         value={targetId}
         onChange={(e) => {
@@ -91,7 +94,7 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
         }}
         className={`mt-1 ${inputClass}`}
       >
-        <option value="">Select a player…</option>
+        <option value="">{t('negotiation.selectPlayer')}</option>
         {targets.map((p) => (
           <option key={p.id} value={p.id}>
             {p.name}
@@ -100,16 +103,16 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
       </select>
 
       {/* Deal type */}
-      <div className={labelClass}>Deal type</div>
+      <div className={labelClass}>{t('negotiation.dealType')}</div>
       <div className="mt-1 grid grid-cols-2 gap-2">
         {DEAL_TYPES.map((dt) => (
           <Button
-            key={dt.value}
+            key={dt}
             size="sm"
-            variant={type === dt.value ? 'primary' : 'secondary'}
-            onClick={() => setType(dt.value)}
+            variant={type === dt ? 'primary' : 'secondary'}
+            onClick={() => setType(dt)}
           >
-            {dt.label}
+            {t(`negotiation.dealTypes.${dt}`)}
           </Button>
         ))}
       </div>
@@ -117,16 +120,16 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
       {/* Your tile (swap only) */}
       {needsOffer && (
         <>
-          <div className={labelClass}>Your tile to give</div>
+          <div className={labelClass}>{t('negotiation.yourTileToGive')}</div>
           <select
             value={offerTileId}
             onChange={(e) => setOfferTileId(e.target.value === '' ? '' : Number(e.target.value))}
             className={`mt-1 ${inputClass}`}
           >
-            <option value="">Select your tile…</option>
-            {myTiles.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
+            <option value="">{t('negotiation.selectYourTile')}</option>
+            {myTiles.map((tile) => (
+              <option key={tile.id} value={tile.id}>
+                {tileName(t, tile.id)}
               </option>
             ))}
           </select>
@@ -137,7 +140,9 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
       {needsRequest && (
         <>
           <div className={labelClass}>
-            {type === 'rent_immunity' ? 'Their tile for immunity' : 'Their tile you want'}
+            {type === 'rent_immunity'
+              ? t('negotiation.theirTileImmunity')
+              : t('negotiation.theirTileWant')}
           </div>
           <select
             value={requestTileId}
@@ -145,10 +150,12 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
             disabled={!targetId}
             className={`mt-1 ${inputClass} disabled:opacity-40`}
           >
-            <option value="">{targetId ? 'Select their tile…' : 'Pick a player first'}</option>
-            {targetTiles.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
+            <option value="">
+              {targetId ? t('negotiation.selectTheirTile') : t('negotiation.pickPlayerFirst')}
+            </option>
+            {targetTiles.map((tile) => (
+              <option key={tile.id} value={tile.id}>
+                {tileName(t, tile.id)}
               </option>
             ))}
           </select>
@@ -159,7 +166,7 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
       {needsCash && (
         <>
           <div className={labelClass}>
-            {type === 'rent_immunity' ? 'Price you pay (juta)' : 'Your offer (juta)'}
+            {type === 'rent_immunity' ? t('negotiation.priceYouPay') : t('negotiation.yourOffer')}
           </div>
           <input
             type="number"
@@ -174,7 +181,7 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
       {/* Revenue share */}
       {needsShare && (
         <>
-          <div className={labelClass}>Share %</div>
+          <div className={labelClass}>{t('negotiation.sharePercent')}</div>
           <input
             type="number"
             min={1}
@@ -183,21 +190,21 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
             onChange={(e) => setSharePercent(Number(e.target.value))}
             className={`mt-1 ${inputClass}`}
           />
-          <div className={labelClass}>Who shares income</div>
+          <div className={labelClass}>{t('negotiation.whoShares')}</div>
           <div className="mt-1 grid grid-cols-2 gap-2">
             <Button
               size="sm"
               variant={shareFrom === 'proposer' ? 'info' : 'secondary'}
               onClick={() => setShareFrom('proposer')}
             >
-              You share
+              {t('negotiation.youShare')}
             </Button>
             <Button
               size="sm"
               variant={shareFrom === 'target' ? 'info' : 'secondary'}
               onClick={() => setShareFrom('target')}
             >
-              They share
+              {t('negotiation.theyShare')}
             </Button>
           </div>
         </>
@@ -206,7 +213,7 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
       {/* Rounds */}
       {needsRounds && (
         <>
-          <div className={labelClass}>Duration (rounds)</div>
+          <div className={labelClass}>{t('negotiation.duration')}</div>
           <input
             type="number"
             min={1}
@@ -218,10 +225,10 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
       )}
 
       <Button block onClick={submit} disabled={!canPropose} className="mt-5">
-        Send proposal
+        {t('negotiation.sendProposal')}
       </Button>
       <Button block variant="ghost" size="sm" onClick={onClose} className="mt-2">
-        Cancel
+        {t('negotiation.cancel')}
       </Button>
     </Modal>
   )
