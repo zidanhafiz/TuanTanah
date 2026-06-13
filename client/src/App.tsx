@@ -6,6 +6,7 @@ import { IncomingDealModal } from './components/NegotiationModal/IncomingDealMod
 import { VotingModal } from './components/VotingModal/VotingModal.js'
 import { Home } from './pages/Home.js'
 import { RoomGate } from './pages/RoomGate.js'
+import { StyleGuide } from './pages/StyleGuide.js'
 import { useGame } from './store/gameStore.js'
 
 export function App() {
@@ -23,6 +24,7 @@ export function App() {
             bounce the bare home URL into that room so returning resumes play. */}
         <Route path="/" element={roomId ? <Navigate to={`/room/${roomId}`} replace /> : <Home />} />
         <Route path="/room/:roomId" element={<RoomGate />} />
+        <Route path="/design" element={<StyleGuide />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <ErrorToast />

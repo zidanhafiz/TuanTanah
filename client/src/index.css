@@ -3,11 +3,33 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: theme('colors.paper');
+  color: theme('colors.ink');
+  font-family: theme('fontFamily.sans');
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  /* The brutalist frame: thick ink border + hard offset shadow. */
+  .brutal {
+    @apply border-2 border-ink shadow-brutal;
+  }
+  .brutal-sm {
+    @apply border-2 border-ink shadow-brutal-sm;
+  }
+  .brutal-lg {
+    @apply border-2 border-ink shadow-brutal-lg;
+  }
+
+  /* Tactile press: lift + grow shadow on hover, sink + collapse on active. */
+  .brutal-press {
+    @apply transition-all duration-100 ease-snap;
+    @apply hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-brutal-lg;
+    @apply active:translate-x-[2px] active:translate-y-[2px] active:shadow-brutal-sm;
+  }
 }
