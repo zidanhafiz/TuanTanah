@@ -20,6 +20,17 @@ export function applyRentEffects(baseRent: number, tileId: TileId, state: GameSt
   return rent
 }
 
-// TODO (later): passive_multiplier / passive_halved / transport_multiplier /
-// tier_drop application, lobby_block + turn_skip resolution.
+/** Apply passive_multiplier effects targeting a player (e.g. Influencer viral boost). */
+export function applyPassiveMultiplier(base: number, playerId: string, state: GameState): number {
+  let passive = base
+  for (const effect of state.activeEffects) {
+    if (effect.type === 'passive_multiplier' && effect.targetPlayerId === playerId) {
+      passive *= effect.multiplier ?? 1
+    }
+  }
+  return passive
+}
+
+// TODO (later): passive_halved / transport_multiplier / tier_drop application,
+// lobby_block + turn_skip resolution.
 export type { ActiveEffect }

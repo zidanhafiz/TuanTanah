@@ -418,3 +418,8 @@ export const KORUPSI_FINE: RupiahAmount = jt(3) // paid to bank when caught (mat
 // Sabotage applies a temporary rent_multiplier effect to one tile.
 export const SABOTAGE_RENT_MULTIPLIER = 0.5 // halves the target tile's rent
 export const SABOTAGE_DURATION_ROUNDS = 2
+
+// Role abilities.
+export const INVESTOR_RENT_CUT_RATE = 0.05 // Investor skims 5% of rent paid between others
+export const INFLUENCER_BOOST_MULTIPLIER = 3 // viral boost passive multiplier
+export const INFLUENCER_BOOST_ROUNDS = 3 // viral boost duration

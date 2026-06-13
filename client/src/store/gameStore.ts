@@ -1,6 +1,7 @@
 import {
   HUSTLE_CARDS,
   KEJADIAN_CARDS,
+  type AbilityType,
   type GameState,
   type MetaActionType,
   type Role,
@@ -82,6 +83,7 @@ interface GameStore {
   roll: () => void
   buy: (tileId: TileId) => void
   metaAction: (action: MetaActionType, targetId?: string, tileId?: TileId) => void
+  useAbility: (ability: AbilityType) => void
   payJail: () => void
   endTurn: () => void
   clearError: () => void
@@ -159,6 +161,7 @@ export const useGame = create<GameStore>((set, get) => ({
   buy: (tileId) => socket.emit('buy_property', { tileId }),
   metaAction: (action, targetId, tileId) =>
     socket.emit('meta_action', { action, targetId, tileId }),
+  useAbility: (ability) => socket.emit('use_ability', { ability }),
   payJail: () => socket.emit('pay_jail'),
   endTurn: () => socket.emit('end_turn'),
   clearError: () => set({ error: null }),

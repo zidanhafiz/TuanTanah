@@ -20,6 +20,9 @@ export type Role =
 
 export type PropertyTrack = 'house' | 'property'
 
+// Player-triggered, once-per-game role abilities.
+export type AbilityType = 'viral_boost' | 'block_kejadian'
+
 export type TileType =
   | 'go'
   | 'property'
@@ -120,6 +123,8 @@ export interface GameState {
   activeEffects: ActiveEffect[]
   kejadianDeck: string[]
   hustleDeck: string[]
+  // Pejabat armed their once/game Kejadian block; the next drawn card is nullified.
+  pendingKejadianBlock?: boolean
   bank: RupiahAmount
   settings: RoomSettings
   log: LogEntry[]

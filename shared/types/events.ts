@@ -2,6 +2,7 @@
 // server and client for end-to-end safety.
 
 import type {
+  AbilityType,
   GameState,
   NegotiationDeal,
   Role,
@@ -45,6 +46,7 @@ export interface ClientToServerEvents {
   buy_property: (payload: { tileId: TileId }) => void
   upgrade_property: (payload: { tileId: TileId; track?: 'house' | 'property' }) => void
   meta_action: (payload: { action: MetaActionType; targetId?: string; tileId?: TileId }) => void
+  use_ability: (payload: { ability: AbilityType }) => void
   pay_jail: () => void
   take_pinjol: (payload: { amount: RupiahAmount }) => void
   propose_deal: (payload: { deal: NegotiationDeal }) => void
