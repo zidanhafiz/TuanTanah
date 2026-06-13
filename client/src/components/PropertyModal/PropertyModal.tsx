@@ -63,7 +63,9 @@ export function PropertyModal({
   const owner = tile.ownerId ? state.players.find((p) => p.id === tile.ownerId) : null
   const region = def.region ? REGIONS[def.region] : null
   const refund = Math.round(tileValue(tile) * SELL_REFUND_RATE)
-  const canSell = ownable && me !== null && tile.ownerId === me.id && isMyTurn
+  // Sellable on your turn, or out of turn while you owe a debt (to raise cash).
+  const iOweDebt = me ? state.pendingDebts.some((d) => d.debtorId === me.id) : false
+  const canSell = ownable && me !== null && tile.ownerId === me.id && (isMyTurn || iOweDebt)
 
   const handleSell = () => {
     sell(tileId)

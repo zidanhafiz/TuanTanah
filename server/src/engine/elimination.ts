@@ -1,9 +1,18 @@
-// Bankruptcy + win-condition checks.
+// Bankruptcy cascade + win-condition checks.
 import { HOUSE_TIERS, PROPERTY_TIERS, REGIONS, TRANSPORT_BUY_PRICE } from '@tuan-tanah/shared'
-import type { FinalStanding, GameState, Player, RupiahAmount, TileState } from '@tuan-tanah/shared'
+import type {
+  FinalStanding,
+  GameState,
+  PendingDebt,
+  Player,
+  RupiahAmount,
+  TileState,
+} from '@tuan-tanah/shared'
 import { getTileDef } from './board.js'
-import { rupiah } from './index.js'
-import { pushLog } from './util.js'
+import { EngineError, rupiah } from './index.js'
+import { investorCut } from './roles.js'
+import { advanceTurn } from './turn.js'
+import { pushLog, uid } from './util.js'
 
 /** Market value of a single owned tile at its current tier. */
 export function tileValue(tile: TileState): RupiahAmount {
@@ -127,22 +136,164 @@ export function finalStandings(state: GameState): FinalStanding[] {
     .sort((a, b) => b.wealth - a.wealth)
 }
 
-export function checkElimination(_state: GameState, _player: Player): boolean {
-  // TODO: bankrupt → pinjol → sell → eliminate.
-  return false
+// ---- Bankruptcy cascade (TTG-16) ----
+// Every forced payment goes through `charge`. If the payer can cover it the
+// money moves immediately; otherwise the charge becomes a pending debt that
+// pauses the game until the debtor raises the cash (sell/pinjol) or gives up.
+
+/** Credit `amount` to a creditor (null = bank). Eliminated creditors fall back to the bank. */
+function creditTo(state: GameState, creditorId: string | null, amount: RupiahAmount): void {
+  if (creditorId === null) {
+    state.bank += amount
+    return
+  }
+  const creditor = state.players.find((p) => p.id === creditorId)
+  if (creditor && !creditor.isEliminated) creditor.cash += amount
+  else state.bank += amount
+}
+
+/** Investor role skims a cut (from the bank) of rent paid between two other players. */
+export function applyInvestorCut(
+  state: GameState,
+  payerId: string,
+  ownerId: string,
+  amount: RupiahAmount,
+): void {
+  for (const inv of state.players) {
+    if (inv.role !== 'investor' || inv.isEliminated) continue
+    if (inv.id === payerId || inv.id === ownerId) continue
+    const cut = investorCut(amount)
+    if (cut <= 0) continue
+    inv.cash += cut
+    state.bank -= cut
+    pushLog(state, `${inv.name} earned ${rupiah(cut)} investor cut on rent`, inv.id)
+  }
 }
 
 /**
- * Entry point for the can't-pay flow (TTG-7). Called when a player's cash has
- * gone negative (e.g. unpayable pinjol interest). For now it only flags the
- * insolvency in the log; the forced sell → eliminate flow is TTG-16.
+ * The single primitive for every forced payment (rent, tax, fines, interest).
+ * Pays immediately when affordable; otherwise records a pending debt (or
+ * eliminates a player who has nothing left to sell). `creditorId` null = bank.
  */
-export function triggerInsolvency(state: GameState, player: Player): void {
-  if (player.cash >= 0) return
+export function charge(
+  state: GameState,
+  player: Player,
+  amount: RupiahAmount,
+  creditorId: string | null,
+  type: PendingDebt['type'],
+  reason: string,
+): void {
+  if (amount <= 0) return
+  if (player.cash >= amount) {
+    player.cash -= amount
+    creditTo(state, creditorId, amount)
+    if (type === 'rent' && creditorId) applyInvestorCut(state, player.id, creditorId, amount)
+    pushLog(state, `${player.name} paid ${rupiah(amount)} — ${reason}`, player.id)
+    return
+  }
+  oweDebt(state, player, creditorId, amount, type, reason)
+}
+
+/** Record an unpayable charge, or eliminate the player if they have nothing to sell. */
+function oweDebt(
+  state: GameState,
+  player: Player,
+  creditorId: string | null,
+  amount: RupiahAmount,
+  type: PendingDebt['type'],
+  reason: string,
+): void {
+  // No property → borrow capacity is 0 too → no way to ever raise the cash.
+  if (!state.tiles.some((t) => t.ownerId === player.id)) {
+    eliminate(state, player)
+    return
+  }
+  state.pendingDebts.push({ id: uid(), debtorId: player.id, creditorId, amount, type, reason })
   pushLog(
     state,
-    `${player.name} can't cover their debts (${rupiah(player.cash)}) — must sell property or be eliminated`,
+    `${player.name} owes ${rupiah(amount)} (${reason}) and must sell property or take a pinjol`,
     player.id,
   )
-  // TODO (TTG-16): force property sale, then elimination if nothing left to sell.
+}
+
+/** Pay off a pending debt the debtor can now afford, then remove it. */
+function payOwed(state: GameState, debt: PendingDebt): void {
+  const debtor = state.players.find((p) => p.id === debt.debtorId)
+  if (!debtor) return
+  debtor.cash -= debt.amount
+  creditTo(state, debt.creditorId, debt.amount)
+  if (debt.type === 'rent' && debt.creditorId) {
+    applyInvestorCut(state, debt.debtorId, debt.creditorId, debt.amount)
+  }
+  state.pendingDebts = state.pendingDebts.filter((d) => d.id !== debt.id)
+  pushLog(
+    state,
+    `${debtor.name} settled their ${rupiah(debt.amount)} debt (${debt.reason})`,
+    debtor.id,
+  )
+}
+
+/**
+ * Eliminate a bankrupt player: properties revert to the bank, loans are wiped,
+ * residual cash returns to the bank (keeping the ledger balanced), and they
+ * become a spectator skipped in turn order.
+ */
+export function eliminate(state: GameState, player: Player): void {
+  if (player.isEliminated) return
+  for (const tile of state.tiles) {
+    if (tile.ownerId !== player.id) continue
+    tile.ownerId = null
+    tile.track = null
+    tile.tier = 0
+  }
+  if (player.cash > 0) state.bank += player.cash
+  player.cash = 0
+  player.loans = []
+  player.isEliminated = true
+  state.pendingDebts = state.pendingDebts.filter((d) => d.debtorId !== player.id)
+  pushLog(state, `💀 ${player.name} went bankrupt and was eliminated`, player.id)
+}
+
+/** After raising cash (sell/pinjol), settle the player's debt if they can now afford it. */
+export function settleIfAble(state: GameState, playerId: string): void {
+  const debt = state.pendingDebts.find((d) => d.debtorId === playerId)
+  if (!debt) return
+  const player = state.players.find((p) => p.id === playerId)
+  if (!player) return
+  if (player.cash >= debt.amount) payOwed(state, debt)
+  // Sold everything off and still short → nothing left to do but go under.
+  else if (!state.tiles.some((t) => t.ownerId === playerId)) eliminate(state, player)
+  finalizeDebtState(state)
+}
+
+/**
+ * Resolve a player's pending debt on request. `giveUp` declares bankruptcy;
+ * otherwise we pay if able, eliminate if there's nothing left to sell, or tell
+ * the player to keep raising funds.
+ */
+export function resolveDebt(state: GameState, playerId: string, giveUp: boolean): void {
+  const debt = state.pendingDebts.find((d) => d.debtorId === playerId)
+  if (!debt) throw new EngineError('You have no outstanding debt')
+  const player = state.players.find((p) => p.id === playerId)
+  if (!player) throw new EngineError('Player not found')
+
+  if (giveUp) {
+    eliminate(state, player)
+  } else if (player.cash >= debt.amount) {
+    payOwed(state, debt)
+  } else if (!state.tiles.some((t) => t.ownerId === playerId)) {
+    eliminate(state, player)
+  } else {
+    throw new EngineError(
+      `You still owe ${rupiah(debt.amount - player.cash)} — sell property or take a pinjol`,
+    )
+  }
+  finalizeDebtState(state)
+}
+
+/** Once all debts clear, move the turn off an eliminated active player. */
+function finalizeDebtState(state: GameState): void {
+  if (state.pendingDebts.length > 0) return
+  const current = state.players[state.currentPlayerIndex]
+  if (current?.isEliminated) advanceTurn(state)
 }

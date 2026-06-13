@@ -101,4 +101,9 @@ export function advanceTurn(state: GameState): void {
     return
   }
   startTurn(state)
+  // Start-of-turn pinjol interest can bankrupt a player with nothing to sell.
+  // If that just eliminated the player whose turn we started (and no debt is
+  // pending), skip past them to the next active player.
+  const current = state.players[state.currentPlayerIndex]
+  if (current?.isEliminated && state.pendingDebts.length === 0) advanceTurn(state)
 }

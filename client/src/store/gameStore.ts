@@ -88,6 +88,7 @@ interface GameStore {
   metaAction: (action: MetaActionType, targetId?: string, tileId?: TileId) => void
   useAbility: (ability: AbilityType) => void
   takePinjol: (amount: RupiahAmount, lenderId?: string) => void
+  resolveDebt: (giveUp: boolean) => void
   payJail: () => void
   castVote: (targetId: string) => void
   endTurn: () => void
@@ -171,6 +172,7 @@ export const useGame = create<GameStore>((set, get) => ({
     socket.emit('meta_action', { action, targetId, tileId }),
   useAbility: (ability) => socket.emit('use_ability', { ability }),
   takePinjol: (amount, lenderId) => socket.emit('take_pinjol', { amount, lenderId }),
+  resolveDebt: (giveUp) => socket.emit('resolve_debt', { giveUp }),
   payJail: () => socket.emit('pay_jail'),
   castVote: (targetId) => socket.emit('cast_vote', { targetId }),
   endTurn: () => socket.emit('end_turn'),

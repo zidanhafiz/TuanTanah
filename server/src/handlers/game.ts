@@ -1,8 +1,10 @@
+import type { GameState } from '@tuan-tanah/shared'
 import { castVote, performMetaAction } from '../engine/actions.js'
 import {
   buyProperty,
   endTurn,
   payJail,
+  resolveDebt,
   rollDice,
   sellProperty,
   takeLoan,
@@ -15,12 +17,33 @@ import { concludeIfWon } from './gameOver.js'
 
 const NOT_IMPLEMENTED = 'This action is not implemented yet'
 
+/**
+ * Run an engine mutation and report which players it newly eliminated, so the
+ * handler can emit `player_eliminated`. Diffing `isEliminated` here avoids
+ * threading eliminated ids through every engine function.
+ */
+function runWithEliminations<T>(state: GameState, fn: () => T): { value: T; eliminated: string[] } {
+  const before = state.players.filter((p) => p.isEliminated).map((p) => p.id)
+  const value = fn()
+  const eliminated = state.players
+    .filter((p) => p.isEliminated && !before.includes(p.id))
+    .map((p) => p.id)
+  return { value, eliminated }
+}
+
+function emitEliminated(io: TTServer, roomId: string, ids: string[]): void {
+  for (const id of ids) io.to(roomId).emit('player_eliminated', { playerId: id })
+}
+
 export function registerGameHandlers(io: TTServer, socket: TTSocket, store: GameStore): void {
   socket.on('roll_dice', () =>
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
-      const result = await mutateRoom(store, roomId, (state) => rollDice(state, playerId))
+      const { value: result, eliminated } = await mutateRoom(store, roomId, (state) =>
+        runWithEliminations(state, () => rollDice(state, playerId)),
+      )
       await broadcastState(io, store, roomId)
+      emitEliminated(io, roomId, eliminated)
       if (result.card) {
         io.to(roomId).emit('card_drawn', {
           type: result.card.type,
@@ -28,6 +51,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
           playerId,
         })
       }
+      await concludeIfWon(io, store, roomId)
     }),
   )
 
@@ -50,8 +74,11 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
   socket.on('end_turn', () =>
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
-      await mutateRoom(store, roomId, (state) => endTurn(state, playerId))
+      const { eliminated } = await mutateRoom(store, roomId, (state) =>
+        runWithEliminations(state, () => endTurn(state, playerId)),
+      )
       await broadcastState(io, store, roomId)
+      emitEliminated(io, roomId, eliminated)
       await concludeIfWon(io, store, roomId)
     }),
   )
@@ -59,18 +86,22 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
   socket.on('meta_action', (payload) =>
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
-      const result = await mutateRoom(store, roomId, (state) =>
-        performMetaAction(state, {
-          action: payload.action,
-          playerId,
-          targetId: payload.targetId,
-          tileId: payload.tileId,
-        }),
+      const { value: result, eliminated } = await mutateRoom(store, roomId, (state) =>
+        runWithEliminations(state, () =>
+          performMetaAction(state, {
+            action: payload.action,
+            playerId,
+            targetId: payload.targetId,
+            tileId: payload.tileId,
+          }),
+        ),
       )
       await broadcastState(io, store, roomId)
+      emitEliminated(io, roomId, eliminated)
       if (result.card) {
         io.to(roomId).emit('card_drawn', { type: 'hustle', card: result.card.cardId, playerId })
       }
+      await concludeIfWon(io, store, roomId)
     }),
   )
 
@@ -93,18 +124,38 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
   socket.on('take_pinjol', (payload) =>
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
-      await mutateRoom(store, roomId, (state) =>
-        takeLoan(state, playerId, payload.amount, payload.lenderId),
+      const { eliminated } = await mutateRoom(store, roomId, (state) =>
+        runWithEliminations(state, () =>
+          takeLoan(state, playerId, payload.amount, payload.lenderId),
+        ),
       )
       await broadcastState(io, store, roomId)
+      emitEliminated(io, roomId, eliminated)
+      await concludeIfWon(io, store, roomId)
     }),
   )
 
   socket.on('sell_property', (payload) =>
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
-      await mutateRoom(store, roomId, (state) => sellProperty(state, playerId, payload.tileId))
+      const { eliminated } = await mutateRoom(store, roomId, (state) =>
+        runWithEliminations(state, () => sellProperty(state, playerId, payload.tileId)),
+      )
       await broadcastState(io, store, roomId)
+      emitEliminated(io, roomId, eliminated)
+      await concludeIfWon(io, store, roomId)
+    }),
+  )
+
+  socket.on('resolve_debt', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      const { eliminated } = await mutateRoom(store, roomId, (state) =>
+        runWithEliminations(state, () => resolveDebt(state, playerId, payload.giveUp)),
+      )
+      await broadcastState(io, store, roomId)
+      emitEliminated(io, roomId, eliminated)
+      await concludeIfWon(io, store, roomId)
     }),
   )
 

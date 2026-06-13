@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from 'react'
 import { AbilityBar } from '../components/AbilityBar/AbilityBar.js'
 import { Board } from '../components/Board/Board.js'
+import { DebtPanel } from '../components/DebtPanel/DebtPanel.js'
 import { EventLog } from '../components/EventLog/EventLog.js'
 import { MetaActionBar, type MetaActionDef } from '../components/MetaActionBar/MetaActionBar.js'
 import { PinjolModal } from '../components/PinjolModal/PinjolModal.js'
@@ -53,6 +54,12 @@ export function Game() {
   const { turn, phase } = state
   const pending = turn.pendingBuyTileId
   const current = state.players[state.currentPlayerIndex]
+  const myDebt = me ? state.pendingDebts.find((d) => d.debtorId === me.id) : undefined
+  // While any debt is unresolved the game is paused for everyone else.
+  const debtor =
+    state.pendingDebts.length > 0
+      ? state.players.find((p) => p.id === state.pendingDebts[0]!.debtorId)
+      : undefined
 
   const handlePickMeta = (def: MetaActionDef) => {
     if (def.target === 'none') {
@@ -98,6 +105,18 @@ export function Game() {
               <div className="text-xl font-bold text-amber-300">
                 {state.players.find((p) => p.id === state.winner)?.name ?? '—'}
               </div>
+            </div>
+          ) : myDebt ? (
+            <div className="mt-3">
+              <DebtPanel debt={myDebt} onTakePinjol={() => setShowPinjol(true)} />
+            </div>
+          ) : debtor ? (
+            <div className="mt-3 rounded-lg bg-rose-500/10 py-3 text-center text-sm text-rose-200">
+              Paused — waiting for{' '}
+              <span className="font-semibold" style={{ color: debtor.color }}>
+                {debtor.name}
+              </span>{' '}
+              to settle a debt…
             </div>
           ) : (
             <div className="mt-3 space-y-2">

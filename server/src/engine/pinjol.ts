@@ -11,8 +11,8 @@ import {
 } from '@tuan-tanah/shared'
 import type { GameState, Player, RupiahAmount } from '@tuan-tanah/shared'
 import { getTileDef } from './board.js'
-import { triggerInsolvency } from './elimination.js'
-import { EngineError, requireTurn, rupiah } from './index.js'
+import { charge, settleIfAble } from './elimination.js'
+import { EngineError, requireDebtorOrTurn, rupiah } from './index.js'
 import { pushLog, uid } from './util.js'
 
 /** Sum of the buy price of every tile the player owns (property value only). */
@@ -49,7 +49,8 @@ export function takeLoan(
   amount: RupiahAmount,
   lenderId?: string,
 ): void {
-  const player = requireTurn(state, playerId)
+  // Allowed on your turn, or out of turn while you owe a debt (to raise cash).
+  const player = requireDebtorOrTurn(state, playerId)
 
   if (!PINJOL_AMOUNTS.includes(amount)) throw new EngineError('Invalid loan size')
   if (player.loans.length >= PINJOL_MAX_LOANS) {
@@ -91,6 +92,8 @@ export function takeLoan(
     `${player.name} took a ${rupiah(amount)} pinjol from ${lender ? lender.name : 'the bank'}`,
     player.id,
   )
+  // Borrowing to cover a pending debt settles it once the cash is in hand.
+  settleIfAble(state, playerId)
 }
 
 /**
@@ -105,14 +108,23 @@ export function chargeInterest(state: GameState, player: Player): RupiahAmount {
     const interest = Math.round(loan.amount * PINJOL_INTEREST_RATE)
     loan.interestPerRound = interest
     total += interest
-    const lender = loan.lenderId
-      ? state.players.find((p) => p.id === loan.lenderId && !p.isEliminated)
-      : null
-    if (lender) lender.cash += interest
-    else state.bank += interest
   }
-  player.cash -= total
-  pushLog(state, `${player.name} paid ${rupiah(total)} pinjol interest`, player.id)
-  if (player.cash < 0) triggerInsolvency(state, player)
+
+  if (player.cash >= total) {
+    // Affordable: pay each lender (or the bank) their share directly.
+    for (const loan of player.loans) {
+      const lender = loan.lenderId
+        ? state.players.find((p) => p.id === loan.lenderId && !p.isEliminated)
+        : null
+      if (lender) lender.cash += loan.interestPerRound
+      else state.bank += loan.interestPerRound
+    }
+    player.cash -= total
+    pushLog(state, `${player.name} paid ${rupiah(total)} pinjol interest`, player.id)
+  } else {
+    // Can't cover it → opens a pending debt (multi-lender interest is collapsed
+    // into a single bank debt; lenders forgo it in this bankruptcy edge case).
+    charge(state, player, total, null, 'interest', 'pinjol interest')
+  }
   return total
 }

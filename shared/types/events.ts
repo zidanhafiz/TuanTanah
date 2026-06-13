@@ -52,6 +52,7 @@ export interface ClientToServerEvents {
   propose_deal: (payload: { deal: NegotiationDeal }) => void
   respond_deal: (payload: { dealId: string; accept: boolean }) => void
   sell_property: (payload: { tileId: TileId }) => void
+  resolve_debt: (payload: { giveUp: boolean }) => void
   cast_vote: (payload: { targetId: string }) => void
   end_turn: () => void
 }

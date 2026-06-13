@@ -25,15 +25,12 @@ import {
 } from '@tuan-tanah/shared'
 import type { ActiveEffect, GameState, Player, RegionId } from '@tuan-tanah/shared'
 import { getTileDef } from './board.js'
+import { charge } from './elimination.js'
 import { isTaxImmune } from './roles.js'
 import { defaultRng, pushLog, uid, type Rng } from './util.js'
 
 const HUSTLE_BY_ID = new Map(HUSTLE_CARDS.map((c) => [c.id, c]))
 const KEJADIAN_BY_ID = new Map(KEJADIAN_CARDS.map((c) => [c.id, c]))
-
-// Local Rupiah formatter (rupiah() lives in index.ts; importing it here would
-// create a cards <-> index cycle).
-const fmt = (n: number): string => `Rp ${Math.round(n).toLocaleString('id-ID')}`
 
 /** Draw the top card id from a deck, recycling it to the bottom. */
 function drawFrom(deck: string[]): string | null {
@@ -108,8 +105,7 @@ export function drawKejadian(
       const tax = 500_000
       for (const p of activePlayers(state)) {
         if (isTaxImmune(p)) continue // Ojol Driver never pays travel tax
-        p.cash -= tax
-        state.bank += tax
+        charge(state, p, tax, null, 'fine', 'kenaikan BBM')
       }
       break
     }
@@ -131,9 +127,7 @@ export function drawKejadian(
       )
       if (richest && richest.cash > 0) {
         const fine = Math.round(richest.cash * INSPEKSI_PAJAK_RATE)
-        richest.cash -= fine
-        state.bank += fine
-        pushLog(state, `${richest.name} paid a tax inspection fine of ${fmt(fine)}`, richest.id)
+        charge(state, richest, fine, null, 'fine', 'tax inspection fine')
       }
       break
     }
@@ -143,13 +137,7 @@ export function drawKejadian(
         null,
       )
       if (target && target.loans.length > 0) {
-        target.cash -= KORUPSI_FINE
-        state.bank += KORUPSI_FINE
-        pushLog(
-          state,
-          `${target.name} was exposed for corruption and fined ${fmt(KORUPSI_FINE)}`,
-          target.id,
-        )
+        charge(state, target, KORUPSI_FINE, null, 'fine', 'korupsi terungkap')
       } else {
         pushLog(state, `Korupsi Terungkap — nobody has outstanding pinjol; no effect`)
       }

@@ -37,9 +37,9 @@ import type {
 } from '@tuan-tanah/shared'
 import { getTileDef, ownsFullRegion, transportOwnedCount } from './board.js'
 import { drawHustle, drawKejadian } from './cards.js'
-import { tileValue } from './elimination.js'
+import { charge, settleIfAble, tileValue } from './elimination.js'
 import { applyRentEffects, effectiveTier } from './effects.js'
-import { buyPriceMultiplier, investorCut, isTaxImmune, salaryFor } from './roles.js'
+import { buyPriceMultiplier, isTaxImmune, salaryFor } from './roles.js'
 import { advanceTurn, startTurn } from './turn.js'
 import { defaultRng, pushLog, shuffle, uid, type Rng } from './util.js'
 
@@ -73,6 +73,7 @@ export function createGameState(roomId: string, now: number): GameState {
     kejadianDeck: [],
     hustleDeck: [],
     pendingKejadianBlock: false,
+    pendingDebts: [],
     bank: BANK_STARTING,
     settings: {
       winCondition: 'both',
@@ -223,7 +224,26 @@ export function requireTurn(state: GameState, playerId: string): Player {
   const current = state.players[state.currentPlayerIndex]
   if (!current || current.id !== playerId) throw new EngineError('Not your turn')
   if (current.isEliminated) throw new EngineError('You have been eliminated')
+  if (state.pendingDebts.length > 0) {
+    throw new EngineError('Resolve outstanding debts before continuing')
+  }
   return current
+}
+
+/**
+ * Like `requireTurn`, but also allows a player who has a pending debt to act
+ * out of turn — so an indebted player can sell property or take a pinjol to
+ * raise the cash even when it isn't their turn.
+ */
+export function requireDebtorOrTurn(state: GameState, playerId: string): Player {
+  if (state.phase !== 'playing') throw new EngineError('Game is not in progress')
+  const player = state.players.find((p) => p.id === playerId)
+  if (!player) throw new EngineError('Player not found')
+  if (player.isEliminated) throw new EngineError('You have been eliminated')
+  const isTurn = state.players[state.currentPlayerIndex]?.id === playerId
+  const hasDebt = state.pendingDebts.some((d) => d.debtorId === playerId)
+  if (!isTurn && !hasDebt) throw new EngineError('Not your turn')
+  return player
 }
 
 export interface RollResult {
@@ -316,9 +336,7 @@ function resolveTile(
         return {}
       }
       const amount = def.taxAmount ?? 0
-      player.cash -= amount
-      state.bank += amount
-      pushLog(state, `${player.name} paid ${def.name} (${rupiah(amount)})`, player.id)
+      charge(state, player, amount, null, 'tax', def.name)
       return {}
     }
     case 'hustle': {
@@ -354,21 +372,10 @@ export function sendToJail(state: GameState, player: Player): void {
 function payRent(state: GameState, payer: Player, ownerId: string, amount: RupiahAmount): void {
   const owner = state.players.find((p) => p.id === ownerId)
   if (!owner) return
-  payer.cash -= amount
-  owner.cash += amount
-  pushLog(state, `${payer.name} paid ${rupiah(amount)} rent to ${owner.name}`, payer.id)
-
-  // Investor skims 5% (from the bank) of rent paid between two other players.
-  for (const inv of state.players) {
-    if (inv.role !== 'investor' || inv.isEliminated) continue
-    if (inv.id === payer.id || inv.id === ownerId) continue
-    const cut = investorCut(amount)
-    if (cut <= 0) continue
-    inv.cash += cut
-    state.bank -= cut
-    pushLog(state, `${inv.name} earned ${rupiah(cut)} investor cut on rent`, inv.id)
-  }
-  // TODO: immunity deals, can't-pay → elimination flow.
+  // `charge` pays immediately if affordable (and applies the Investor cut), or
+  // opens a pending debt the payer must settle before play continues.
+  charge(state, payer, amount, ownerId, 'rent', `rent to ${owner.name}`)
+  // TODO: immunity deals.
 }
 
 /** Rent owed when an opponent lands on a tile. */
@@ -432,7 +439,8 @@ export function buyProperty(state: GameState, playerId: string, tileId: TileId):
 
 /** Sell an owned tile back to the bank for a partial refund (SELL_REFUND_RATE of invested value). */
 export function sellProperty(state: GameState, playerId: string, tileId: TileId): void {
-  const player = requireTurn(state, playerId)
+  // Allowed on your turn, or out of turn while you owe a debt (to raise cash).
+  const player = requireDebtorOrTurn(state, playerId)
   const tile = state.tiles[tileId]
   if (!tile) throw new EngineError('Invalid tile')
   if (tile.ownerId !== player.id) throw new EngineError("You don't own that tile")
@@ -448,6 +456,8 @@ export function sellProperty(state: GameState, playerId: string, tileId: TileId)
     `${player.name} sold ${getTileDef(tileId).name} back to the bank for ${rupiah(refund)}`,
     player.id,
   )
+  // If this covered a pending debt, settle it (and advance off an eliminated turn).
+  settleIfAble(state, playerId)
 }
 
 export function payJail(state: GameState, playerId: string): void {
@@ -472,4 +482,4 @@ export * from './board.js'
 export { collectPassiveIncome } from './turn.js'
 export { useAbility } from './abilities.js'
 export { takeLoan } from './pinjol.js'
-export { finalStandings, playerWealth, resolveGameOver } from './elimination.js'
+export { finalStandings, playerWealth, resolveDebt, resolveGameOver } from './elimination.js'

@@ -74,6 +74,18 @@ export interface TileState {
   tier: number // 0 = unbuilt, 1–4 house, 1–5 property
 }
 
+// An unpayable charge that paused the game. The debtor must raise cash (sell a
+// property or take a pinjol — which auto-settle the debt) or give up and be
+// eliminated. At most one pending debt per player at a time.
+export interface PendingDebt {
+  id: string
+  debtorId: string
+  creditorId: string | null // null = bank
+  amount: RupiahAmount
+  type: 'rent' | 'tax' | 'fine' | 'interest'
+  reason: string // human label, e.g. "rent to Budi"
+}
+
 export interface ActiveEffect {
   id: string
   type: EffectType
@@ -134,6 +146,8 @@ export interface GameState {
   pendingKejadianBlock?: boolean
   // An in-progress Pemilu election; cleared once the vote resolves.
   pendingVote?: PendingVote | null
+  // Unpayable charges awaiting resolution; while non-empty the game is paused.
+  pendingDebts: PendingDebt[]
   bank: RupiahAmount
   settings: RoomSettings
   log: LogEntry[]

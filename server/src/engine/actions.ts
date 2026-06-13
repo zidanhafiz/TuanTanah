@@ -13,6 +13,7 @@ import {
 import type { GameState, MetaActionType, Player } from '@tuan-tanah/shared'
 import { getTileDef } from './board.js'
 import { drawHustle } from './cards.js'
+import { charge } from './elimination.js'
 import { EngineError, buyTile, requireTurn, rupiah, sendToJail } from './index.js'
 import { salaryFor } from './roles.js'
 import { defaultRng, pushLog, uid, type Rng } from './util.js'
@@ -143,14 +144,9 @@ export function performMetaAction(
         )
       } else {
         sendToJail(state, player)
-        // Fine on top of jail. Can't-pay → elimination is handled later (TTG-16).
-        player.cash -= KORUPSI_FINE
-        state.bank += KORUPSI_FINE
-        pushLog(
-          state,
-          `${player.name} was caught for korupsi — jailed and fined ${rupiah(KORUPSI_FINE)}`,
-          player.id,
-        )
+        pushLog(state, `${player.name} was caught for korupsi — jailed`, player.id)
+        // Fine on top of jail; opens a pending debt if they can't cover it.
+        charge(state, player, KORUPSI_FINE, null, 'fine', 'korupsi fine')
       }
       state.turn.usedMetaAction = true
       return {}
