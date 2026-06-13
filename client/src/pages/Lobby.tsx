@@ -7,6 +7,7 @@ import {
   TARGET_WEALTH_MIN,
   TARGET_WEALTH_STEP,
   TIME_LIMIT_OPTIONS,
+  WIN_CONDITIONS,
   type Role,
   type WinCondition,
 } from '@tuan-tanah/shared'
@@ -127,20 +128,20 @@ export function Lobby() {
           <div>
             <h2 className="mb-2 text-sm font-semibold uppercase text-slate-400">Win condition</h2>
             <div className="grid grid-cols-3 gap-1">
-              {(['time', 'wealth', 'both'] as WinCondition[]).map((wc) => {
+              {WIN_CONDITIONS.map((wc) => {
                 const active = state.settings.winCondition === wc
                 return (
                   <button
                     key={wc}
                     disabled={!isMaster}
                     onClick={() => updateSettings({ winCondition: wc })}
-                    className={`rounded-lg py-1.5 text-xs font-semibold capitalize transition ${
+                    className={`rounded-lg py-1.5 text-xs font-semibold transition ${
                       active
                         ? 'bg-amber-500 text-slate-900'
                         : 'bg-slate-800 text-slate-300 enabled:hover:bg-slate-700 disabled:opacity-60'
                     }`}
                   >
-                    {wc}
+                    {WIN_CONDITION_LABELS[wc]}
                   </button>
                 )
               })}
@@ -192,6 +193,41 @@ export function Lobby() {
             </div>
           )}
 
+          <div>
+            <h2 className="mb-2 text-sm font-semibold uppercase text-slate-400">Enabled roles</h2>
+            <ul className="space-y-1">
+              {ALL_ROLES.map((role) => {
+                const enabled = state.settings.enabledRoles.includes(role)
+                return (
+                  <li key={role}>
+                    <label
+                      className={`flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-1.5 text-sm ${
+                        isMaster ? 'cursor-pointer' : ''
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={enabled}
+                        disabled={!isMaster}
+                        onChange={() =>
+                          updateSettings({
+                            enabledRoles: enabled
+                              ? state.settings.enabledRoles.filter((r) => r !== role)
+                              : [...state.settings.enabledRoles, role],
+                          })
+                        }
+                        className="accent-amber-400"
+                      />
+                      <span className={enabled ? '' : 'text-slate-500 line-through'}>
+                        {ROLES[role].name}
+                      </span>
+                    </label>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+
           {isMaster ? (
             <button
               disabled={!canStart}
@@ -209,6 +245,12 @@ export function Lobby() {
       </div>
     </div>
   )
+}
+
+const WIN_CONDITION_LABELS: Record<WinCondition, string> = {
+  time: 'Waktu',
+  wealth: 'Kekayaan',
+  both: 'Keduanya',
 }
 
 function Centered({ children }: { children: React.ReactNode }) {

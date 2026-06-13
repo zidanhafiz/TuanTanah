@@ -1,7 +1,7 @@
 // Single source of truth for all Tuan Tanah game data, transcribed from
 // docs/GAME_DESIGN.md. Both the server engine and the client import from here.
 
-import type { Role, RupiahAmount, TileId, TileType } from './game.js'
+import type { Role, RupiahAmount, TileId, TileType, WinCondition } from './game.js'
 
 // Convenience helpers for readability.
 const jt = (n: number): RupiahAmount => n * 1_000_000
@@ -19,6 +19,7 @@ export const STARTING_CASH_DEFAULT = jt(15)
 export const BANK_STARTING = jt(1_000_000)
 
 // ---- Win conditions (room master sets in lobby) ----
+export const WIN_CONDITIONS: WinCondition[] = ['time', 'wealth', 'both']
 export const TIME_LIMIT_OPTIONS = [30, 60, 90, 120] as const
 export const TARGET_WEALTH_MIN = jt(50) // Rp 50 juta
 export const TARGET_WEALTH_MAX = jt(500) // Rp 500 juta
