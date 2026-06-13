@@ -15,7 +15,7 @@ import {
 import { create } from 'zustand'
 import { socket } from '../socket.js'
 import { audio, playSound, playStateSounds } from '../sound/index.js'
-import { noteIncomingState, playOnMoveSettled, resetRollAnim } from './rollAnimation.js'
+import { noteIncomingState, resetRollAnim } from './rollAnimation.js'
 
 const HUSTLE_NAME = new Map(HUSTLE_CARDS.map((c) => [c.id, c.name]))
 const KEJADIAN_NAME = new Map(KEJADIAN_CARDS.map((c) => [c.id, c.name]))
@@ -192,9 +192,6 @@ export const useGame = create<GameStore>((set, get) => ({
       })
     })
     socket.on('player_eliminated', () => playSound('eliminated'))
-    // Rent arrives in the same beat as the roll broadcast; defer the cue so it
-    // lands with the token instead of during the dice tumble.
-    socket.on('rent_paid', () => playOnMoveSettled('rent'))
     socket.on('game_over', ({ finalStandings }) => {
       playSound('gameOver')
       set({ finalStandings })
