@@ -256,6 +256,10 @@
     "en": "English",
     "id": "Bahasa Indonesia"
   },
+  "sound": {
+    "mute": "Bisukan suara",
+    "unmute": "Nyalakan suara"
+  },
   "data": {
     "tiles": {
       "4": "Pajak Penghasilan",

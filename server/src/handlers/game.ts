@@ -52,6 +52,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
           playerId,
         })
       }
+      if (result.rent) io.to(roomId).emit('rent_paid', result.rent)
       await concludeIfWon(io, store, roomId)
     }),
   )

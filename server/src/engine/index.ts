@@ -250,10 +250,21 @@ export function requireDebtorOrTurn(state: GameState, playerId: string): Player 
   return player
 }
 
+export interface RentPaid {
+  payerId: string
+  ownerId: string
+  tileId: TileId
+  amount: RupiahAmount
+}
+
 export interface RollResult {
   dice: [number, number]
   card?: { type: 'kejadian' | 'hustle'; card: string }
+  rent?: RentPaid
 }
+
+/** What landing on a tile produced — surfaced so handlers can emit side events. */
+type TileOutcome = { card?: { type: 'kejadian' | 'hustle'; card: string }; rent?: RentPaid }
 
 export function rollDice(state: GameState, playerId: string, rng: Rng = defaultRng): RollResult {
   const player = requireTurn(state, playerId)
@@ -300,7 +311,7 @@ function movePlayer(
   player: Player,
   steps: number,
   rng: Rng = defaultRng,
-): { card?: { type: 'kejadian' | 'hustle'; card: string } } {
+): TileOutcome {
   const oldPos = player.position
   const passedGo = oldPos + steps >= BOARD_SIZE
   player.position = (oldPos + steps) % BOARD_SIZE
@@ -313,11 +324,7 @@ function movePlayer(
   return resolveTile(state, player, rng)
 }
 
-function resolveTile(
-  state: GameState,
-  player: Player,
-  rng: Rng = defaultRng,
-): { card?: { type: 'kejadian' | 'hustle'; card: string } } {
+function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): TileOutcome {
   const def = getTileDef(player.position)
   switch (def.type) {
     case 'property':
@@ -328,7 +335,8 @@ function resolveTile(
         pushLog(state, `${player.name} landed on ${def.name} (unowned)`, player.id)
       } else if (tile.ownerId !== player.id) {
         const rent = computeRent(state, player.position)
-        payRent(state, player, tile.ownerId, rent, player.position)
+        const paid = payRent(state, player, tile.ownerId, rent, player.position)
+        return paid ? { rent: paid } : {}
       } else {
         pushLog(state, `${player.name} landed on their own ${def.name}`, player.id)
       }
@@ -379,18 +387,20 @@ function payRent(
   ownerId: string,
   amount: RupiahAmount,
   tileId: TileId,
-): void {
+): RentPaid | null {
   const owner = state.players.find((p) => p.id === ownerId)
-  if (!owner) return
+  if (!owner) return null
   // An accepted rent-immunity deal waives this rent entirely (no charge, no Investor cut).
   if (hasRentImmunity(state, payer.id, tileId)) {
     pushLog(state, `${payer.name} is immune from rent on ${getTileDef(tileId).name}`, payer.id)
-    return
+    return null
   }
+  if (amount <= 0) return null
 
   // `charge` pays immediately if affordable (and applies the Investor / builder
   // cut), or opens a pending debt the payer must settle before play continues.
   charge(state, payer, amount, ownerId, 'rent', `rent to ${owner.name}`, tileId)
+  return { payerId: payer.id, ownerId, tileId, amount }
 }
 
 /** Rent owed when an opponent lands on a tile. */

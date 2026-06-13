@@ -19,6 +19,7 @@ import { PinjolModal } from '../components/PinjolModal/PinjolModal.js'
 import { PlayerPanel } from '../components/PlayerPanel/PlayerPanel.js'
 import { PropertyModal } from '../components/PropertyModal/PropertyModal.js'
 import { LeaveButton } from '../components/RoomActions.js'
+import { SoundToggle } from '../components/SoundToggle.js'
 import { Badge, Button, Card, Tooltip } from '../components/ui/index.js'
 import { formatRupiah, useGame } from '../store/gameStore.js'
 import { isRollAnimating, useRollAnim } from '../store/rollAnimation.js'
@@ -106,7 +107,10 @@ export function Game() {
         <Card className="p-3">
           <div className="flex items-center justify-between text-xs text-ink-muted">
             <span>{t('game.room', { code: state.roomId })}</span>
-            <span>{t('game.round', { round: state.round })}</span>
+            <div className="flex items-center gap-2">
+              <span>{t('game.round', { round: state.round })}</span>
+              <SoundToggle className="h-6 w-6 text-xs" />
+            </div>
           </div>
           <div className="mt-2 flex justify-end">
             {phase === 'ended' ? (

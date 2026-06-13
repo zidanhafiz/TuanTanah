@@ -67,6 +67,15 @@ export interface ServerToClientEvents {
   game_state: (state: GameState) => void
   room_joined: (payload: { roomId: string; playerId: string }) => void
   card_drawn: (payload: { type: 'kejadian' | 'hustle'; card: string; playerId: string }) => void
+  // Rent was charged because a player landed on an owned tile. Emitted alongside
+  // the roll's state broadcast; the client plays the cue synced to the token's
+  // arrival. Fires whether the rent was paid immediately or became a debt.
+  rent_paid: (payload: {
+    payerId: string
+    ownerId: string
+    tileId: TileId
+    amount: RupiahAmount
+  }) => void
   deal_proposed: (payload: { deal: NegotiationDeal }) => void
   player_eliminated: (payload: { playerId: string }) => void
   game_over: (payload: { winner: string; finalStandings: FinalStanding[] }) => void

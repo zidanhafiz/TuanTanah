@@ -14,7 +14,8 @@ import {
 } from '@tuan-tanah/shared'
 import { create } from 'zustand'
 import { socket } from '../socket.js'
-import { noteIncomingState, resetRollAnim } from './rollAnimation.js'
+import { audio, playSound, playStateSounds } from '../sound/index.js'
+import { noteIncomingState, playOnMoveSettled, resetRollAnim } from './rollAnimation.js'
 
 const HUSTLE_NAME = new Map(HUSTLE_CARDS.map((c) => [c.id, c.name]))
 const KEJADIAN_NAME = new Map(KEJADIAN_CARDS.map((c) => [c.id, c.name]))
@@ -141,6 +142,9 @@ export const useGame = create<GameStore>((set, get) => ({
   },
 
   init: () => {
+    // Build + preload the sound effects and arm the autoplay-unlock listeners.
+    audio.preload()
+
     // Reclaim a persisted seat after a refresh or reconnect. Fires on the initial
     // connect and on every socket.io auto-reconnect; rejoin is idempotent server-side.
     const attemptRejoin = () => {
@@ -170,17 +174,31 @@ export const useGame = create<GameStore>((set, get) => ({
       // Drive the dice→move→reveal cinematic from the moment state lands, before
       // React re-renders, so token effects never read a stale animation phase.
       noteIncomingState(state)
+      // React to what changed (buy/sell/your-turn) by diffing against the prior
+      // authoritative state. Dice/land sounds come from the roll cinematic.
+      playStateSounds(get().state, state, get().playerId)
       set({ state })
     })
     socket.on('room_joined', ({ roomId, playerId }) => set({ roomId, playerId }))
-    socket.on('error', ({ message }) => set({ error: message }))
+    socket.on('error', ({ message }) => {
+      playSound('error')
+      set({ error: message })
+    })
     socket.on('card_drawn', ({ type, card, playerId }) => {
+      playSound('card')
       const name = type === 'hustle' ? HUSTLE_NAME.get(card) : KEJADIAN_NAME.get(card)
       set({
         lastCard: { type, cardId: card, name: name ?? card, playerId, at: Date.now() },
       })
     })
-    socket.on('game_over', ({ finalStandings }) => set({ finalStandings }))
+    socket.on('player_eliminated', () => playSound('eliminated'))
+    // Rent arrives in the same beat as the roll broadcast; defer the cue so it
+    // lands with the token instead of during the dice tumble.
+    socket.on('rent_paid', () => playOnMoveSettled('rent'))
+    socket.on('game_over', ({ finalStandings }) => {
+      playSound('gameOver')
+      set({ finalStandings })
+    })
     socket.on('deal_proposed', ({ deal }) => {
       // Only the target needs to respond; ignore offers addressed to others.
       if (deal.toPlayerId === get().playerId) set({ incomingDeal: deal })
@@ -211,21 +229,46 @@ export const useGame = create<GameStore>((set, get) => ({
     set({ roomId: null, playerId: null, state: null, finalStandings: null, rejoining: false })
   },
 
-  pickRole: (role) => socket.emit('pick_role', { role }),
+  // `click` gives instant local feedback on button-driven actions; the louder,
+  // everyone-hears effects (dice, buy/sell, card) come from the broadcast path.
+  pickRole: (role) => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('pick_role', { role })
+  },
   updateSettings: (settings) => socket.emit('update_settings', { settings }),
-  startGame: () => socket.emit('start_game'),
+  startGame: () => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('start_game')
+  },
   roll: () => socket.emit('roll_dice'),
   buy: (tileId) => socket.emit('buy_property', { tileId }),
-  upgrade: (tileId, track) => socket.emit('upgrade_property', { tileId, track }),
+  upgrade: (tileId, track) => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('upgrade_property', { tileId, track })
+  },
   sell: (tileId) => socket.emit('sell_property', { tileId }),
-  metaAction: (action, targetId, tileId) =>
-    socket.emit('meta_action', { action, targetId, tileId }),
-  useAbility: (ability) => socket.emit('use_ability', { ability }),
+  metaAction: (action, targetId, tileId) => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('meta_action', { action, targetId, tileId })
+  },
+  useAbility: (ability) => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('use_ability', { ability })
+  },
   takePinjol: (amount, lenderId) => socket.emit('take_pinjol', { amount, lenderId }),
   resolveDebt: (giveUp) => socket.emit('resolve_debt', { giveUp }),
-  payJail: () => socket.emit('pay_jail'),
-  castVote: (targetId) => socket.emit('cast_vote', { targetId }),
-  endTurn: () => socket.emit('end_turn'),
+  payJail: () => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('pay_jail')
+  },
+  castVote: (targetId) => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('cast_vote', { targetId })
+  },
+  endTurn: () => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('end_turn')
+  },
   proposeDeal: (deal) => socket.emit('propose_deal', { deal }),
   respondDeal: (dealId, accept) => socket.emit('respond_deal', { dealId, accept }),
   dismissIncomingDeal: () => set({ incomingDeal: null }),

@@ -13,6 +13,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { roleAbility, roleName } from '../i18n/gameData.js'
 import { LanguageSwitcher } from '../components/LanguageSwitcher.js'
+import { SoundToggle } from '../components/SoundToggle.js'
 import { LeaveButton, ShareLinkButton } from '../components/RoomActions.js'
 import { Badge, Button, Card } from '../components/ui/index.js'
 import { formatRupiah, useGame } from '../store/gameStore.js'
@@ -47,7 +48,10 @@ export function Lobby() {
           <p className="mt-3 font-semibold text-ink-muted">{t('lobby.subtitle')}</p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <LanguageSwitcher />
+          <div className="flex items-center gap-2">
+            <SoundToggle />
+            <LanguageSwitcher />
+          </div>
           <Card tone="sunken" className="px-5 py-3 text-center">
             <div className="text-xs font-bold uppercase text-ink-faint">{t('lobby.roomCode')}</div>
             <div className="font-mono text-2xl font-bold tracking-[0.3em] text-ink">

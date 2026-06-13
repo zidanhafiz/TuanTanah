@@ -256,6 +256,10 @@
     "en": "English",
     "id": "Bahasa Indonesia"
   },
+  "sound": {
+    "mute": "Mute sound",
+    "unmute": "Unmute sound"
+  },
   "data": {
     "tiles": {
       "4": "Income Tax",

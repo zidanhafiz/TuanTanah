@@ -1,5 +1,6 @@
 import type { GameState } from '@tuan-tanah/shared'
 import { create } from 'zustand'
+import { playSound, type SoundName } from '../sound/index.js'
 
 /**
  * Cinematic phase machine for a dice roll. The server broadcasts the dice, the
@@ -38,6 +39,21 @@ let prevSig: string | null = null
 let prevPos: number | null = null
 let timers: ReturnType<typeof setTimeout>[] = []
 
+// Sounds that are a *consequence* of landing (rent) and should fire when the
+// token arrives, not when its broadcast lands mid-tumble. Flushed at 'done'.
+let pendingMoveSounds: SoundName[] = []
+
+/**
+ * Play a sound synced to the end of the current token movement — or immediately
+ * if no roll cinematic is in flight. Use for landing consequences (e.g. rent)
+ * that arrive in the same broadcast as the roll but should be heard on arrival.
+ */
+export function playOnMoveSettled(name: SoundName): void {
+  const phase = useRollAnim.getState().phase
+  if (phase === 'dice' || phase === 'move') pendingMoveSounds.push(name)
+  else playSound(name)
+}
+
 function clearTimers(): void {
   timers.forEach((t) => clearTimeout(t))
   timers = []
@@ -69,6 +85,9 @@ export function noteIncomingState(next: GameState): void {
 
   const setPhase = useRollAnim.getState().setPhase
   clearTimers()
+  // New roll/turn transition — drop any consequence sounds left unflushed by a
+  // prior (e.g. interrupted) cinematic before the rent handler queues fresh ones.
+  pendingMoveSounds = []
 
   const isRoll = next.turn.hasRolled && !!dice
   if (!isRoll) {
@@ -90,8 +109,23 @@ export function noteIncomingState(next: GameState): void {
   prevPos = pos
 
   setPhase('dice')
+  playSound('dice')
   timers.push(setTimeout(() => setPhase('move'), DICE_MS))
-  timers.push(setTimeout(() => setPhase('done'), DICE_MS + moveMs + SETTLE_PAD_MS))
+  timers.push(
+    setTimeout(
+      () => {
+        setPhase('done')
+        // Only thump on an actual journey — a roll that doesn't move the token
+        // (moveMs 0) shouldn't fire a landing sound.
+        if (moveMs > 0) playSound('land')
+        // Flush landing consequences (rent) so they're heard as the token arrives.
+        const queued = pendingMoveSounds
+        pendingMoveSounds = []
+        queued.forEach((n) => playSound(n))
+      },
+      DICE_MS + moveMs + SETTLE_PAD_MS,
+    ),
+  )
 }
 
 /** Reset cinematic state — call when leaving a room. */
@@ -99,5 +133,6 @@ export function resetRollAnim(): void {
   clearTimers()
   prevSig = null
   prevPos = null
+  pendingMoveSounds = []
   useRollAnim.getState().setPhase('idle')
 }

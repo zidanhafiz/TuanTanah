@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { LanguageSwitcher } from '../components/LanguageSwitcher.js'
+import { SoundToggle } from '../components/SoundToggle.js'
 import { Button, Card } from '../components/ui/index.js'
 import { useGame } from '../store/gameStore.js'
 
@@ -19,7 +20,8 @@ export function Home() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
-      <div className="absolute right-4 top-4">
+      <div className="absolute right-4 top-4 flex items-center gap-2">
+        <SoundToggle />
         <LanguageSwitcher />
       </div>
       <div className="-rotate-1">
