@@ -1,4 +1,4 @@
-import { addPlayer, pickRole, startGame, updateSettings } from '../engine/index.js'
+import { addPlayer, pickRole, setConnected, startGame, updateSettings } from '../engine/index.js'
 import { createRoom, mutateRoom } from '../rooms.js'
 import { clearSession, setSession } from '../sessions.js'
 import type { GameStore } from '../store.js'
@@ -28,6 +28,34 @@ export function registerLobbyHandlers(io: TTServer, socket: TTSocket, store: Gam
       await broadcastState(io, store, roomId)
     } catch (err) {
       ack?.({ ok: false, error: (err as Error).message ?? 'Could not join room' })
+    }
+  })
+
+  socket.on('rejoin', async (payload, ack) => {
+    try {
+      const roomId = payload.roomId?.trim().toUpperCase()
+      if (!roomId || !(await store.has(roomId))) {
+        ack?.({ ok: false, error: 'Room not found' })
+        return
+      }
+
+      const found = await mutateRoom(store, roomId, (state) => {
+        if (!state.players.some((p) => p.id === payload.playerId)) return false
+        setConnected(state, payload.playerId, true)
+        return true
+      })
+      if (!found) {
+        ack?.({ ok: false, error: 'Player not found' })
+        return
+      }
+
+      setSession(socket.id, { roomId, playerId: payload.playerId })
+      await socket.join(roomId)
+      ack?.({ ok: true, data: { roomId, playerId: payload.playerId } })
+      socket.emit('room_joined', { roomId, playerId: payload.playerId })
+      await broadcastState(io, store, roomId)
+    } catch (err) {
+      ack?.({ ok: false, error: (err as Error).message ?? 'Could not rejoin' })
     }
   })
 

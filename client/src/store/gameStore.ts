@@ -14,6 +14,44 @@ import { socket } from '../socket.js'
 const HUSTLE_NAME = new Map(HUSTLE_CARDS.map((c) => [c.id, c.name]))
 const KEJADIAN_NAME = new Map(KEJADIAN_CARDS.map((c) => [c.id, c.name]))
 
+// Persist the player's seat so a refresh / brief disconnect can rejoin it.
+const SESSION_KEY = 'tuan-tanah:session'
+
+interface StoredSession {
+  roomId: string
+  playerId: string
+}
+
+function saveSession(roomId: string, playerId: string): void {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ roomId, playerId }))
+  } catch {
+    // storage unavailable (private mode / SSR) — degrade silently
+  }
+}
+
+function loadSession(): StoredSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<StoredSession>
+    if (typeof parsed.roomId === 'string' && typeof parsed.playerId === 'string') {
+      return { roomId: parsed.roomId, playerId: parsed.playerId }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+function clearStoredSession(): void {
+  try {
+    localStorage.removeItem(SESSION_KEY)
+  } catch {
+    // ignore
+  }
+}
+
 export interface DrawnCard {
   type: 'kejadian' | 'hustle'
   cardId: string
@@ -70,7 +108,24 @@ export const useGame = create<GameStore>((set, get) => ({
   },
 
   init: () => {
-    socket.on('connect', () => set({ connected: true }))
+    // Reclaim a persisted seat after a refresh or reconnect. Fires on the initial
+    // connect and on every socket.io auto-reconnect; rejoin is idempotent server-side.
+    const attemptRejoin = () => {
+      const saved = loadSession()
+      if (!saved) return
+      socket.emit('rejoin', saved, (res) => {
+        if (res.ok) set({ roomId: res.data.roomId, playerId: res.data.playerId })
+        else {
+          clearStoredSession()
+          set({ roomId: null, playerId: null, state: null })
+        }
+      })
+    }
+
+    socket.on('connect', () => {
+      set({ connected: true })
+      attemptRejoin()
+    })
     socket.on('disconnect', () => set({ connected: false }))
     socket.on('game_state', (state) => set({ state }))
     socket.on('room_joined', ({ roomId, playerId }) => set({ roomId, playerId }))
@@ -81,14 +136,19 @@ export const useGame = create<GameStore>((set, get) => ({
         lastCard: { type, cardId: card, name: name ?? card, playerId, at: Date.now() },
       })
     })
+
+    // autoConnect may have already fired 'connect' before this listener was registered.
+    if (socket.connected) attemptRejoin()
   },
 
   join: (playerName, roomId) => {
     set({ joining: true, error: null })
     socket.emit('join_room', { roomId: roomId ?? '', playerName }, (res) => {
       set({ joining: false })
-      if (res.ok) set({ roomId: res.data.roomId, playerId: res.data.playerId })
-      else set({ error: res.error })
+      if (res.ok) {
+        set({ roomId: res.data.roomId, playerId: res.data.playerId })
+        saveSession(res.data.roomId, res.data.playerId)
+      } else set({ error: res.error })
     })
   },
 

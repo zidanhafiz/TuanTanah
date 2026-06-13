@@ -33,6 +33,10 @@ export interface ClientToServerEvents {
     payload: { roomId: string; playerName: string },
     ack: (res: AckResult<{ roomId: string; playerId: string }>) => void,
   ) => void
+  rejoin: (
+    payload: { roomId: string; playerId: string },
+    ack: (res: AckResult<{ roomId: string; playerId: string }>) => void,
+  ) => void
   pick_role: (payload: { role: Role | null }) => void
   update_settings: (payload: { settings: Partial<RoomSettings> }) => void
   start_game: () => void
