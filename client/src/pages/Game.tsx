@@ -304,6 +304,10 @@ function GameOverScreen({
             </li>
           ))}
         </ol>
+
+        <div className="mt-5 flex justify-center">
+          <LeaveButton label="🏠 Back to home" />
+        </div>
       </div>
     </div>
   )
