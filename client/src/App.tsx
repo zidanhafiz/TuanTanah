@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { CardModal } from './components/CardModal/CardModal.js'
 import { ErrorToast } from './components/ErrorToast.js'
 import { IncomingDealModal } from './components/NegotiationModal/IncomingDealModal.js'
+import { TurnBanner } from './components/TurnBanner/TurnBanner.js'
 import { VotingModal } from './components/VotingModal/VotingModal.js'
 import { Home } from './pages/Home.js'
 import { RoomGate } from './pages/RoomGate.js'
@@ -28,6 +29,7 @@ export function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <ErrorToast />
+      <TurnBanner />
       <CardModal />
       <VotingModal />
       <IncomingDealModal />
