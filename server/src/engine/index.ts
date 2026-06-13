@@ -30,6 +30,7 @@ import {
 import type {
   GameState,
   Player,
+  PropertyTrack,
   Role,
   RoomSettings,
   RupiahAmount,
@@ -61,6 +62,7 @@ export function createGameState(roomId: string, now: number): GameState {
       ownerId: null,
       track: null,
       tier: 0,
+      builderId: null,
     })),
     turn: {
       hasRolled: false,
@@ -68,6 +70,7 @@ export function createGameState(roomId: string, now: number): GameState {
       rolledDoubles: false,
       pendingBuyTileId: null,
       usedMetaAction: false,
+      upgradesUsed: 0,
     },
     activeEffects: [],
     kejadianDeck: [],
@@ -385,9 +388,9 @@ function payRent(
     return
   }
 
-  // `charge` pays immediately if affordable (and applies the Investor cut), or
-  // opens a pending debt the payer must settle before play continues.
-  charge(state, payer, amount, ownerId, 'rent', `rent to ${owner.name}`)
+  // `charge` pays immediately if affordable (and applies the Investor / builder
+  // cut), or opens a pending debt the payer must settle before play continues.
+  charge(state, payer, amount, ownerId, 'rent', `rent to ${owner.name}`, tileId)
 }
 
 /** Rent owed when an opponent lands on a tile. */
@@ -437,6 +440,7 @@ export function buyTile(state: GameState, player: Player, tileId: TileId): void 
   tile.ownerId = player.id
   tile.track = null
   tile.tier = 0
+  tile.builderId = null
   pushLog(state, `${player.name} bought ${def.name} for ${rupiah(price)}`, player.id)
 }
 
@@ -447,6 +451,77 @@ export function buyProperty(state: GameState, playerId: string, tileId: TileId):
   }
   buyTile(state, player, tileId)
   state.turn.pendingBuyTileId = null
+}
+
+/**
+ * Develop a property tile one tier along its House or Property track. The owner
+ * builds on their own tile; a Kontraktor may instead build on another player's
+ * tile (recording `builderId` so they earn a rent cut). The first build on a
+ * tile picks + locks its track. Costs region buyPrice × the tier's buildCostMult.
+ */
+export function upgradeProperty(
+  state: GameState,
+  playerId: string,
+  tileId: TileId,
+  track?: PropertyTrack,
+): void {
+  const player = requireTurn(state, playerId)
+  const def = getTileDef(tileId)
+  if (def.type !== 'property' || !def.region) {
+    throw new EngineError('Only property tiles can be developed')
+  }
+  const tile = state.tiles[tileId]
+  if (!tile || tile.ownerId === null) throw new EngineError('That tile is not owned')
+
+  const isOwn = tile.ownerId === player.id
+  const isKontraktorBuild = !isOwn && player.role === 'kontraktor'
+  if (!isOwn && !isKontraktorBuild) throw new EngineError("You don't own that tile")
+
+  // Per-turn upgrade cap; Pengusaha may build twice.
+  const limit = player.role === 'pengusaha' ? 2 : 1
+  if (state.turn.upgradesUsed >= limit) {
+    throw new EngineError('No upgrades left this turn')
+  }
+
+  // First build picks + locks the track; later builds must stay on it.
+  let activeTrack = tile.track
+  if (tile.tier === 0) {
+    if (!track) throw new EngineError('Choose a track (house or property) for the first build')
+    activeTrack = track
+  } else if (track && track !== tile.track) {
+    throw new EngineError('This tile is already locked to the other track')
+  }
+  if (!activeTrack) throw new EngineError('Choose a track for the first build')
+
+  const tiers = activeTrack === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
+  if (tile.tier >= tiers.length) throw new EngineError('This tile is already at its top tier')
+
+  const nextTier = tile.tier + 1
+  const tierDef = tiers[nextTier - 1]!
+  const cost = Math.round(REGIONS[def.region].buyPrice * tierDef.buildCostMult)
+  if (player.cash < cost) throw new EngineError('Not enough cash to build')
+
+  player.cash -= cost
+  state.bank += cost
+  tile.track = activeTrack
+  tile.tier = nextTier
+  if (isKontraktorBuild) tile.builderId = player.id
+  state.turn.upgradesUsed += 1
+
+  if (isKontraktorBuild) {
+    const owner = state.players.find((p) => p.id === tile.ownerId)
+    pushLog(
+      state,
+      `${player.name} built ${tierDef.name} on ${owner?.name ?? 'a'}'s ${def.name} for ${rupiah(cost)} (earns a rent cut)`,
+      player.id,
+    )
+  } else {
+    pushLog(
+      state,
+      `${player.name} upgraded ${def.name} to ${tierDef.name} for ${rupiah(cost)}`,
+      player.id,
+    )
+  }
 }
 
 /** Sell an owned tile back to the bank for a partial refund (SELL_REFUND_RATE of invested value). */
@@ -463,6 +538,7 @@ export function sellProperty(state: GameState, playerId: string, tileId: TileId)
   tile.ownerId = null
   tile.track = null
   tile.tier = 0
+  tile.builderId = null
   pushLog(
     state,
     `${player.name} sold ${getTileDef(tileId).name} back to the bank for ${rupiah(refund)}`,

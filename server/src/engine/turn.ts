@@ -65,6 +65,7 @@ function resetTurnState(state: GameState): void {
     rolledDoubles: false,
     pendingBuyTileId: null,
     usedMetaAction: false,
+    upgradesUsed: 0,
   }
 }
 

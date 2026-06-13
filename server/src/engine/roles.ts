@@ -26,6 +26,5 @@ export function isTaxImmune(player: Player): boolean {
   return player.role === 'ojol_driver'
 }
 
-// TODO (other tasks): pengusaha double upgrade + kontraktor build-on-others
-// (TTG-18 upgrades), rentenir forced loans (pinjol system), sales 15% deal
+// TODO (other tasks): rentenir forced loans (pinjol system), sales 15% deal
 // bonus (TTG-17 negotiation).

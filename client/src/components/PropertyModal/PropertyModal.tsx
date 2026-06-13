@@ -5,6 +5,7 @@ import {
   REGIONS,
   SELL_REFUND_RATE,
   TRANSPORT_BUY_PRICE,
+  type PropertyTrack,
   type RupiahAmount,
   type TileId,
   type TileState,
@@ -37,6 +38,22 @@ function tierLabel(tile: TileState): string {
   return tiers[tile.tier - 1]?.name ?? `Tier ${tile.tier}`
 }
 
+/** Name + build cost of the tier above `currentTier` on a track, or null if maxed. */
+function nextTierInfo(
+  def: (typeof BOARD)[number],
+  track: PropertyTrack,
+  currentTier: number,
+): { name: string; cost: RupiahAmount } | null {
+  if (!def.region) return null
+  const tiers = track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
+  const tierDef = tiers[currentTier] // next tier (1-based) → 0-based index currentTier
+  if (!tierDef) return null
+  return {
+    name: tierDef.name,
+    cost: Math.round(REGIONS[def.region].buyPrice * tierDef.buildCostMult),
+  }
+}
+
 export function PropertyModal({
   tileId,
   open,
@@ -50,6 +67,7 @@ export function PropertyModal({
   const me = useGame((s) => s.me)()
   const isMyTurn = useGame((s) => s.isMyTurn)()
   const sell = useGame((s) => s.sell)
+  const upgrade = useGame((s) => s.upgrade)
   // Mounted per-tile (keyed in Game.tsx), so the confirm step starts fresh each open.
   const [confirming, setConfirming] = useState(false)
 
@@ -66,6 +84,19 @@ export function PropertyModal({
   // Sellable on your turn, or out of turn while you owe a debt (to raise cash).
   const iOweDebt = me ? state.pendingDebts.some((d) => d.debtorId === me.id) : false
   const canSell = ownable && me !== null && tile.ownerId === me.id && (isMyTurn || iOweDebt)
+
+  // Develop a property tile. You build on your own tile; a Kontraktor may also
+  // build on someone else's (earning a rent cut). Capped per turn (Pengusaha 2×).
+  const isProperty = def.type === 'property' && !!def.region
+  const ownsTile = me !== null && tile.ownerId === me.id
+  const canKontraktorBuild = me?.role === 'kontraktor' && tile.ownerId !== null && !ownsTile
+  const upgradeLimit = me?.role === 'pengusaha' ? 2 : 1
+  const upgradesLeft = state.turn.upgradesUsed < upgradeLimit
+  const atMaxTier = tile.track
+    ? tile.tier >= (tile.track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS).length
+    : false
+  const canUpgrade =
+    isProperty && isMyTurn && upgradesLeft && !atMaxTier && (ownsTile || canKontraktorBuild)
 
   const handleSell = () => {
     sell(tileId)
@@ -122,6 +153,52 @@ export function PropertyModal({
             </div>
           ) : (
             <div className="mt-4 text-sm text-slate-400">This tile can&apos;t be owned.</div>
+          )}
+
+          {canUpgrade && (
+            <div className="mt-5 space-y-2">
+              {tile.tier === 0 ? (
+                <>
+                  <div className="text-xs text-slate-400">
+                    {canKontraktorBuild
+                      ? 'Build on this tile — you earn a rent cut:'
+                      : 'Choose a track to build:'}
+                  </div>
+                  {(['house', 'property'] as const).map((track) => {
+                    const info = nextTierInfo(def, track, 0)
+                    if (!info) return null
+                    const tooPoor = (me?.cash ?? 0) < info.cost
+                    return (
+                      <button
+                        key={track}
+                        disabled={tooPoor}
+                        onClick={() => upgrade(tileId, track)}
+                        className="w-full rounded-lg bg-sky-600 py-2 text-sm font-bold transition-colors hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {track === 'house' ? 'Bangun Rumah' : 'Bangun Properti'} ({info.name}) —{' '}
+                        {formatRupiah(info.cost)}
+                      </button>
+                    )
+                  })}
+                </>
+              ) : (
+                tile.track &&
+                (() => {
+                  const info = nextTierInfo(def, tile.track, tile.tier)
+                  if (!info) return null
+                  const tooPoor = (me?.cash ?? 0) < info.cost
+                  return (
+                    <button
+                      disabled={tooPoor}
+                      onClick={() => upgrade(tileId)}
+                      className="w-full rounded-lg bg-sky-600 py-2.5 font-bold transition-colors hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Upgrade to {info.name} — {formatRupiah(info.cost)}
+                    </button>
+                  )
+                })()
+              )}
+            </div>
           )}
 
           {canSell &&

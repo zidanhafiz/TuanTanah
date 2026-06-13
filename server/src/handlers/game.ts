@@ -10,14 +10,13 @@ import {
   rollDice,
   sellProperty,
   takeLoan,
+  upgradeProperty,
   useAbility,
 } from '../engine/index.js'
 import { mutateRoom } from '../rooms.js'
 import type { GameStore } from '../store.js'
 import { broadcastState, guard, requireSession, type TTServer, type TTSocket } from './common.js'
 import { concludeIfWon } from './gameOver.js'
-
-const NOT_IMPLEMENTED = 'This action is not implemented yet'
 
 /**
  * Run an engine mutation and report which players it newly eliminated, so the
@@ -183,7 +182,13 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
     }),
   )
 
-  // ---- Not yet implemented (later milestones) ----
-  const notImplemented = () => socket.emit('error', { message: NOT_IMPLEMENTED })
-  socket.on('upgrade_property', notImplemented)
+  socket.on('upgrade_property', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      await mutateRoom(store, roomId, (state) =>
+        upgradeProperty(state, playerId, payload.tileId, payload.track),
+      )
+      await broadcastState(io, store, roomId)
+    }),
+  )
 }

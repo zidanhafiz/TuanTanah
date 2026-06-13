@@ -74,6 +74,9 @@ export interface TileState {
   ownerId: string | null
   track: PropertyTrack | null // locked once first bought
   tier: number // 0 = unbuilt, 1–4 house, 1–5 property
+  // Kontraktor who developed this tile (built on someone else's land); earns a
+  // cut of all rent paid on it. At most one per game (roles are unique).
+  builderId: string | null
 }
 
 // An unpayable charge that paused the game. The debtor must raise cash (sell a
@@ -86,6 +89,7 @@ export interface PendingDebt {
   amount: RupiahAmount
   type: 'rent' | 'tax' | 'fine' | 'interest'
   reason: string // human label, e.g. "rent to Budi"
+  tileId?: TileId // rent debts: the tile rented, so a builder cut applies on settlement
 }
 
 export interface ActiveEffect {
@@ -129,6 +133,8 @@ export interface TurnState {
   pendingBuyTileId: TileId | null
   // One optional meta action per turn (turn structure step 5).
   usedMetaAction: boolean
+  // Tile upgrades built this turn (cap 1, or 2 for Pengusaha).
+  upgradesUsed: number
 }
 
 export interface LogEntry {

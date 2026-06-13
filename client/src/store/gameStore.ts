@@ -6,6 +6,7 @@ import {
   type GameState,
   type MetaActionType,
   type NegotiationDeal,
+  type PropertyTrack,
   type Role,
   type RoomSettings,
   type RupiahAmount,
@@ -86,6 +87,7 @@ interface GameStore {
   startGame: () => void
   roll: () => void
   buy: (tileId: TileId) => void
+  upgrade: (tileId: TileId, track?: PropertyTrack) => void
   sell: (tileId: TileId) => void
   metaAction: (action: MetaActionType, targetId?: string, tileId?: TileId) => void
   useAbility: (ability: AbilityType) => void
@@ -177,6 +179,7 @@ export const useGame = create<GameStore>((set, get) => ({
   startGame: () => socket.emit('start_game'),
   roll: () => socket.emit('roll_dice'),
   buy: (tileId) => socket.emit('buy_property', { tileId }),
+  upgrade: (tileId, track) => socket.emit('upgrade_property', { tileId, track }),
   sell: (tileId) => socket.emit('sell_property', { tileId }),
   metaAction: (action, targetId, tileId) =>
     socket.emit('meta_action', { action, targetId, tileId }),

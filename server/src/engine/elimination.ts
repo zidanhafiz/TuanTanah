@@ -1,11 +1,18 @@
 // Bankruptcy cascade + win-condition checks.
-import { HOUSE_TIERS, PROPERTY_TIERS, REGIONS, TRANSPORT_BUY_PRICE } from '@tuan-tanah/shared'
+import {
+  HOUSE_TIERS,
+  KONTRAKTOR_CUT_RATE,
+  PROPERTY_TIERS,
+  REGIONS,
+  TRANSPORT_BUY_PRICE,
+} from '@tuan-tanah/shared'
 import type {
   FinalStanding,
   GameState,
   PendingDebt,
   Player,
   RupiahAmount,
+  TileId,
   TileState,
   WinReason,
 } from '@tuan-tanah/shared'
@@ -172,6 +179,31 @@ export function applyInvestorCut(
 }
 
 /**
+ * Kontraktor role skims a cut of rent paid on a tile they built on (the cut is
+ * taken from the owner's rent income, not the bank). No-op if the tile has no
+ * builder, the builder is gone, or the builder now owns the tile.
+ */
+export function applyBuilderCut(
+  state: GameState,
+  ownerId: string,
+  tileId: TileId | undefined,
+  amount: RupiahAmount,
+): void {
+  if (tileId === undefined) return
+  const tile = state.tiles[tileId]
+  if (!tile || tile.builderId === null || tile.builderId === ownerId) return
+  const builder = state.players.find((p) => p.id === tile.builderId)
+  if (!builder || builder.isEliminated) return
+  const owner = state.players.find((p) => p.id === ownerId)
+  if (!owner) return
+  const cut = Math.round(amount * KONTRAKTOR_CUT_RATE)
+  if (cut <= 0) return
+  owner.cash -= cut
+  builder.cash += cut
+  pushLog(state, `${builder.name} earned ${rupiah(cut)} builder cut on rent`, builder.id)
+}
+
+/**
  * The single primitive for every forced payment (rent, tax, fines, interest).
  * Pays immediately when affordable; otherwise records a pending debt (or
  * eliminates a player who has nothing left to sell). `creditorId` null = bank.
@@ -183,16 +215,20 @@ export function charge(
   creditorId: string | null,
   type: PendingDebt['type'],
   reason: string,
+  tileId?: TileId,
 ): void {
   if (amount <= 0) return
   if (player.cash >= amount) {
     player.cash -= amount
     creditTo(state, creditorId, amount)
-    if (type === 'rent' && creditorId) applyInvestorCut(state, player.id, creditorId, amount)
+    if (type === 'rent' && creditorId) {
+      applyInvestorCut(state, player.id, creditorId, amount)
+      applyBuilderCut(state, creditorId, tileId, amount)
+    }
     pushLog(state, `${player.name} paid ${rupiah(amount)} — ${reason}`, player.id)
     return
   }
-  oweDebt(state, player, creditorId, amount, type, reason)
+  oweDebt(state, player, creditorId, amount, type, reason, tileId)
 }
 
 /** Record an unpayable charge, or eliminate the player if they have nothing to sell. */
@@ -203,13 +239,22 @@ function oweDebt(
   amount: RupiahAmount,
   type: PendingDebt['type'],
   reason: string,
+  tileId?: TileId,
 ): void {
   // No property → borrow capacity is 0 too → no way to ever raise the cash.
   if (!state.tiles.some((t) => t.ownerId === player.id)) {
     eliminate(state, player)
     return
   }
-  state.pendingDebts.push({ id: uid(), debtorId: player.id, creditorId, amount, type, reason })
+  state.pendingDebts.push({
+    id: uid(),
+    debtorId: player.id,
+    creditorId,
+    amount,
+    type,
+    reason,
+    tileId,
+  })
   pushLog(
     state,
     `${player.name} owes ${rupiah(amount)} (${reason}) and must sell property or take a pinjol`,
@@ -225,6 +270,7 @@ function payOwed(state: GameState, debt: PendingDebt): void {
   creditTo(state, debt.creditorId, debt.amount)
   if (debt.type === 'rent' && debt.creditorId) {
     applyInvestorCut(state, debt.debtorId, debt.creditorId, debt.amount)
+    applyBuilderCut(state, debt.creditorId, debt.tileId, debt.amount)
   }
   state.pendingDebts = state.pendingDebts.filter((d) => d.id !== debt.id)
   pushLog(
@@ -246,6 +292,7 @@ export function eliminate(state: GameState, player: Player): void {
     tile.ownerId = null
     tile.track = null
     tile.tier = 0
+    tile.builderId = null
   }
   if (player.cash > 0) state.bank += player.cash
   player.cash = 0
