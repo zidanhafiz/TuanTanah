@@ -84,6 +84,13 @@ export interface ActiveEffect {
   sourceCard: string
 }
 
+// A pending election (Pemilu Kejadian card): every eligible player votes for
+// who should skip their next turn. Resolved once all eligible players vote.
+export interface PendingVote {
+  card: string // 'pemilu'
+  votes: Record<string, string> // voterId -> targetPlayerId
+}
+
 export type WinCondition = 'time' | 'wealth' | 'both'
 
 export interface RoomSettings {
@@ -125,6 +132,8 @@ export interface GameState {
   hustleDeck: string[]
   // Pejabat armed their once/game Kejadian block; the next drawn card is nullified.
   pendingKejadianBlock?: boolean
+  // An in-progress Pemilu election; cleared once the vote resolves.
+  pendingVote?: PendingVote | null
   bank: RupiahAmount
   settings: RoomSettings
   log: LogEntry[]

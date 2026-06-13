@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { CardModal } from './components/CardModal/CardModal.js'
 import { ErrorToast } from './components/ErrorToast.js'
+import { VotingModal } from './components/VotingModal/VotingModal.js'
 import { Game } from './pages/Game.js'
 import { Home } from './pages/Home.js'
 import { Lobby } from './pages/Lobby.js'
@@ -25,6 +26,7 @@ export function App() {
       {screen}
       <ErrorToast />
       <CardModal />
+      <VotingModal />
     </div>
   )
 }

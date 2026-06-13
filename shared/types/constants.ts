@@ -431,3 +431,27 @@ export const SABOTAGE_DURATION_ROUNDS = 2
 export const INVESTOR_RENT_CUT_RATE = 0.05 // Investor skims 5% of rent paid between others
 export const INFLUENCER_BOOST_MULTIPLIER = 3 // viral boost passive multiplier
 export const INFLUENCER_BOOST_ROUNDS = 3 // viral boost duration
+
+// ---- Kejadian Nasional effects ----
+// Banjir Jakarta: Jakarta tiles drop a tier for a few rounds.
+export const BANJIR_TIER_DROP = 1
+export const BANJIR_DURATION_ROUNDS = 3
+// Mudik Season: transport tiles earn MUDIK_TRANSPORT_MULTIPLIER× (defined above).
+export const MUDIK_DURATION_ROUNDS = 3
+// Viral di Medsos: one random property earns 3× rent.
+export const VIRAL_MEDSOS_MULTIPLIER = 3
+export const VIRAL_MEDSOS_DURATION_ROUNDS = 3
+// Gempa Bumi: one random region's tiles lose their rent bonus (halved).
+export const GEMPA_RENT_MULTIPLIER = 0.5
+export const GEMPA_DURATION_ROUNDS = 2
+// Demo Buruh: all property-track passive income halved.
+export const DEMO_BURUH_PASSIVE_MULTIPLIER = 0.5
+export const DEMO_BURUH_DURATION_ROUNDS = 2
+// Festival Budaya / Boom Tambang / Musim Liburan: region tiles earn 2× rent.
+export const REGION_BONUS_MULTIPLIER = 2
+export const REGION_BONUS_DURATION_ROUNDS = 3
+// Inspeksi Pajak: richest player pays this fraction of their cash. (Korupsi
+// Terungkap reuses KORUPSI_FINE, already defined above.)
+export const INSPEKSI_PAJAK_RATE = 0.1
+// Pemilu: the most-voted player skips their next turn for this many rounds.
+export const PEMILU_SKIP_ROUNDS = 2

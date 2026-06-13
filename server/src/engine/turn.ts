@@ -2,7 +2,7 @@
 import { PROPERTY_TIERS, REGIONS, REGION_SET_PASSIVE_MULTIPLIER } from '@tuan-tanah/shared'
 import type { GameState, Player, RupiahAmount } from '@tuan-tanah/shared'
 import { getTileDef, ownsFullRegion } from './board.js'
-import { applyPassiveMultiplier, tickEffects } from './effects.js'
+import { applyPassiveMultiplier, effectiveTier, tickEffects } from './effects.js'
 import { chargeInterest } from './pinjol.js'
 import { pushLog } from './util.js'
 
@@ -11,11 +11,12 @@ export function collectPassiveIncome(state: GameState, player: Player): RupiahAm
   let total = 0
   for (const tile of state.tiles) {
     if (tile.ownerId !== player.id) continue
-    if (tile.track !== 'property' || tile.tier < 1) continue
+    const tier = effectiveTier(state, tile.id, tile.tier)
+    if (tile.track !== 'property' || tier < 1) continue
     const region = getTileDef(tile.id).region
     if (!region) continue
     const def = REGIONS[region]
-    const tierDef = PROPERTY_TIERS[tile.tier - 1]
+    const tierDef = PROPERTY_TIERS[tier - 1]
     if (!tierDef) continue
     let passive = def.passiveBase * tierDef.passiveMult
     if (ownsFullRegion(state, player.id, region)) passive *= REGION_SET_PASSIVE_MULTIPLIER

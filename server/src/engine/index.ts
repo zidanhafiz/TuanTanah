@@ -36,7 +36,7 @@ import type {
 } from '@tuan-tanah/shared'
 import { getTileDef, ownsFullRegion, transportOwnedCount } from './board.js'
 import { drawHustle, drawKejadian } from './cards.js'
-import { applyRentEffects } from './effects.js'
+import { applyRentEffects, effectiveTier } from './effects.js'
 import { buyPriceMultiplier, investorCut, isTaxImmune, salaryFor } from './roles.js'
 import { advanceTurn, startTurn } from './turn.js'
 import { defaultRng, pushLog, shuffle, uid, type Rng } from './util.js'
@@ -266,13 +266,14 @@ export function rollDice(state: GameState, playerId: string, rng: Rng = defaultR
     }
   }
 
-  return { dice: [d1, d2], ...movePlayer(state, player, d1 + d2) }
+  return { dice: [d1, d2], ...movePlayer(state, player, d1 + d2, rng) }
 }
 
 function movePlayer(
   state: GameState,
   player: Player,
   steps: number,
+  rng: Rng = defaultRng,
 ): { card?: { type: 'kejadian' | 'hustle'; card: string } } {
   const oldPos = player.position
   const passedGo = oldPos + steps >= BOARD_SIZE
@@ -283,12 +284,13 @@ function movePlayer(
     state.bank -= salary
     pushLog(state, `${player.name} passed GO (+${rupiah(salary)} salary)`, player.id)
   }
-  return resolveTile(state, player)
+  return resolveTile(state, player, rng)
 }
 
 function resolveTile(
   state: GameState,
   player: Player,
+  rng: Rng = defaultRng,
 ): { card?: { type: 'kejadian' | 'hustle'; card: string } } {
   const def = getTileDef(player.position)
   switch (def.type) {
@@ -322,7 +324,7 @@ function resolveTile(
       return drawn ? { card: { type: 'hustle', card: drawn.cardId } } : {}
     }
     case 'event': {
-      const drawn = drawKejadian(state, player)
+      const drawn = drawKejadian(state, player, rng)
       return drawn ? { card: { type: 'kejadian', card: drawn.cardId } } : {}
     }
     case 'jail_go': {
@@ -375,17 +377,19 @@ export function computeRent(state: GameState, tileId: TileId): RupiahAmount {
 
   if (def.type === 'transport') {
     const count = transportOwnedCount(state, tile.ownerId)
-    return TRANSPORT_RENT[count] ?? 0
+    const base = TRANSPORT_RENT[count] ?? 0
+    return Math.round(applyRentEffects(base, tileId, state))
   }
 
   // Property tile.
   const region = def.region
   if (!region) return 0
   const base = REGIONS[region].rentBase
+  const tier = effectiveTier(state, tileId, tile.tier)
   let mult = 1
-  if (tile.tier >= 1) {
-    if (tile.track === 'house') mult = HOUSE_TIERS[tile.tier - 1]?.rentMult ?? 1
-    else if (tile.track === 'property') mult = PROPERTY_TIERS[tile.tier - 1]?.rentMult ?? 1
+  if (tier >= 1) {
+    if (tile.track === 'house') mult = HOUSE_TIERS[tier - 1]?.rentMult ?? 1
+    else if (tile.track === 'property') mult = PROPERTY_TIERS[tier - 1]?.rentMult ?? 1
   }
   let rent = base * mult
   if (ownsFullRegion(state, tile.ownerId, region)) rent *= REGION_SET_RENT_MULTIPLIER

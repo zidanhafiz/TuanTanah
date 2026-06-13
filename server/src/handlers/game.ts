@@ -1,4 +1,4 @@
-import { performMetaAction } from '../engine/actions.js'
+import { castVote, performMetaAction } from '../engine/actions.js'
 import { buyProperty, endTurn, payJail, rollDice, takeLoan, useAbility } from '../engine/index.js'
 import { mutateRoom } from '../rooms.js'
 import type { GameStore } from '../store.js'
@@ -63,6 +63,14 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       if (result.card) {
         io.to(roomId).emit('card_drawn', { type: 'hustle', card: result.card.cardId, playerId })
       }
+    }),
+  )
+
+  socket.on('cast_vote', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      await mutateRoom(store, roomId, (state) => castVote(state, playerId, payload.targetId))
+      await broadcastState(io, store, roomId)
     }),
   )
 

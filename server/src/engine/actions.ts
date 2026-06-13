@@ -6,6 +6,7 @@ import {
   KORUPSI_STEAL_AMOUNT,
   KORUPSI_SUCCESS_RATE,
   META_ACTION_COSTS,
+  PEMILU_SKIP_ROUNDS,
   SABOTAGE_DURATION_ROUNDS,
   SABOTAGE_RENT_MULTIPLIER,
 } from '@tuan-tanah/shared'
@@ -170,4 +171,67 @@ export function performMetaAction(
       throw new EngineError(`Unknown meta action "${String(_never)}"`)
     }
   }
+}
+
+/** Players still eligible to vote in a Pemilu (non-eliminated and connected). */
+function eligibleVoters(state: GameState): Player[] {
+  return state.players.filter((p) => !p.isEliminated && p.isConnected)
+}
+
+/** Tally a finished Pemilu, skip the most-voted player's next turn, clear the vote. */
+function resolvePemilu(state: GameState, rng: Rng): void {
+  const vote = state.pendingVote
+  if (!vote) return
+
+  const tally = new Map<string, number>()
+  for (const targetId of Object.values(vote.votes)) {
+    tally.set(targetId, (tally.get(targetId) ?? 0) + 1)
+  }
+
+  let max = 0
+  for (const count of tally.values()) max = Math.max(max, count)
+  const leaders = [...tally.entries()].filter(([, count]) => count === max).map(([id]) => id)
+
+  state.pendingVote = null
+  if (leaders.length === 0) return // no votes cast (shouldn't happen)
+
+  const winnerId = leaders[Math.floor(rng() * leaders.length)]!
+  const winner = state.players.find((p) => p.id === winnerId)
+  state.activeEffects.push({
+    id: uid(),
+    type: 'turn_skip',
+    targetPlayerId: winnerId,
+    roundsRemaining: PEMILU_SKIP_ROUNDS,
+    sourceCard: 'pemilu',
+  })
+  pushLog(
+    state,
+    `Pemilu result: ${winner?.name ?? 'a player'} got the most votes — their next turn is skipped`,
+    winnerId,
+  )
+}
+
+/**
+ * Record a player's Pemilu vote. Resolves automatically once every eligible
+ * voter has voted. Mutates state; throws EngineError on invalid input.
+ */
+export function castVote(
+  state: GameState,
+  voterId: string,
+  targetId: string,
+  rng: Rng = defaultRng,
+): void {
+  const vote = state.pendingVote
+  if (!vote) throw new EngineError('There is no active vote')
+  const voter = state.players.find((p) => p.id === voterId)
+  if (!voter || voter.isEliminated) throw new EngineError('You cannot vote')
+  if (voter.id === targetId) throw new EngineError('You cannot vote for yourself')
+  const target = state.players.find((p) => p.id === targetId)
+  if (!target || target.isEliminated) throw new EngineError('Invalid vote target')
+
+  vote.votes[voterId] = targetId
+  pushLog(state, `${voter.name} cast their vote`, voterId)
+
+  const allVoted = eligibleVoters(state).every((p) => vote.votes[p.id] != null)
+  if (allVoted) resolvePemilu(state, rng)
 }

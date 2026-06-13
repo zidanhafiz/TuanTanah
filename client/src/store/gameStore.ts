@@ -88,6 +88,7 @@ interface GameStore {
   useAbility: (ability: AbilityType) => void
   takePinjol: (amount: RupiahAmount, lenderId?: string) => void
   payJail: () => void
+  castVote: (targetId: string) => void
   endTurn: () => void
   clearError: () => void
   dismissCard: () => void
@@ -169,6 +170,7 @@ export const useGame = create<GameStore>((set, get) => ({
   useAbility: (ability) => socket.emit('use_ability', { ability }),
   takePinjol: (amount, lenderId) => socket.emit('take_pinjol', { amount, lenderId }),
   payJail: () => socket.emit('pay_jail'),
+  castVote: (targetId) => socket.emit('cast_vote', { targetId }),
   endTurn: () => socket.emit('end_turn'),
   clearError: () => set({ error: null }),
   dismissCard: () => set({ lastCard: null }),
