@@ -11,6 +11,7 @@ import {
   type Role,
   type WinCondition,
 } from '@tuan-tanah/shared'
+import { LeaveButton, ShareLinkButton } from '../components/RoomActions.js'
 import { formatRupiah, useGame } from '../store/gameStore.js'
 
 export function Lobby() {
@@ -37,10 +38,16 @@ export function Lobby() {
           <h1 className="text-3xl font-black text-amber-400">Lobby</h1>
           <p className="text-slate-400">Pick a role and wait for the room master to start.</p>
         </div>
-        <div className="rounded-xl bg-slate-800 px-5 py-3 text-center">
-          <div className="text-xs uppercase text-slate-400">Room code</div>
-          <div className="font-mono text-2xl font-bold tracking-[0.3em] text-amber-300">
-            {state.roomId}
+        <div className="flex flex-col items-end gap-2">
+          <div className="rounded-xl bg-slate-800 px-5 py-3 text-center">
+            <div className="text-xs uppercase text-slate-400">Room code</div>
+            <div className="font-mono text-2xl font-bold tracking-[0.3em] text-amber-300">
+              {state.roomId}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <ShareLinkButton code={state.roomId} />
+            <LeaveButton label="Leave room" />
           </div>
         </div>
       </div>

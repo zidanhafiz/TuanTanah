@@ -32,12 +32,17 @@ export interface FinalStanding {
 export interface ClientToServerEvents {
   join_room: (
     payload: { roomId: string; playerName: string },
-    ack: (res: AckResult<{ roomId: string; playerId: string }>) => void,
+    ack: (res: AckResult<{ roomId: string; playerId: string; token: string }>) => void,
   ) => void
+  // `token` is the secret reconnect credential issued at join; it authenticates a
+  // rejoin so a known playerId alone can't be used to hijack someone's seat.
   rejoin: (
-    payload: { roomId: string; playerId: string },
-    ack: (res: AckResult<{ roomId: string; playerId: string }>) => void,
+    payload: { roomId: string; playerId: string; token: string },
+    ack: (res: AckResult<{ roomId: string; playerId: string; token: string }>) => void,
   ) => void
+  // Deliberate exit: leave the lobby (removed) or forfeit an in-progress game
+  // (eliminated). Distinct from a socket disconnect, which keeps the seat.
+  leave_room: () => void
   pick_role: (payload: { role: Role | null }) => void
   update_settings: (payload: { settings: Partial<RoomSettings> }) => void
   start_game: () => void

@@ -24,11 +24,14 @@ const SESSION_KEY = 'tuan-tanah:session'
 interface StoredSession {
   roomId: string
   playerId: string
+  // Secret reconnect credential issued by the server at join. Without it the
+  // server rejects a rejoin, so a known playerId can't be used to steal a seat.
+  token: string
 }
 
-function saveSession(roomId: string, playerId: string): void {
+function saveSession(roomId: string, playerId: string, token: string): void {
   try {
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ roomId, playerId }))
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ roomId, playerId, token }))
   } catch {
     // storage unavailable (private mode / SSR) — degrade silently
   }
@@ -39,8 +42,12 @@ function loadSession(): StoredSession | null {
     const raw = localStorage.getItem(SESSION_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<StoredSession>
-    if (typeof parsed.roomId === 'string' && typeof parsed.playerId === 'string') {
-      return { roomId: parsed.roomId, playerId: parsed.playerId }
+    if (
+      typeof parsed.roomId === 'string' &&
+      typeof parsed.playerId === 'string' &&
+      typeof parsed.token === 'string'
+    ) {
+      return { roomId: parsed.roomId, playerId: parsed.playerId, token: parsed.token }
     }
     return null
   } catch {
@@ -71,6 +78,9 @@ interface GameStore {
   state: GameState | null
   error: string | null
   joining: boolean
+  // True while an automatic rejoin (reconnect) is in flight, so the UI can show
+  // "Reconnecting…" instead of a join form for a seat we're reclaiming.
+  rejoining: boolean
   lastCard: DrawnCard | null
   finalStandings: FinalStanding[] | null
   incomingDeal: NegotiationDeal | null
@@ -81,7 +91,8 @@ interface GameStore {
 
   // actions
   init: () => void
-  join: (playerName: string, roomId?: string) => void
+  join: (playerName: string, roomId?: string, onJoined?: (roomId: string) => void) => void
+  leave: () => void
   pickRole: (role: Role | null) => void
   updateSettings: (settings: Partial<RoomSettings>) => void
   startGame: () => void
@@ -110,6 +121,10 @@ export const useGame = create<GameStore>((set, get) => ({
   state: null,
   error: null,
   joining: false,
+  // Start in "reconnecting" if a saved seat exists — init() will attempt a rejoin
+  // on connect, and we want the first paint to reflect that rather than flashing
+  // a join form.
+  rejoining: loadSession() !== null,
   lastCard: null,
   finalStandings: null,
   incomingDeal: null,
@@ -129,12 +144,18 @@ export const useGame = create<GameStore>((set, get) => ({
     // connect and on every socket.io auto-reconnect; rejoin is idempotent server-side.
     const attemptRejoin = () => {
       const saved = loadSession()
-      if (!saved) return
+      if (!saved) {
+        set({ rejoining: false })
+        return
+      }
+      set({ rejoining: true })
       socket.emit('rejoin', saved, (res) => {
-        if (res.ok) set({ roomId: res.data.roomId, playerId: res.data.playerId })
-        else {
+        if (res.ok) {
+          saveSession(res.data.roomId, res.data.playerId, res.data.token)
+          set({ roomId: res.data.roomId, playerId: res.data.playerId, rejoining: false })
+        } else {
           clearStoredSession()
-          set({ roomId: null, playerId: null, state: null })
+          set({ roomId: null, playerId: null, state: null, rejoining: false })
         }
       })
     }
@@ -163,15 +184,24 @@ export const useGame = create<GameStore>((set, get) => ({
     if (socket.connected) attemptRejoin()
   },
 
-  join: (playerName, roomId) => {
+  join: (playerName, roomId, onJoined) => {
     set({ joining: true, error: null, finalStandings: null })
     socket.emit('join_room', { roomId: roomId ?? '', playerName }, (res) => {
       set({ joining: false })
       if (res.ok) {
         set({ roomId: res.data.roomId, playerId: res.data.playerId })
-        saveSession(res.data.roomId, res.data.playerId)
+        saveSession(res.data.roomId, res.data.playerId, res.data.token)
+        onJoined?.(res.data.roomId)
       } else set({ error: res.error })
     })
+  },
+
+  leave: () => {
+    // Deliberate exit — tell the server (removes our seat in lobby, forfeits
+    // in-game), then drop the local session so we don't auto-rejoin.
+    socket.emit('leave_room')
+    clearStoredSession()
+    set({ roomId: null, playerId: null, state: null, finalStandings: null, rejoining: false })
   },
 
   pickRole: (role) => socket.emit('pick_role', { role }),

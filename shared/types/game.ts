@@ -164,6 +164,10 @@ export interface GameState {
   // Outstanding negotiation offers awaiting the target's accept/reject.
   pendingDeals: NegotiationDeal[]
   bank: RupiahAmount
+  // Secret per-player reconnect tokens (playerId → token). Server-only: stripped
+  // by broadcastState so it never reaches clients. Persisted with the room so
+  // reconnect survives a server restart.
+  reconnectTokens?: Record<string, string>
   settings: RoomSettings
   log: LogEntry[]
   winner?: string

@@ -1,9 +1,18 @@
-import { addPlayer, pickRole, setConnected, startGame, updateSettings } from '../engine/index.js'
+import { randomUUID } from 'node:crypto'
+import {
+  addPlayer,
+  forfeit,
+  pickRole,
+  removePlayer,
+  setConnected,
+  startGame,
+  updateSettings,
+} from '../engine/index.js'
 import { createRoom, mutateRoom } from '../rooms.js'
 import { clearSession, setSession } from '../sessions.js'
 import type { GameStore } from '../store.js'
 import { broadcastState, guard, requireSession, type TTServer, type TTSocket } from './common.js'
-import { scheduleTimeLimit } from './gameOver.js'
+import { concludeIfWon, scheduleTimeLimit } from './gameOver.js'
 
 export function registerLobbyHandlers(io: TTServer, socket: TTSocket, store: GameStore): void {
   socket.on('join_room', async (payload, ack) => {
@@ -18,13 +27,17 @@ export function registerLobbyHandlers(io: TTServer, socket: TTSocket, store: Gam
         return
       }
 
-      const player = await mutateRoom(store, roomId, (state) =>
-        addPlayer(state, payload.playerName),
-      )
+      const { player, token } = await mutateRoom(store, roomId, (state) => {
+        const player = addPlayer(state, payload.playerName)
+        const token = randomUUID()
+        state.reconnectTokens ??= {}
+        state.reconnectTokens[player.id] = token
+        return { player, token }
+      })
 
       setSession(socket.id, { roomId, playerId: player.id })
       await socket.join(roomId)
-      ack?.({ ok: true, data: { roomId, playerId: player.id } })
+      ack?.({ ok: true, data: { roomId, playerId: player.id, token } })
       socket.emit('room_joined', { roomId, playerId: player.id })
       await broadcastState(io, store, roomId)
     } catch (err) {
@@ -42,17 +55,20 @@ export function registerLobbyHandlers(io: TTServer, socket: TTSocket, store: Gam
 
       const found = await mutateRoom(store, roomId, (state) => {
         if (!state.players.some((p) => p.id === payload.playerId)) return false
+        // Require the secret token — a known playerId alone (it's broadcast to
+        // every client) must not be enough to reclaim a seat.
+        if (state.reconnectTokens?.[payload.playerId] !== payload.token) return false
         setConnected(state, payload.playerId, true)
         return true
       })
       if (!found) {
-        ack?.({ ok: false, error: 'Player not found' })
+        ack?.({ ok: false, error: 'Could not restore session' })
         return
       }
 
       setSession(socket.id, { roomId, playerId: payload.playerId })
       await socket.join(roomId)
-      ack?.({ ok: true, data: { roomId, playerId: payload.playerId } })
+      ack?.({ ok: true, data: { roomId, playerId: payload.playerId, token: payload.token } })
       socket.emit('room_joined', { roomId, playerId: payload.playerId })
       await broadcastState(io, store, roomId)
     } catch (err) {
@@ -82,6 +98,29 @@ export function registerLobbyHandlers(io: TTServer, socket: TTSocket, store: Gam
       await mutateRoom(store, roomId, (state) => startGame(state, playerId))
       await broadcastState(io, store, roomId)
       await scheduleTimeLimit(io, store, roomId)
+    }),
+  )
+
+  socket.on('leave_room', () =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      // Lobby leave removes the seat; leaving a live game forfeits (eliminates)
+      // so the rest can keep playing. Once the game has ended there's nothing to
+      // forfeit — just release the seat's token.
+      const wasPlaying = await mutateRoom(store, roomId, (state) => {
+        const playing = state.phase === 'playing'
+        if (state.phase === 'lobby') removePlayer(state, playerId)
+        else if (playing) forfeit(state, playerId)
+        if (state.reconnectTokens) delete state.reconnectTokens[playerId]
+        return playing
+      })
+      clearSession(socket.id)
+      await socket.leave(roomId)
+      await broadcastState(io, store, roomId)
+      if (wasPlaying) {
+        io.to(roomId).emit('player_eliminated', { playerId })
+        await concludeIfWon(io, store, roomId)
+      }
     }),
   )
 

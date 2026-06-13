@@ -17,6 +17,7 @@ import { NegotiationModal } from '../components/NegotiationModal/NegotiationModa
 import { PinjolModal } from '../components/PinjolModal/PinjolModal.js'
 import { PlayerPanel } from '../components/PlayerPanel/PlayerPanel.js'
 import { PropertyModal } from '../components/PropertyModal/PropertyModal.js'
+import { LeaveButton } from '../components/RoomActions.js'
 import { formatRupiah, useGame } from '../store/gameStore.js'
 
 function basePrice(tileId: TileId): number {
@@ -99,6 +100,16 @@ export function Game() {
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span>Room {state.roomId}</span>
             <span>Round {state.round}</span>
+          </div>
+          <div className="mt-2 flex justify-end">
+            {phase === 'ended' ? (
+              <LeaveButton label="Back home" />
+            ) : (
+              <LeaveButton
+                confirm="Leave the game? You'll forfeit your properties and can't rejoin."
+                label="Leave game"
+              />
+            )}
           </div>
 
           {phase === 'ended' ? (

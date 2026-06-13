@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 import {
   charge,
   eliminate,
+  forfeit,
   playerWealth,
   resolveDebt,
   settleIfAble,
@@ -124,6 +125,47 @@ describe('eliminate', () => {
     expect(state.tiles[1]!.ownerId).toBeNull()
     expect(state.tiles[1]!.tier).toBe(0)
     expect(state.pendingDebts).toHaveLength(0)
+  })
+})
+
+describe('forfeit', () => {
+  it('eliminates the leaver and frees their tiles', () => {
+    const { state, players } = makeGame(3)
+    const leaver = players[1]!
+    own(state, 1, leaver.id)
+
+    forfeit(state, leaver.id)
+
+    expect(leaver.isEliminated).toBe(true)
+    expect(state.tiles[1]!.ownerId).toBeNull()
+  })
+
+  it('advances the turn when the leaver was the current player', () => {
+    const { state, players } = makeGame(3)
+    state.currentPlayerIndex = 0
+
+    forfeit(state, players[0]!.id)
+
+    // Turn must move off the player who just left so the table doesn't stall.
+    expect(state.currentPlayerIndex).not.toBe(0)
+    expect(state.players[state.currentPlayerIndex]!.isEliminated).toBe(false)
+  })
+
+  it('leaves the turn put when a non-current player forfeits', () => {
+    const { state, players } = makeGame(3)
+    state.currentPlayerIndex = 0
+
+    forfeit(state, players[2]!.id)
+
+    expect(state.currentPlayerIndex).toBe(0)
+  })
+
+  it('is a no-op for an unknown or already-eliminated player', () => {
+    const { state, players } = makeGame(2)
+    players[0]!.isEliminated = true
+
+    expect(() => forfeit(state, players[0]!.id)).not.toThrow()
+    expect(() => forfeit(state, 'nobody')).not.toThrow()
   })
 })
 

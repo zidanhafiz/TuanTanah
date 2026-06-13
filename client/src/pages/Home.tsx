@@ -1,14 +1,17 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useGame } from '../store/gameStore.js'
 
 export function Home() {
   const join = useGame((s) => s.join)
   const joining = useGame((s) => s.joining)
   const connected = useGame((s) => s.connected)
+  const navigate = useNavigate()
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
 
   const canSubmit = name.trim().length > 0 && connected && !joining
+  const goToRoom = (roomId: string) => navigate(`/room/${roomId}`)
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4">
@@ -29,7 +32,7 @@ export function Home() {
 
         <button
           disabled={!canSubmit}
-          onClick={() => join(name)}
+          onClick={() => join(name, undefined, goToRoom)}
           className="w-full rounded-lg bg-amber-500 py-2.5 font-semibold text-slate-900 transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Create new room
@@ -50,7 +53,7 @@ export function Home() {
           />
           <button
             disabled={!canSubmit || code.trim().length < 4}
-            onClick={() => join(name, code.trim())}
+            onClick={() => join(name, code.trim(), goToRoom)}
             className="shrink-0 rounded-lg bg-slate-600 px-4 font-semibold transition hover:bg-slate-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Join

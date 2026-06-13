@@ -571,4 +571,10 @@ export { collectPassiveIncome } from './turn.js'
 export { useAbility } from './abilities.js'
 export { takeLoan } from './pinjol.js'
 export { proposeDeal, respondToDeal } from './negotiation.js'
-export { finalStandings, playerWealth, resolveDebt, resolveGameOver } from './elimination.js'
+export {
+  finalStandings,
+  forfeit,
+  playerWealth,
+  resolveDebt,
+  resolveGameOver,
+} from './elimination.js'

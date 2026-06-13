@@ -302,6 +302,21 @@ export function eliminate(state: GameState, player: Player): void {
   pushLog(state, `💀 ${player.name} went bankrupt and was eliminated`, player.id)
 }
 
+/**
+ * Voluntary forfeit: a player deliberately leaves an in-progress game. We reuse
+ * the bankruptcy path (frees their tiles, voids their debts) and, if it was
+ * their turn, advance the turn so the table doesn't stall. The game-over check
+ * runs afterwards in the handler.
+ */
+export function forfeit(state: GameState, playerId: string): void {
+  const player = state.players.find((p) => p.id === playerId)
+  if (!player || player.isEliminated) return
+  eliminate(state, player)
+  pushLog(state, `🏳️ ${player.name} left the game`, playerId)
+  const current = state.players[state.currentPlayerIndex]
+  if (current?.id === playerId && state.pendingDebts.length === 0) advanceTurn(state)
+}
+
 /** After raising cash (sell/pinjol), settle the player's debt if they can now afford it. */
 export function settleIfAble(state: GameState, playerId: string): void {
   const debt = state.pendingDebts.find((d) => d.debtorId === playerId)

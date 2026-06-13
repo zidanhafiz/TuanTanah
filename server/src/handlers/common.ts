@@ -13,7 +13,11 @@ export async function broadcastState(
   roomId: string,
 ): Promise<void> {
   const state = await store.get(roomId)
-  if (state) io.to(roomId).emit('game_state', state)
+  if (!state) return
+  // Strip server-only reconnect tokens — they must never reach any client, or a
+  // player could replay another's token to hijack their seat.
+  const { reconnectTokens: _tokens, ...safe } = state
+  io.to(roomId).emit('game_state', safe)
 }
 
 /** Run an async handler body, turning thrown errors into a socket `error` event. */
