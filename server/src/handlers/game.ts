@@ -1,5 +1,5 @@
 import { performMetaAction } from '../engine/actions.js'
-import { buyProperty, endTurn, payJail, rollDice } from '../engine/index.js'
+import { buyProperty, endTurn, payJail, rollDice, useAbility } from '../engine/index.js'
 import { mutateRoom } from '../rooms.js'
 import type { GameStore } from '../store.js'
 import { broadcastState, guard, requireSession, type TTServer, type TTSocket } from './common.js'
@@ -61,6 +61,14 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       if (result.card) {
         io.to(roomId).emit('card_drawn', { type: 'hustle', card: result.card.cardId, playerId })
       }
+    }),
+  )
+
+  socket.on('use_ability', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      await mutateRoom(store, roomId, (state) => useAbility(state, playerId, payload.ability))
+      await broadcastState(io, store, roomId)
     }),
   )
 

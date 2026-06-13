@@ -4,6 +4,7 @@
 // the effects-scheduler milestone.
 import { HUSTLE_CARDS, KEJADIAN_CARDS } from '@tuan-tanah/shared'
 import type { GameState, Player } from '@tuan-tanah/shared'
+import { isTaxImmune } from './roles.js'
 import { pushLog } from './util.js'
 
 const HUSTLE_BY_ID = new Map(HUSTLE_CARDS.map((c) => [c.id, c]))
@@ -43,6 +44,13 @@ export function drawKejadian(
   const card = KEJADIAN_BY_ID.get(id)!
   pushLog(state, `Kejadian Nasional: ${card.name} — ${card.effect}`, player.id)
 
+  // Pejabat may have armed a block; the card is drawn but its effects are nullified.
+  if (state.pendingKejadianBlock) {
+    state.pendingKejadianBlock = false
+    pushLog(state, `${card.name} was blocked by Pejabat — no effect`, player.id)
+    return { cardId: id, name: card.name }
+  }
+
   // Apply only the simplest immediate effects for the slice.
   switch (id) {
     case 'lebaran': {
@@ -58,7 +66,7 @@ export function drawKejadian(
       const tax = 500_000
       for (const p of state.players) {
         if (p.isEliminated) continue
-        if (p.role === 'ojol_driver') continue // never pays travel tax
+        if (isTaxImmune(p)) continue // Ojol Driver never pays travel tax
         p.cash -= tax
         state.bank += tax
       }

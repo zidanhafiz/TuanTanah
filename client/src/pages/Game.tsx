@@ -6,6 +6,7 @@ import {
   type TileId,
 } from '@tuan-tanah/shared'
 import { useEffect, useState } from 'react'
+import { AbilityBar } from '../components/AbilityBar/AbilityBar.js'
 import { Board } from '../components/Board/Board.js'
 import { EventLog } from '../components/EventLog/EventLog.js'
 import { MetaActionBar, type MetaActionDef } from '../components/MetaActionBar/MetaActionBar.js'
@@ -25,6 +26,7 @@ export function Game() {
   const roll = useGame((s) => s.roll)
   const buy = useGame((s) => s.buy)
   const metaAction = useGame((s) => s.metaAction)
+  const useAbility = useGame((s) => s.useAbility)
   const payJail = useGame((s) => s.payJail)
   const endTurn = useGame((s) => s.endTurn)
 
@@ -133,6 +135,7 @@ export function Game() {
                       onPick={handlePickMeta}
                     />
                   )}
+                  {me && <AbilityBar me={me} onUse={useAbility} />}
                   {pendingMeta && (
                     <div className="flex items-center justify-between rounded-lg bg-sky-500/15 px-3 py-2 text-xs text-sky-200">
                       <span>

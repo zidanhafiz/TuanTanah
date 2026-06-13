@@ -2,7 +2,7 @@
 import { PROPERTY_TIERS, REGIONS, REGION_SET_PASSIVE_MULTIPLIER } from '@tuan-tanah/shared'
 import type { GameState, Player, RupiahAmount } from '@tuan-tanah/shared'
 import { getTileDef, ownsFullRegion } from './board.js'
-import { tickEffects } from './effects.js'
+import { applyPassiveMultiplier, tickEffects } from './effects.js'
 import { pushLog } from './util.js'
 
 /** Passive income from a player's Property-track tiles (collected each turn). */
@@ -20,6 +20,7 @@ export function collectPassiveIncome(state: GameState, player: Player): RupiahAm
     if (ownsFullRegion(state, player.id, region)) passive *= REGION_SET_PASSIVE_MULTIPLIER
     total += passive
   }
+  total = applyPassiveMultiplier(total, player.id, state)
   total = Math.round(total)
   if (total > 0) {
     player.cash += total
