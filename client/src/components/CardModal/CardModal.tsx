@@ -1,6 +1,6 @@
 import { HUSTLE_CARDS, KEJADIAN_CARDS } from '@tuan-tanah/shared'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect } from 'react'
+import { Badge, Card, Modal } from '../ui/index.js'
 import { formatRupiah, useGame } from '../../store/gameStore.js'
 
 const HUSTLE = new Map(HUSTLE_CARDS.map((c) => [c.id, c]))
@@ -25,31 +25,21 @@ export function CardModal() {
     : (KEJADIAN.get(card.cardId)?.effect ?? '')
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 z-40 flex items-center justify-center bg-black/50"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={dismiss}
-      >
-        <motion.div
-          initial={{ scale: 0.7, rotate: -6, opacity: 0 }}
-          animate={{ scale: 1, rotate: 0, opacity: 1 }}
-          exit={{ scale: 0.7, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-          className={`w-80 rounded-2xl p-6 shadow-2xl ${
-            isHustle ? 'bg-emerald-600' : 'bg-indigo-600'
-          } text-white`}
-        >
-          <div className="text-xs font-semibold uppercase tracking-widest opacity-80">
-            {isHustle ? 'Hustle' : 'Kejadian Nasional'}
-          </div>
-          <div className="mt-1 text-2xl font-bold">{card.name}</div>
-          <div className="mt-3 text-sm opacity-90">{detail}</div>
-          {player && <div className="mt-4 text-xs opacity-70">Drawn by {player.name}</div>}
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+    <Modal
+      open={card != null}
+      onClose={dismiss}
+      title={isHustle ? 'Hustle' : 'Kejadian Nasional'}
+      size="sm"
+    >
+      <Card flat tone={isHustle ? 'success' : 'info'} className="p-4 text-center">
+        <div className="font-display text-2xl uppercase tracking-tight text-ink">{card.name}</div>
+        <div className="mt-3 text-sm font-semibold text-ink">{detail}</div>
+      </Card>
+      {player && (
+        <div className="mt-4 flex items-center justify-center gap-2 text-xs text-ink-muted">
+          Drawn by <Badge color={player.color}>{player.name}</Badge>
+        </div>
+      )}
+    </Modal>
   )
 }

@@ -37,7 +37,7 @@ export function Board({
 
   return (
     <div className="aspect-square w-full max-w-[min(82vh,860px)]">
-      <div className="grid h-full w-full grid-cols-11 grid-rows-11 gap-[3px] rounded-xl bg-slate-700 p-[3px]">
+      <div className="grid h-full w-full grid-cols-11 grid-rows-11 gap-[3px] rounded-xl border-2 border-ink bg-surface-sunken p-[3px] shadow-brutal-sm">
         {BOARD.map((def) => {
           const { row, col } = gridPos(def.id)
           const tile = state.tiles[def.id]
@@ -52,21 +52,28 @@ export function Board({
               key={def.id}
               style={{ gridRow: row, gridColumn: col }}
               onClick={onSelectTile ? () => onSelectTile(def.id) : undefined}
-              className={`relative flex flex-col overflow-hidden rounded-[5px] bg-slate-900 p-1 text-[9px] leading-tight ${
-                isPending ? 'ring-2 ring-amber-400' : isCurrent ? 'ring-1 ring-white/40' : ''
-              } ${selectable ? 'cursor-pointer hover:ring-2 hover:ring-sky-400' : ''}`}
+              className={`relative flex flex-col overflow-hidden rounded-[5px] border border-ink bg-surface p-1 text-[9px] leading-tight transition-shadow ${
+                isPending
+                  ? 'ring-2 ring-accent-strong shadow-brutal-sm'
+                  : isCurrent
+                    ? 'ring-2 ring-info'
+                    : ''
+              } ${selectable ? 'cursor-pointer hover:ring-2 hover:ring-info' : ''}`}
             >
               {region && (
-                <div className="h-1.5 w-full rounded-sm" style={{ background: region.color }} />
+                <div
+                  className="h-1.5 w-full rounded-sm border border-ink/50"
+                  style={{ background: region.color }}
+                />
               )}
-              <div className="mt-0.5 line-clamp-2 font-semibold text-slate-200">{def.name}</div>
-              <div className="mt-auto flex items-center justify-between">
-                <span className="text-[8px] text-slate-500">
+              <div className="mt-0.5 line-clamp-2 font-semibold text-ink">{def.name}</div>
+              <div className="mt-auto flex items-center justify-between gap-0.5">
+                <span className="text-[8px] font-semibold uppercase text-ink-faint">
                   {region ? '' : (TYPE_LABEL[def.type] ?? '')}
                 </span>
                 {owner && (
                   <span
-                    className="flex items-center gap-0.5 rounded px-1 text-[8px] font-bold text-white"
+                    className="flex items-center gap-0.5 rounded border border-ink px-1 text-[8px] font-bold leading-tight text-white"
                     style={{ background: owner.color }}
                   >
                     {tile && tile.tier > 0 ? `T${tile.tier}` : '•'}
@@ -81,7 +88,7 @@ export function Board({
                     <motion.span
                       key={p.id}
                       layoutId={`token-${p.id}`}
-                      className="h-2.5 w-2.5 rounded-full border border-white/70 shadow"
+                      className="h-2.5 w-2.5 rounded-full border border-ink shadow-brutal-xs"
                       style={{ background: p.color }}
                       transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                     />
@@ -95,10 +102,10 @@ export function Board({
         {/* Center area */}
         <div
           style={{ gridRow: '2 / 11', gridColumn: '2 / 11' }}
-          className="flex flex-col items-center justify-center rounded-lg bg-slate-800/60 text-center"
+          className="flex flex-col items-center justify-center rounded-lg border-2 border-ink bg-paper text-center shadow-brutal-sm"
         >
-          <div className="text-3xl font-black tracking-tight text-amber-400">Tuan Tanah</div>
-          <div className="mt-1 text-xs text-slate-400">Round {state.round}</div>
+          <div className="font-display text-3xl uppercase tracking-tight text-ink">Tuan Tanah</div>
+          <div className="mt-1 text-xs font-semibold text-ink-muted">Round {state.round}</div>
           {state.turn.lastDice && (
             <div className="mt-4 flex gap-2">
               {state.turn.lastDice.map((d, i) => (
@@ -108,7 +115,7 @@ export function Board({
           )}
           {current && (
             <div className="mt-4 text-sm">
-              <span className="text-slate-400">Turn: </span>
+              <span className="text-ink-muted">Turn: </span>
               <span className="font-bold" style={{ color: current.color }}>
                 {current.name}
               </span>
@@ -126,7 +133,7 @@ function Die({ value }: { value: number }) {
       key={value}
       initial={{ rotate: -90, scale: 0.6 }}
       animate={{ rotate: 0, scale: 1 }}
-      className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-lg font-bold text-slate-900 shadow"
+      className="flex h-9 w-9 items-center justify-center rounded-lg border-2 border-ink bg-surface text-lg font-bold text-ink shadow-brutal-sm"
     >
       {value}
     </motion.div>

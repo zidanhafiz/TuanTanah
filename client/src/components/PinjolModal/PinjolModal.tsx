@@ -8,8 +8,8 @@ import {
   type Player,
   type RupiahAmount,
 } from '@tuan-tanah/shared'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
+import { Button, Card, Modal } from '../ui/index.js'
 import { formatRupiah, useGame } from '../../store/gameStore.js'
 
 const BANK = 'bank'
@@ -52,107 +52,74 @@ export function PinjolModal({ open, onClose }: { open: boolean; onClose: () => v
   }
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 z-40 flex items-center justify-center bg-black/50"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.8, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-          onClick={(e) => e.stopPropagation()}
-          className="w-80 rounded-2xl bg-slate-800 p-5 text-white shadow-2xl"
-        >
-          <div className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-            🏦 Pinjol
-          </div>
-          <div className="mt-1 text-lg font-bold">Take a loan</div>
-          <div className="mt-1 text-xs text-slate-400">
-            10% interest/round · max {PINJOL_MAX_LOANS} loans · borrow up to {formatRupiah(limit)}
-          </div>
+    <Modal open={open} onClose={onClose} title="🏦 Pinjol — Take a loan" size="sm">
+      <div className="text-xs text-ink-muted">
+        10% interest/round · max {PINJOL_MAX_LOANS} loans · borrow up to {formatRupiah(limit)}
+      </div>
 
-          {/* Loan size */}
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            {PINJOL_AMOUNTS.map((amt) => {
-              const disabled = maxLoansReached || overLimit(amt)
-              return (
-                <button
-                  key={amt}
-                  disabled={disabled}
-                  onClick={() => setAmount(amt)}
-                  className={`rounded-lg py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${
-                    amount === amt
-                      ? 'bg-amber-500 text-slate-900'
-                      : 'bg-slate-700 hover:bg-slate-600'
-                  }`}
-                >
-                  {formatRupiah(amt)}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Lender */}
-          <div className="mt-4 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-            Lender
-          </div>
-          <div className="mt-1 flex flex-wrap gap-2">
-            <button
-              onClick={() => setLender(BANK)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                lender === BANK ? 'bg-sky-500 text-white' : 'bg-slate-700 hover:bg-slate-600'
-              }`}
+      {/* Loan size */}
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        {PINJOL_AMOUNTS.map((amt) => {
+          const disabled = maxLoansReached || overLimit(amt)
+          return (
+            <Button
+              key={amt}
+              size="sm"
+              variant={amount === amt ? 'primary' : 'secondary'}
+              disabled={disabled}
+              onClick={() => setAmount(amt)}
             >
-              Bank
-            </button>
-            {rentenirs.map((r) => (
-              <button
-                key={r.id}
-                disabled={r.cash < amount}
-                onClick={() => setLender(r.id)}
-                title={r.cash < amount ? 'Not enough cash to lend' : undefined}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${
-                  lender === r.id ? 'bg-sky-500 text-white' : 'bg-slate-700 hover:bg-slate-600'
-                }`}
-              >
-                {r.name} 🤝
-              </button>
-            ))}
-          </div>
+              {formatRupiah(amt)}
+            </Button>
+          )
+        })}
+      </div>
 
-          {/* Current loans */}
-          {me.loans.length > 0 && (
-            <div className="mt-4 rounded-lg bg-slate-900/60 p-2 text-xs text-slate-300">
-              {me.loans.length} active loan(s) · {formatRupiah(outstanding)} owed
-            </div>
-          )}
+      {/* Lender */}
+      <div className="mt-4 text-[10px] font-bold uppercase tracking-wide text-ink-faint">
+        Lender
+      </div>
+      <div className="mt-1 flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant={lender === BANK ? 'info' : 'secondary'}
+          onClick={() => setLender(BANK)}
+        >
+          Bank
+        </Button>
+        {rentenirs.map((r) => (
+          <Button
+            key={r.id}
+            size="sm"
+            variant={lender === r.id ? 'info' : 'secondary'}
+            disabled={r.cash < amount}
+            title={r.cash < amount ? 'Not enough cash to lend' : undefined}
+            onClick={() => setLender(r.id)}
+          >
+            {r.name} 🤝
+          </Button>
+        ))}
+      </div>
 
-          <button
-            onClick={borrow}
-            disabled={!canBorrow}
-            className="mt-4 w-full rounded-lg bg-amber-500 py-2.5 font-bold text-slate-900 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {maxLoansReached
-              ? 'Max loans reached'
-              : overLimit(amount)
-                ? 'Over borrow limit'
-                : lenderShort
-                  ? 'Lender short on cash'
-                  : `Borrow ${formatRupiah(amount)}`}
-          </button>
-          <button
-            onClick={onClose}
-            className="mt-2 w-full rounded-lg py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200"
-          >
-            Cancel
-          </button>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+      {/* Current loans */}
+      {me.loans.length > 0 && (
+        <Card flat tone="sunken" className="mt-4 p-2 text-xs text-ink-muted">
+          {me.loans.length} active loan(s) · {formatRupiah(outstanding)} owed
+        </Card>
+      )}
+
+      <Button block className="mt-4" disabled={!canBorrow} onClick={borrow}>
+        {maxLoansReached
+          ? 'Max loans reached'
+          : overLimit(amount)
+            ? 'Over borrow limit'
+            : lenderShort
+              ? 'Lender short on cash'
+              : `Borrow ${formatRupiah(amount)}`}
+      </Button>
+      <Button block variant="ghost" size="sm" className="mt-2" onClick={onClose}>
+        Cancel
+      </Button>
+    </Modal>
   )
 }

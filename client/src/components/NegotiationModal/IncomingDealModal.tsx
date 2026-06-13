@@ -1,5 +1,5 @@
 import { BOARD, type GameState, type NegotiationDeal } from '@tuan-tanah/shared'
-import { AnimatePresence, motion } from 'framer-motion'
+import { Button, Card, Modal } from '../ui/index.js'
 import { formatRupiah, useGame } from '../../store/gameStore.js'
 
 function playerName(state: GameState, id: string): string {
@@ -45,46 +45,25 @@ export function IncomingDealModal() {
   }
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      >
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.8, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-          className="w-80 rounded-2xl bg-slate-800 p-5 text-white shadow-2xl"
-        >
-          <div className="text-xs font-semibold uppercase tracking-widest text-fuchsia-400">
-            🤝 Deal offer
-          </div>
-          <div className="mt-1 text-lg font-bold">
-            {playerName(state, deal.fromPlayerId)} proposes
-          </div>
-          <p className="mt-3 rounded-lg bg-slate-900/60 p-3 text-sm text-slate-200">
-            {describeDeal(state, deal)}
-          </p>
+    <Modal
+      open
+      onClose={() => respond(false)}
+      title={`🤝 ${playerName(state, deal.fromPlayerId)} proposes`}
+      size="sm"
+      dismissable={false}
+    >
+      <Card flat tone="sunken" className="p-3 text-sm text-ink">
+        {describeDeal(state, deal)}
+      </Card>
 
-          <div className="mt-5 grid grid-cols-2 gap-2">
-            <button
-              onClick={() => respond(false)}
-              className="rounded-lg bg-slate-700 py-2.5 text-sm font-bold transition-colors hover:bg-slate-600"
-            >
-              Reject
-            </button>
-            <button
-              onClick={() => respond(true)}
-              className="rounded-lg bg-emerald-600 py-2.5 text-sm font-bold transition-colors hover:bg-emerald-500"
-            >
-              Accept
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+      <div className="mt-5 grid grid-cols-2 gap-2">
+        <Button variant="secondary" size="sm" block onClick={() => respond(false)}>
+          Reject
+        </Button>
+        <Button variant="success" size="sm" block onClick={() => respond(true)}>
+          Accept
+        </Button>
+      </div>
+    </Modal>
   )
 }

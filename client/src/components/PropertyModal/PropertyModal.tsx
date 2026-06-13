@@ -10,8 +10,8 @@ import {
   type TileId,
   type TileState,
 } from '@tuan-tanah/shared'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
+import { Badge, Button, Card, Modal } from '../ui/index.js'
 import { formatRupiah, useGame } from '../../store/gameStore.js'
 
 /** Invested value of a tile (base buy price + cumulative build cost). Mirrors the engine's tileValue. */
@@ -104,148 +104,129 @@ export function PropertyModal({
   }
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 z-40 flex items-center justify-center bg-black/50"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.8, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-          onClick={(e) => e.stopPropagation()}
-          className="w-80 rounded-2xl bg-slate-800 p-5 text-white shadow-2xl"
-        >
-          {region && (
-            <div className="h-1.5 w-full rounded-full" style={{ background: region.color }} />
-          )}
-          <div className="mt-2 text-lg font-bold">{def.name}</div>
-          <div className="mt-0.5 text-xs text-slate-400">
-            {region ? region.name : def.type === 'transport' ? 'Transport' : 'Tile'}
-          </div>
+    <Modal open={open} onClose={onClose} title={def.name} size="sm">
+      {/* Region accent + subtitle */}
+      {region && (
+        <div
+          className="h-2 w-full rounded-full border-2 border-ink"
+          style={{ background: region.color }}
+        />
+      )}
+      <div className="mt-2 text-xs font-bold uppercase tracking-wide text-ink-muted">
+        {region ? region.name : def.type === 'transport' ? 'Transport' : 'Tile'}
+      </div>
 
-          {ownable ? (
-            <div className="mt-4 space-y-2 text-sm">
-              <Row label="Owner">
-                {owner ? (
-                  <span className="flex items-center gap-1.5">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ background: owner.color }}
-                    />
-                    {owner.name}
-                    {owner.id === me?.id && <span className="text-amber-400">(you)</span>}
-                  </span>
+      {ownable ? (
+        <Card flat tone="sunken" className="mt-4 space-y-2 p-3 text-sm">
+          <Row label="Owner">
+            {owner ? (
+              <Badge color={owner.color}>
+                {owner.name}
+                {owner.id === me?.id && ' (you)'}
+              </Badge>
+            ) : (
+              <span className="text-ink-faint">Unowned</span>
+            )}
+          </Row>
+          {owner && (
+            <>
+              <Row label="Level">
+                {tile.tier >= 1 ? (
+                  <Badge tone="accent">
+                    {tierLabel(tile)}
+                    {tile.track ? ` · ${tile.track === 'house' ? 'Rumah' : 'Properti'}` : ''}
+                  </Badge>
                 ) : (
-                  <span className="text-slate-400">Unowned</span>
+                  <span className="text-ink-faint">{tierLabel(tile)}</span>
                 )}
               </Row>
-              {owner && (
-                <>
-                  <Row label="Level">{tierLabel(tile)}</Row>
-                  <Row label="Invested value">{formatRupiah(tileValue(tile))}</Row>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="mt-4 text-sm text-slate-400">This tile can&apos;t be owned.</div>
+              <Row label="Invested value">{formatRupiah(tileValue(tile))}</Row>
+            </>
           )}
+        </Card>
+      ) : (
+        <div className="mt-4 text-sm text-ink-muted">This tile can&apos;t be owned.</div>
+      )}
 
-          {canUpgrade && (
-            <div className="mt-5 space-y-2">
-              {tile.tier === 0 ? (
-                <>
-                  <div className="text-xs text-slate-400">
-                    {canKontraktorBuild
-                      ? 'Build on this tile — you earn a rent cut:'
-                      : 'Choose a track to build:'}
-                  </div>
-                  {(['house', 'property'] as const).map((track) => {
-                    const info = nextTierInfo(def, track, 0)
-                    if (!info) return null
-                    const tooPoor = (me?.cash ?? 0) < info.cost
-                    return (
-                      <button
-                        key={track}
-                        disabled={tooPoor}
-                        onClick={() => upgrade(tileId, track)}
-                        className="w-full rounded-lg bg-sky-600 py-2 text-sm font-bold transition-colors hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {track === 'house' ? 'Bangun Rumah' : 'Bangun Properti'} ({info.name}) —{' '}
-                        {formatRupiah(info.cost)}
-                      </button>
-                    )
-                  })}
-                </>
-              ) : (
-                tile.track &&
-                (() => {
-                  const info = nextTierInfo(def, tile.track, tile.tier)
-                  if (!info) return null
-                  const tooPoor = (me?.cash ?? 0) < info.cost
-                  return (
-                    <button
-                      disabled={tooPoor}
-                      onClick={() => upgrade(tileId)}
-                      className="w-full rounded-lg bg-sky-600 py-2.5 font-bold transition-colors hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Upgrade to {info.name} — {formatRupiah(info.cost)}
-                    </button>
-                  )
-                })()
-              )}
-            </div>
-          )}
-
-          {canSell &&
-            (confirming ? (
-              <div className="mt-5 space-y-2">
-                <div className="rounded-lg bg-amber-500/15 px-3 py-2 text-center text-xs text-amber-200">
-                  Sell {def.name} back to the bank for {formatRupiah(refund)}?
-                </div>
-                <button
-                  onClick={handleSell}
-                  className="w-full rounded-lg bg-rose-600 py-2.5 font-bold transition-colors hover:bg-rose-500"
-                >
-                  Confirm sell
-                </button>
-                <button
-                  onClick={() => setConfirming(false)}
-                  className="w-full rounded-lg py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200"
-                >
-                  Cancel
-                </button>
+      {canUpgrade && (
+        <div className="mt-5 space-y-2">
+          {tile.tier === 0 ? (
+            <>
+              <div className="text-xs text-ink-muted">
+                {canKontraktorBuild
+                  ? 'Build on this tile — you earn a rent cut:'
+                  : 'Choose a track to build:'}
               </div>
-            ) : (
-              <button
-                onClick={() => setConfirming(true)}
-                className="mt-5 w-full rounded-lg bg-rose-600 py-2.5 font-bold transition-colors hover:bg-rose-500"
-              >
-                Sell back to bank — {formatRupiah(refund)}
-              </button>
-            ))}
+              {(['house', 'property'] as const).map((track) => {
+                const info = nextTierInfo(def, track, 0)
+                if (!info) return null
+                const tooPoor = (me?.cash ?? 0) < info.cost
+                return (
+                  <Button
+                    key={track}
+                    block
+                    variant="info"
+                    size="sm"
+                    disabled={tooPoor}
+                    onClick={() => upgrade(tileId, track)}
+                  >
+                    {track === 'house' ? 'Bangun Rumah' : 'Bangun Properti'} ({info.name}) —{' '}
+                    {formatRupiah(info.cost)}
+                  </Button>
+                )
+              })}
+            </>
+          ) : (
+            tile.track &&
+            (() => {
+              const info = nextTierInfo(def, tile.track, tile.tier)
+              if (!info) return null
+              const tooPoor = (me?.cash ?? 0) < info.cost
+              return (
+                <Button block variant="info" disabled={tooPoor} onClick={() => upgrade(tileId)}>
+                  Upgrade to {info.name} — {formatRupiah(info.cost)}
+                </Button>
+              )
+            })()
+          )}
+        </div>
+      )}
 
-          <button
-            onClick={onClose}
-            className="mt-2 w-full rounded-lg py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200"
-          >
-            Close
-          </button>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+      {canSell &&
+        (confirming ? (
+          <div className="mt-5 space-y-2">
+            <Card
+              flat
+              tone="accent"
+              className="px-3 py-2 text-center text-xs font-semibold text-ink"
+            >
+              Sell {def.name} back to the bank for {formatRupiah(refund)}?
+            </Card>
+            <Button block variant="danger" onClick={handleSell}>
+              Confirm sell
+            </Button>
+            <Button block variant="ghost" size="sm" onClick={() => setConfirming(false)}>
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <Button block variant="danger" className="mt-5" onClick={() => setConfirming(true)}>
+            Sell back to bank — {formatRupiah(refund)}
+          </Button>
+        ))}
+
+      <Button block variant="ghost" size="sm" className="mt-2" onClick={onClose}>
+        Close
+      </Button>
+    </Modal>
   )
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-slate-400">{label}</span>
-      <span className="font-semibold">{children}</span>
+      <span className="text-ink-muted">{label}</span>
+      <span className="font-semibold text-ink">{children}</span>
     </div>
   )
 }

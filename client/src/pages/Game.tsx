@@ -18,6 +18,7 @@ import { PinjolModal } from '../components/PinjolModal/PinjolModal.js'
 import { PlayerPanel } from '../components/PlayerPanel/PlayerPanel.js'
 import { PropertyModal } from '../components/PropertyModal/PropertyModal.js'
 import { LeaveButton } from '../components/RoomActions.js'
+import { Badge, Button, Card } from '../components/ui/index.js'
 import { formatRupiah, useGame } from '../store/gameStore.js'
 
 function basePrice(tileId: TileId): number {
@@ -96,8 +97,8 @@ export function Game() {
 
       {/* Sidebar */}
       <aside className="flex w-full flex-col gap-4 lg:w-80">
-        <div className="rounded-xl bg-slate-800/60 p-3">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <Card className="p-3">
+          <div className="flex items-center justify-between text-xs text-ink-muted">
             <span>Room {state.roomId}</span>
             <span>Round {state.round}</span>
           </div>
@@ -113,59 +114,47 @@ export function Game() {
           </div>
 
           {phase === 'ended' ? (
-            <div className="mt-3 rounded-lg bg-amber-500/20 p-3 text-center">
-              <div className="text-sm text-slate-300">Winner</div>
-              <div className="text-xl font-bold text-amber-300">
+            <Card tone="accent" flat className="mt-3 p-3 text-center">
+              <div className="text-sm text-ink-muted">Winner</div>
+              <div className="text-xl font-bold text-ink">
                 {state.players.find((p) => p.id === state.winner)?.name ?? '—'}
               </div>
-            </div>
+            </Card>
           ) : myDebt ? (
             <div className="mt-3">
               <DebtPanel debt={myDebt} onTakePinjol={() => setShowPinjol(true)} />
             </div>
           ) : debtor ? (
-            <div className="mt-3 rounded-lg bg-rose-500/10 py-3 text-center text-sm text-rose-200">
+            <Card tone="danger" flat className="mt-3 py-3 text-center text-sm text-ink">
               Paused — waiting for{' '}
               <span className="font-semibold" style={{ color: debtor.color }}>
                 {debtor.name}
               </span>{' '}
               to settle a debt…
-            </div>
+            </Card>
           ) : (
             <div className="mt-3 space-y-2">
               {isMyTurn ? (
                 <>
                   {me?.inJail && !turn.hasRolled && (
-                    <button
-                      onClick={payJail}
-                      className="w-full rounded-lg bg-slate-600 py-2 text-sm font-semibold hover:bg-slate-500"
-                    >
+                    <Button variant="secondary" size="sm" block onClick={payJail}>
                       Pay bail (Rp 1 juta)
-                    </button>
+                    </Button>
                   )}
                   {!turn.hasRolled && (
-                    <button
-                      onClick={roll}
-                      className="w-full rounded-lg bg-amber-500 py-2.5 font-bold text-slate-900 hover:bg-amber-400"
-                    >
+                    <Button block onClick={roll}>
                       🎲 {me?.inJail ? 'Roll for doubles' : 'Roll dice'}
-                    </button>
+                    </Button>
                   )}
                   {turn.hasRolled && pending !== null && (
-                    <button
-                      onClick={() => buy(pending)}
-                      className="w-full rounded-lg bg-emerald-600 py-2.5 font-bold hover:bg-emerald-500"
-                    >
+                    <Button variant="success" block onClick={() => buy(pending)}>
                       Buy {BOARD[pending]!.name} — {formatRupiah(basePrice(pending))}
-                    </button>
+                    </Button>
                   )}
                   {turn.hasRolled && (
-                    <button
-                      onClick={endTurn}
-                      className="w-full rounded-lg bg-slate-700 py-2 text-sm font-semibold hover:bg-slate-600"
-                    >
+                    <Button variant="secondary" size="sm" block onClick={endTurn}>
                       {pending !== null ? 'Skip & end turn' : 'End turn'}
-                    </button>
+                    </Button>
                   )}
                   {!turn.usedMetaAction && (
                     <MetaActionBar
@@ -175,47 +164,45 @@ export function Game() {
                     />
                   )}
                   {me && <AbilityBar me={me} onUse={useAbility} />}
-                  <button
-                    onClick={() => setShowPinjol(true)}
-                    className="w-full rounded-lg bg-slate-700 py-2 text-sm font-semibold hover:bg-slate-600"
-                  >
+                  <Button variant="secondary" size="sm" block onClick={() => setShowPinjol(true)}>
                     🏦 Pinjol
-                  </button>
+                  </Button>
                   {pendingMeta && (
-                    <div className="flex items-center justify-between rounded-lg bg-sky-500/15 px-3 py-2 text-xs text-sky-200">
+                    <Card
+                      tone="info"
+                      flat
+                      className="flex items-center justify-between px-3 py-2 text-xs text-ink"
+                    >
                       <span>
                         Select a {pendingMeta.target} on the{' '}
                         {pendingMeta.target === 'tile' ? 'board' : 'players list'}…
                       </span>
                       <button
                         onClick={() => setPendingMeta(null)}
-                        className="font-semibold text-sky-300 hover:text-sky-100"
+                        className="font-bold text-ink hover:text-info-strong"
                       >
                         Cancel
                       </button>
-                    </div>
+                    </Card>
                   )}
                 </>
               ) : (
-                <div className="rounded-lg bg-slate-900 py-3 text-center text-sm text-slate-400">
+                <Card tone="sunken" flat className="py-3 text-center text-sm text-ink-muted">
                   Waiting for{' '}
                   <span className="font-semibold" style={{ color: current?.color }}>
                     {current?.name}
                   </span>
                   …
-                </div>
+                </Card>
               )}
               {me && !me.isEliminated && (
-                <button
-                  onClick={() => setShowNegotiate(true)}
-                  className="w-full rounded-lg bg-slate-700 py-2 text-sm font-semibold hover:bg-slate-600"
-                >
+                <Button variant="secondary" size="sm" block onClick={() => setShowNegotiate(true)}>
                   🤝 Negotiate
-                </button>
+                </Button>
               )}
             </div>
           )}
-        </div>
+        </Card>
 
         <PlayerPanel
           state={state}
@@ -223,9 +210,9 @@ export function Game() {
           onSelect={pendingMeta?.target === 'player' ? handleSelectPlayer : undefined}
         />
 
-        <div className="h-56 rounded-xl bg-slate-800/60 p-3">
+        <Card className="h-56 p-3">
           <EventLog state={state} />
-        </div>
+        </Card>
       </aside>
 
       <PinjolModal open={showPinjol} onClose={() => setShowPinjol(false)} />
@@ -280,34 +267,40 @@ function GameOverScreen({
 }) {
   const winner = standings.find((s) => s.playerId === winnerId) ?? standings[0]
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl bg-slate-800 p-6 shadow-2xl">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-ink/40 p-4">
+      <div className="w-full max-w-md rounded-xl border-2 border-ink bg-surface p-6 shadow-brutal-xl">
         <div className="text-center">
           <div className="text-5xl">🏆</div>
-          <div className="mt-1 text-sm uppercase tracking-wide text-slate-400">Game over</div>
-          <div className="mt-1 text-2xl font-black text-amber-300">{winner?.name ?? '—'} wins!</div>
+          <div className="mt-1 text-sm uppercase tracking-wide text-ink-muted">Game over</div>
+          <div className="mt-1 text-2xl font-black text-ink">{winner?.name ?? '—'} wins!</div>
         </div>
 
         <ol className="mt-5 space-y-2">
           {standings.map((s, i) => (
             <li
               key={s.playerId}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${
-                s.playerId === winnerId ? 'bg-amber-500/20' : 'bg-slate-900/60'
+              className={`flex items-center gap-3 rounded-lg border-2 border-ink px-3 py-2 text-sm ${
+                s.playerId === winnerId ? 'bg-accent-soft' : 'bg-surface-sunken'
               }`}
             >
-              <span className="w-5 text-center font-bold text-slate-400">{i + 1}</span>
+              <span className="w-5 text-center font-bold text-ink-muted">{i + 1}</span>
               <span className="flex-1 truncate">
-                <span className="font-semibold">{s.name}</span>
+                <span className="font-semibold text-ink">{s.name}</span>
                 {s.playerId === myId && (
-                  <span className="ml-1 text-[11px] text-sky-300">(you)</span>
+                  <Badge tone="info" className="ml-1">
+                    you
+                  </Badge>
                 )}
-                <span className="ml-1 text-[11px] text-slate-500">
+                <span className="ml-1 text-[11px] text-ink-faint">
                   {s.role ? ROLES[s.role].name : '—'}
                 </span>
-                {s.eliminated && <span className="ml-1 text-[11px] text-red-400">eliminated</span>}
+                {s.eliminated && (
+                  <Badge tone="danger" className="ml-1">
+                    eliminated
+                  </Badge>
+                )}
               </span>
-              <span className="font-mono text-amber-200">{formatRupiah(s.wealth)}</span>
+              <span className="font-mono text-ink">{formatRupiah(s.wealth)}</span>
             </li>
           ))}
         </ol>

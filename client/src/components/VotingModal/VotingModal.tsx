@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { Badge, Button, Card, Modal } from '../ui/index.js'
 import { useGame } from '../../store/gameStore.js'
 
 /**
@@ -21,55 +21,35 @@ export function VotingModal() {
   const hasVoted = myVoteTargetId != null
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 z-40 flex items-center justify-center bg-black/50"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      >
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.8, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-          className="w-80 rounded-2xl bg-slate-800 p-5 text-white shadow-2xl"
-        >
-          <div className="text-xs font-semibold uppercase tracking-widest text-indigo-300">
-            🗳️ Pemilu
-          </div>
-          <div className="mt-1 text-lg font-bold">Vote to skip a turn</div>
-          <div className="mt-1 text-xs text-slate-400">
-            The most-voted player skips their next turn. {votesCast}/{eligibleCount} voted.
-          </div>
+    <Modal open onClose={() => {}} title="🗳️ Vote to skip a turn" size="sm" dismissable={false}>
+      <div className="text-xs text-ink-muted">
+        The most-voted player skips their next turn. {votesCast}/{eligibleCount} voted.
+      </div>
 
-          {hasVoted ? (
-            <div className="mt-4 rounded-lg bg-indigo-500/15 p-3 text-center text-sm text-indigo-200">
-              You voted for{' '}
-              <span className="font-semibold">
-                {state.players.find((p) => p.id === myVoteTargetId)?.name ?? '—'}
-              </span>
-              . Waiting for the others…
-            </div>
-          ) : (
-            <div className="mt-4 flex flex-col gap-2">
-              {candidates.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => castVote(p.id)}
-                  className="flex items-center gap-2 rounded-lg bg-slate-700 px-3 py-2 text-sm font-semibold transition-colors hover:bg-slate-600"
-                >
-                  <span
-                    className="inline-block h-3 w-3 rounded-full"
-                    style={{ backgroundColor: p.color }}
-                  />
-                  {p.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+      {hasVoted ? (
+        <Card flat tone="info" className="mt-4 p-3 text-center text-sm text-ink">
+          You voted for{' '}
+          <span className="font-semibold">
+            {state.players.find((p) => p.id === myVoteTargetId)?.name ?? '—'}
+          </span>
+          . Waiting for the others…
+        </Card>
+      ) : (
+        <div className="mt-4 flex flex-col gap-2">
+          {candidates.map((p) => (
+            <Button
+              key={p.id}
+              variant="secondary"
+              block
+              onClick={() => castVote(p.id)}
+              className="justify-start"
+            >
+              <Badge color={p.color} className="h-3 w-3 p-0" />
+              {p.name}
+            </Button>
+          ))}
+        </div>
+      )}
+    </Modal>
   )
 }

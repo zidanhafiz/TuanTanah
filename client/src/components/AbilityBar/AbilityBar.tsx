@@ -1,4 +1,5 @@
 import type { AbilityType, Player } from '@tuan-tanah/shared'
+import { Button } from '../ui/index.js'
 
 interface AbilityDef {
   ability: AbilityType
@@ -33,17 +34,13 @@ export function AbilityBar({ me, onUse }: Props) {
   if (!def || me.usedAbility) return null
 
   return (
-    <div className="space-y-1.5 rounded-lg bg-slate-900/60 p-2">
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+    <div className="space-y-1.5 rounded-lg border-2 border-ink bg-surface-sunken p-2">
+      <div className="text-[10px] font-bold uppercase tracking-wide text-ink-muted">
         Role ability (once per game)
       </div>
-      <button
-        onClick={() => onUse(def.ability)}
-        title={def.hint}
-        className="w-full rounded-md bg-fuchsia-600 px-2 py-1.5 text-[11px] font-semibold transition-colors hover:bg-fuchsia-500"
-      >
+      <Button block size="sm" variant="info" onClick={() => onUse(def.ability)} title={def.hint}>
         {def.label}
-      </button>
+      </Button>
     </div>
   )
 }

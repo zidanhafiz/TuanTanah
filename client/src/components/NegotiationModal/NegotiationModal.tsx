@@ -5,8 +5,8 @@ import {
   type NegotiationDealType,
   type TileId,
 } from '@tuan-tanah/shared'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
+import { Button, Modal } from '../ui/index.js'
 import { useGame } from '../../store/gameStore.js'
 
 const DEAL_TYPES: { value: NegotiationDealType; label: string }[] = [
@@ -24,8 +24,9 @@ function ownedTiles(state: GameState, playerId: string): { id: TileId; name: str
     .map((t) => ({ id: t.id, name: BOARD[t.id]!.name }))
 }
 
-const inputClass = 'w-full rounded-lg bg-slate-700 px-3 py-2 text-sm text-white outline-none'
-const labelClass = 'mt-3 text-[10px] font-semibold uppercase tracking-wide text-slate-500'
+const inputClass =
+  'w-full rounded-lg border-2 border-ink bg-surface px-3 py-2 text-sm outline-none transition focus:shadow-brutal-sm'
+const labelClass = 'mt-3 text-[10px] font-semibold uppercase tracking-wide text-ink-faint'
 
 export function NegotiationModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const state = useGame((s) => s.state)
@@ -79,191 +80,149 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
   }
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
+    <Modal open={open} onClose={onClose} title="🤝 Propose a deal" size="sm">
+      {/* Target player */}
+      <div className={labelClass}>With</div>
+      <select
+        value={targetId}
+        onChange={(e) => {
+          setTargetId(e.target.value)
+          setRequestTileId('')
+        }}
+        className={`mt-1 ${inputClass}`}
       >
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.8, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-          onClick={(e) => e.stopPropagation()}
-          className="max-h-[90vh] w-80 overflow-y-auto rounded-2xl bg-slate-800 p-5 text-white shadow-2xl"
-        >
-          <div className="text-xs font-semibold uppercase tracking-widest text-fuchsia-400">
-            🤝 Negotiate
-          </div>
-          <div className="mt-1 text-lg font-bold">Propose a deal</div>
+        <option value="">Select a player…</option>
+        {targets.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name}
+          </option>
+        ))}
+      </select>
 
-          {/* Target player */}
-          <div className={labelClass}>With</div>
+      {/* Deal type */}
+      <div className={labelClass}>Deal type</div>
+      <div className="mt-1 grid grid-cols-2 gap-2">
+        {DEAL_TYPES.map((dt) => (
+          <Button
+            key={dt.value}
+            size="sm"
+            variant={type === dt.value ? 'primary' : 'secondary'}
+            onClick={() => setType(dt.value)}
+          >
+            {dt.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Your tile (swap only) */}
+      {needsOffer && (
+        <>
+          <div className={labelClass}>Your tile to give</div>
           <select
-            value={targetId}
-            onChange={(e) => {
-              setTargetId(e.target.value)
-              setRequestTileId('')
-            }}
+            value={offerTileId}
+            onChange={(e) => setOfferTileId(e.target.value === '' ? '' : Number(e.target.value))}
             className={`mt-1 ${inputClass}`}
           >
-            <option value="">Select a player…</option>
-            {targets.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
+            <option value="">Select your tile…</option>
+            {myTiles.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
               </option>
             ))}
           </select>
+        </>
+      )}
 
-          {/* Deal type */}
-          <div className={labelClass}>Deal type</div>
-          <div className="mt-1 grid grid-cols-2 gap-2">
-            {DEAL_TYPES.map((dt) => (
-              <button
-                key={dt.value}
-                onClick={() => setType(dt.value)}
-                className={`rounded-lg px-2 py-2 text-xs font-semibold transition-colors ${
-                  type === dt.value
-                    ? 'bg-fuchsia-600 text-white'
-                    : 'bg-slate-700 hover:bg-slate-600'
-                }`}
-              >
-                {dt.label}
-              </button>
-            ))}
+      {/* Their tile */}
+      {needsRequest && (
+        <>
+          <div className={labelClass}>
+            {type === 'rent_immunity' ? 'Their tile for immunity' : 'Their tile you want'}
           </div>
-
-          {/* Your tile (swap only) */}
-          {needsOffer && (
-            <>
-              <div className={labelClass}>Your tile to give</div>
-              <select
-                value={offerTileId}
-                onChange={(e) =>
-                  setOfferTileId(e.target.value === '' ? '' : Number(e.target.value))
-                }
-                className={`mt-1 ${inputClass}`}
-              >
-                <option value="">Select your tile…</option>
-                {myTiles.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-
-          {/* Their tile */}
-          {needsRequest && (
-            <>
-              <div className={labelClass}>
-                {type === 'rent_immunity' ? 'Their tile for immunity' : 'Their tile you want'}
-              </div>
-              <select
-                value={requestTileId}
-                onChange={(e) =>
-                  setRequestTileId(e.target.value === '' ? '' : Number(e.target.value))
-                }
-                disabled={!targetId}
-                className={`mt-1 ${inputClass} disabled:opacity-40`}
-              >
-                <option value="">{targetId ? 'Select their tile…' : 'Pick a player first'}</option>
-                {targetTiles.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-
-          {/* Cash */}
-          {needsCash && (
-            <>
-              <div className={labelClass}>
-                {type === 'rent_immunity' ? 'Price you pay (juta)' : 'Your offer (juta)'}
-              </div>
-              <input
-                type="number"
-                min={1}
-                value={cashJuta}
-                onChange={(e) => setCashJuta(Number(e.target.value))}
-                className={`mt-1 ${inputClass}`}
-              />
-            </>
-          )}
-
-          {/* Revenue share */}
-          {needsShare && (
-            <>
-              <div className={labelClass}>Share %</div>
-              <input
-                type="number"
-                min={1}
-                max={100}
-                value={sharePercent}
-                onChange={(e) => setSharePercent(Number(e.target.value))}
-                className={`mt-1 ${inputClass}`}
-              />
-              <div className={labelClass}>Who shares income</div>
-              <div className="mt-1 grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setShareFrom('proposer')}
-                  className={`rounded-lg px-2 py-2 text-xs font-semibold transition-colors ${
-                    shareFrom === 'proposer'
-                      ? 'bg-sky-500 text-white'
-                      : 'bg-slate-700 hover:bg-slate-600'
-                  }`}
-                >
-                  You share
-                </button>
-                <button
-                  onClick={() => setShareFrom('target')}
-                  className={`rounded-lg px-2 py-2 text-xs font-semibold transition-colors ${
-                    shareFrom === 'target'
-                      ? 'bg-sky-500 text-white'
-                      : 'bg-slate-700 hover:bg-slate-600'
-                  }`}
-                >
-                  They share
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* Rounds */}
-          {needsRounds && (
-            <>
-              <div className={labelClass}>Duration (rounds)</div>
-              <input
-                type="number"
-                min={1}
-                value={rounds}
-                onChange={(e) => setRounds(Number(e.target.value))}
-                className={`mt-1 ${inputClass}`}
-              />
-            </>
-          )}
-
-          <button
-            onClick={submit}
-            disabled={!canPropose}
-            className="mt-5 w-full rounded-lg bg-fuchsia-600 py-2.5 font-bold text-white transition-colors hover:bg-fuchsia-500 disabled:cursor-not-allowed disabled:opacity-40"
+          <select
+            value={requestTileId}
+            onChange={(e) => setRequestTileId(e.target.value === '' ? '' : Number(e.target.value))}
+            disabled={!targetId}
+            className={`mt-1 ${inputClass} disabled:opacity-40`}
           >
-            Send proposal
-          </button>
-          <button
-            onClick={onClose}
-            className="mt-2 w-full rounded-lg py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-200"
-          >
-            Cancel
-          </button>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+            <option value="">{targetId ? 'Select their tile…' : 'Pick a player first'}</option>
+            {targetTiles.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
+
+      {/* Cash */}
+      {needsCash && (
+        <>
+          <div className={labelClass}>
+            {type === 'rent_immunity' ? 'Price you pay (juta)' : 'Your offer (juta)'}
+          </div>
+          <input
+            type="number"
+            min={1}
+            value={cashJuta}
+            onChange={(e) => setCashJuta(Number(e.target.value))}
+            className={`mt-1 ${inputClass}`}
+          />
+        </>
+      )}
+
+      {/* Revenue share */}
+      {needsShare && (
+        <>
+          <div className={labelClass}>Share %</div>
+          <input
+            type="number"
+            min={1}
+            max={100}
+            value={sharePercent}
+            onChange={(e) => setSharePercent(Number(e.target.value))}
+            className={`mt-1 ${inputClass}`}
+          />
+          <div className={labelClass}>Who shares income</div>
+          <div className="mt-1 grid grid-cols-2 gap-2">
+            <Button
+              size="sm"
+              variant={shareFrom === 'proposer' ? 'info' : 'secondary'}
+              onClick={() => setShareFrom('proposer')}
+            >
+              You share
+            </Button>
+            <Button
+              size="sm"
+              variant={shareFrom === 'target' ? 'info' : 'secondary'}
+              onClick={() => setShareFrom('target')}
+            >
+              They share
+            </Button>
+          </div>
+        </>
+      )}
+
+      {/* Rounds */}
+      {needsRounds && (
+        <>
+          <div className={labelClass}>Duration (rounds)</div>
+          <input
+            type="number"
+            min={1}
+            value={rounds}
+            onChange={(e) => setRounds(Number(e.target.value))}
+            className={`mt-1 ${inputClass}`}
+          />
+        </>
+      )}
+
+      <Button block onClick={submit} disabled={!canPropose} className="mt-5">
+        Send proposal
+      </Button>
+      <Button block variant="ghost" size="sm" onClick={onClose} className="mt-2">
+        Cancel
+      </Button>
+    </Modal>
   )
 }

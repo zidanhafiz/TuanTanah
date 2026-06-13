@@ -1,4 +1,5 @@
 import type { MetaActionType, TurnState } from '@tuan-tanah/shared'
+import { Button } from '../ui/index.js'
 
 export type MetaTarget = 'none' | 'player' | 'tile'
 
@@ -28,8 +29,8 @@ interface Props {
 
 export function MetaActionBar({ turn, pendingAction, onPick }: Props) {
   return (
-    <div className="space-y-1.5 rounded-lg bg-slate-900/60 p-2">
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+    <div className="space-y-1.5 rounded-lg border-2 border-ink bg-surface-sunken p-2">
+      <div className="text-[10px] font-bold uppercase tracking-wide text-ink-muted">
         Meta action (1 per turn)
       </div>
       <div className="grid grid-cols-2 gap-1.5">
@@ -37,17 +38,16 @@ export function MetaActionBar({ turn, pendingAction, onPick }: Props) {
           const disabled = Boolean(def.needsUnrolled && turn.hasRolled)
           const active = pendingAction === def.action
           return (
-            <button
+            <Button
               key={def.action}
+              size="sm"
+              variant={active ? 'info' : 'secondary'}
               disabled={disabled}
               onClick={() => onPick(def)}
               title={def.needsUnrolled ? 'Choose before rolling — skips your move' : undefined}
-              className={`rounded-md px-2 py-1.5 text-[11px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                active ? 'bg-sky-500 text-white' : 'bg-slate-700 hover:bg-slate-600'
-              }`}
             >
               {def.label}
-            </button>
+            </Button>
           )
         })}
       </div>

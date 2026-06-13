@@ -11,18 +11,18 @@ export function EventLog({ state }: { state: GameState }) {
 
   return (
     <div className="flex h-full flex-col">
-      <h2 className="mb-1 text-xs font-semibold uppercase text-slate-400">Event log</h2>
+      <h2 className="mb-1 text-xs font-bold uppercase text-ink-muted">Event log</h2>
       <div
         ref={ref}
-        className="flex-1 space-y-1 overflow-y-auto rounded-lg bg-slate-900 p-2 text-xs text-slate-300"
+        className="flex-1 space-y-1 overflow-y-auto rounded-lg border-2 border-ink bg-surface-sunken p-2 text-xs text-ink"
       >
         {recent.map((e) => (
-          <div key={e.id} className="border-b border-slate-800 pb-1 last:border-0">
-            <span className="text-slate-600">R{e.round} · </span>
+          <div key={e.id} className="border-b border-ink/15 pb-1 last:border-0">
+            <span className="text-ink-faint">R{e.round} · </span>
             {e.message}
           </div>
         ))}
-        {recent.length === 0 && <div className="text-slate-600">No events yet.</div>}
+        {recent.length === 0 && <div className="text-ink-faint">No events yet.</div>}
       </div>
     </div>
   )

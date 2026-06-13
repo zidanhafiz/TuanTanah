@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGame } from '../store/gameStore.js'
+import { Button } from './ui/index.js'
 
 /** Copies the shareable room link (`/room/CODE`) to the clipboard. */
 export function ShareLinkButton({ code, className }: { code: string; className?: string }) {
@@ -20,15 +21,9 @@ export function ShareLinkButton({ code, className }: { code: string; className?:
   }
 
   return (
-    <button
-      onClick={share}
-      className={
-        className ??
-        'rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-600'
-      }
-    >
+    <Button variant="secondary" size="sm" onClick={share} className={`text-xs ${className ?? ''}`}>
       {copied ? '✓ Link copied' : '🔗 Share link'}
-    </button>
+    </Button>
   )
 }
 
@@ -55,14 +50,8 @@ export function LeaveButton({
   }
 
   return (
-    <button
-      onClick={onClick}
-      className={
-        className ??
-        'rounded-lg bg-rose-600/80 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-600'
-      }
-    >
+    <Button variant="danger" size="sm" onClick={onClick} className={`text-xs ${className ?? ''}`}>
       {label}
-    </button>
+    </Button>
   )
 }
