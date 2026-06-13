@@ -39,32 +39,48 @@ export function DiceRoller({ state }: { state: GameState }) {
   }, [phase])
 
   // While rolling, show the tumbling faces; otherwise the authoritative roll.
+  // Before the first roll there's nothing to show — render idle placeholders so
+  // the board center never collapses.
   const faces = rolling ? tumble : finalDice
-  if (!faces) return null
+  if (!faces) {
+    return (
+      <div className="flex gap-2.5">
+        <DieFace value={1} rolling={false} idle />
+        <DieFace value={1} rolling={false} idle />
+      </div>
+    )
+  }
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2.5">
       <DieFace value={faces[0]} rolling={rolling} />
       <DieFace value={faces[1]} rolling={rolling} />
     </div>
   )
 }
 
-function DieFace({ value, rolling }: { value: number; rolling: boolean }) {
+function DieFace({ value, rolling, idle }: { value: number; rolling: boolean; idle?: boolean }) {
   const lit = PIPS[value] ?? []
   return (
     <motion.div
       animate={
-        rolling ? { rotate: [0, -18, 18, 0], y: [0, -5, 0] } : { rotate: 0, scale: [1.25, 1] }
+        rolling ? { rotate: [0, -18, 18, 0], y: [0, -6, 0] } : { rotate: 0, scale: [1.3, 1] }
       }
       transition={
         rolling
           ? { duration: 0.26, repeat: Infinity, ease: 'easeInOut' }
           : { duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }
       }
-      className="grid h-12 w-12 grid-cols-3 grid-rows-3 gap-0.5 rounded-lg border-2 border-ink bg-surface p-1.5 shadow-brutal-sm"
+      className={`grid h-16 w-16 grid-cols-3 grid-rows-3 gap-1 rounded-2xl border-2 border-ink bg-surface p-2.5 ${
+        idle ? 'opacity-40 shadow-brutal-sm' : 'shadow-brutal'
+      }`}
     >
       {Array.from({ length: 9 }, (_, i) => (
-        <span key={i} className={`rounded-full ${lit.includes(i) ? 'bg-ink' : 'bg-transparent'}`} />
+        <span
+          key={i}
+          className={`rounded-full ${
+            lit.includes(i) ? 'border border-ink/30 bg-ink shadow-brutal-xs' : 'bg-transparent'
+          }`}
+        />
       ))}
     </motion.div>
   )
