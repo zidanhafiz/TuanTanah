@@ -116,17 +116,42 @@ function PlayerToken({
 
   return (
     <motion.div
-      className="absolute -translate-x-1/2 -translate-y-1/2"
+      className="absolute -translate-x-1/2 -translate-y-[85%]"
       initial={coord(player.position)}
       animate={move}
     >
-      <motion.div animate={bob}>
-        <div
-          className="h-4 w-4 rounded-full border-2 border-ink shadow-brutal-xs"
-          style={{ background: player.color }}
-          title={player.name}
-        />
+      {/* Ground shadow pinned at the tile center — stays put while the pawn hops. */}
+      {isRoller && (
+        <span className="absolute left-1/2 top-[85%] h-[5px] w-6 -translate-x-1/2 rounded-[50%] bg-ink/25" />
+      )}
+      <motion.div animate={bob} style={{ transformOrigin: 'bottom center' }}>
+        <Pawn color={player.color} title={player.name} />
       </motion.div>
     </motion.div>
+  )
+}
+
+/**
+ * A standing game pawn: a head + flared body silhouette filled with the player
+ * color, wrapped in the brutalist ink outline and a hard offset drop-shadow
+ * (the box-shadow equivalent, but hugging the irregular shape).
+ */
+function Pawn({ color, title }: { color: string; title: string }) {
+  return (
+    <svg
+      width="19"
+      height="24"
+      viewBox="0 0 24 30"
+      className="block"
+      style={{ filter: 'drop-shadow(1.5px 1.5px 0 #1A1714)' }}
+    >
+      <title>{title}</title>
+      <g fill={color} stroke="#1A1714" strokeWidth={2} strokeLinejoin="round">
+        {/* Body + flared foot. */}
+        <path d="M9 11 C9 14 7 15 7 18 C6 21 4.5 22 4 25 C3.5 26.5 3 27 3 27.5 C3 28.5 4 29 6 29 L18 29 C20 29 21 28.5 21 27.5 C21 27 20.5 26.5 20 25 C19.5 22 18 21 17 18 C17 15 15 14 15 11 Z" />
+        {/* Head — sits over the body to read as a collar. */}
+        <circle cx="12" cy="6" r="4.8" />
+      </g>
+    </svg>
   )
 }
