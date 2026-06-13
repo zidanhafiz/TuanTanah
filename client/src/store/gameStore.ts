@@ -15,7 +15,7 @@ import {
 import { create } from 'zustand'
 import { socket } from '../socket.js'
 import { audio, playSound, playStateSounds } from '../sound/index.js'
-import { noteIncomingState, resetRollAnim } from './rollAnimation.js'
+import { noteIncomingState, playOnMoveSettled, resetRollAnim } from './rollAnimation.js'
 
 const HUSTLE_NAME = new Map(HUSTLE_CARDS.map((c) => [c.id, c.name]))
 const KEJADIAN_NAME = new Map(KEJADIAN_CARDS.map((c) => [c.id, c.name]))
@@ -185,7 +185,8 @@ export const useGame = create<GameStore>((set, get) => ({
       set({ error: message })
     })
     socket.on('card_drawn', ({ type, card, playerId }) => {
-      playSound('card')
+      // Heard as the card flips open (on token arrival), not mid-walk.
+      playOnMoveSettled('card')
       const name = type === 'hustle' ? HUSTLE_NAME.get(card) : KEJADIAN_NAME.get(card)
       set({
         lastCard: { type, cardId: card, name: name ?? card, playerId, at: Date.now() },

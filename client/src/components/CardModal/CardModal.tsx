@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { hustleName, kejadianEffect, kejadianName } from '../../i18n/gameData.js'
 import { Badge, Card, Modal } from '../ui/index.js'
 import { formatRupiah, useGame } from '../../store/gameStore.js'
+import { isRollAnimating, useRollAnim } from '../../store/rollAnimation.js'
 
 const HUSTLE = new Map(HUSTLE_CARDS.map((c) => [c.id, c]))
 
@@ -12,14 +13,18 @@ export function CardModal() {
   const card = useGame((s) => s.lastCard)
   const dismiss = useGame((s) => s.dismissCard)
   const state = useGame((s) => s.state)
+  // A card arrives in the same broadcast as the roll, but it shouldn't flip open
+  // until the token has actually walked onto the tile that drew it.
+  const animating = useRollAnim((s) => isRollAnimating(s.phase))
+  const visible = card != null && !animating
 
   useEffect(() => {
-    if (!card) return
+    if (!visible) return
     const timer = setTimeout(dismiss, 4000)
     return () => clearTimeout(timer)
-  }, [card, dismiss])
+  }, [visible, dismiss])
 
-  if (!card) return null
+  if (!card || !visible) return null
   const player = state?.players.find((p) => p.id === card.playerId)
   const isHustle = card.type === 'hustle'
   const name = isHustle ? hustleName(t, card.cardId) : kejadianName(t, card.cardId)

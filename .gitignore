@@ -38,3 +38,6 @@ appendonlydir/
 # misc
 coverage/
 .cache/
+
+# claude code agent worktrees
+.claude/worktrees/

@@ -1,11 +1,50 @@
 import { BOARD, type GameState, type TileId } from '@tuan-tanah/shared'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { isRollAnimating, useRollAnim } from '../../store/rollAnimation.js'
 import { DiceRoller } from '../DiceRoller/DiceRoller.js'
+import { FloatUp } from '../ui/FloatUp.js'
 import { EDGE_TRACK, gridPos, innerSide } from './geometry.js'
 import { OwnerPips, Tile } from './Tile.js'
 import { TokenLayer } from './Tokens.js'
+
+/**
+ * Flashes the newest log entry in the middle of the board — it rises and fades
+ * so play has a glanceable "what just happened" without watching the side log.
+ */
+function CenterLog({ log }: { log: GameState['log'] }) {
+  const last = log[log.length - 1]
+  const prevId = useRef(last?.id)
+  const [item, setItem] = useState<GameState['log'][number] | null>(null)
+
+  useEffect(() => {
+    if (!last || last.id === prevId.current) return
+    prevId.current = last.id
+    setItem(last)
+    const timer = setTimeout(() => setItem((x) => (x?.id === last.id ? null : x)), 2400)
+    return () => clearTimeout(timer)
+  }, [last])
+
+  return (
+    <div className="pointer-events-none absolute inset-x-[1.2cqw] bottom-[1.2cqw] flex justify-center">
+      <FloatUp id={item?.id ?? null} rise={14}>
+        <span className="line-clamp-2 max-w-[90%] rounded-lg border-2 border-ink bg-surface px-[1.2cqw] py-[0.4cqw] text-center text-[1.1cqw] font-bold text-ink shadow-brutal-xs">
+          {item?.message}
+        </span>
+      </FloatUp>
+    </div>
+  )
+}
+
+// The board is a square CSS container (`container-type: inline-size`), so every in-cell
+// dimension — font, padding, header band, icon, gap — is expressed in `cqw`
+// (1cqw = 1% of the board's width) rather than fixed px. That keeps the whole
+// board proportional at any screen size: the grid lays out natively (square,
+// even, crisp) while its contents scale with it. The cqw values are calibrated
+// so the board matches its original look at ~1000px wide (1cqw ≈ 10px) and
+// shrinks uniformly below that. Text that no longer fits truncates via
+// line-clamp. Keep this calibration in mind when tweaking any in-board size.
 
 // Wider outer ring tracks give the playable tiles depth (see geometry.ts).
 const GRID_TEMPLATE = `${EDGE_TRACK}fr repeat(9, 1fr) ${EDGE_TRACK}fr`
@@ -40,10 +79,13 @@ export function Board({
   const animating = useRollAnim((s) => isRollAnimating(s.phase))
 
   return (
-    <div className="aspect-square w-full max-w-[min(90vh,1024px)]">
+    <div
+      style={{ containerType: 'inline-size' }}
+      className="aspect-square w-full max-w-[min(90vh,1024px)]"
+    >
       <div
         style={{ gridTemplateColumns: GRID_TEMPLATE, gridTemplateRows: GRID_TEMPLATE }}
-        className="relative grid h-full w-full gap-[3px] rounded-xl border-2 border-ink bg-surface-sunken p-1 shadow-brutal"
+        className="relative grid h-full w-full gap-[0.3cqw] rounded-xl border-2 border-ink bg-surface-sunken p-[0.4cqw] shadow-brutal"
       >
         {BOARD.map((def) => {
           const { row, col } = gridPos(def.id)
@@ -96,24 +138,24 @@ export function Board({
         {/* Center area */}
         <div
           style={{ gridRow: '2 / 11', gridColumn: '2 / 11' }}
-          className="relative flex flex-col items-center justify-center gap-4 overflow-hidden rounded-lg bg-paper text-center"
+          className="relative flex flex-col items-center justify-center gap-[1.6cqw] overflow-hidden rounded-lg bg-paper text-center"
         >
           {/* Faint rotated brand watermark for depth. */}
-          <span className="pointer-events-none absolute select-none whitespace-nowrap font-display text-[5.5rem] uppercase leading-none tracking-tighter text-ink/[0.045] -rotate-[18deg]">
+          <span className="pointer-events-none absolute select-none whitespace-nowrap font-display text-[8.8cqw] uppercase leading-none tracking-tighter text-ink/[0.045] -rotate-[18deg]">
             {t('board.title')}
           </span>
 
           <div className="relative flex flex-col items-center">
-            <div className="font-display text-4xl uppercase tracking-tight text-ink">
+            <div className="font-display text-[3.6cqw] uppercase tracking-tight text-ink">
               {t('board.title')}
             </div>
-            <div className="mt-1.5 h-1.5 w-16 rounded-full border border-ink bg-accent" />
-            <div className="mt-2 inline-flex items-center rounded-full border-2 border-ink bg-surface px-3 py-0.5 text-xs font-bold uppercase tracking-wide text-ink shadow-brutal-xs">
+            <div className="mt-[0.6cqw] h-[0.6cqw] w-[6.4cqw] rounded-full border border-ink bg-accent" />
+            <div className="mt-[0.8cqw] inline-flex items-center rounded-full border-2 border-ink bg-surface px-[1.2cqw] py-[0.2cqw] text-[1.2cqw] font-bold uppercase tracking-wide text-ink shadow-brutal-xs">
               {t('board.round', { round: state.round })}
             </div>
           </div>
 
-          <div className="flex min-h-[4rem] items-center justify-center">
+          <div className="flex min-h-[6.4cqw] items-center justify-center">
             <DiceRoller state={state} />
           </div>
 
@@ -125,10 +167,10 @@ export function Board({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -6, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="relative inline-flex items-center gap-2 rounded-full border-2 border-ink bg-surface px-3 py-1 text-sm shadow-brutal-sm"
+                className="relative inline-flex items-center gap-[0.8cqw] rounded-full border-2 border-ink bg-surface px-[1.2cqw] py-[0.4cqw] text-[1.4cqw] shadow-brutal-sm"
               >
                 <span
-                  className="h-3 w-3 rounded-full border-2 border-ink"
+                  className="h-[1.2cqw] w-[1.2cqw] rounded-full border-2 border-ink"
                   style={{ background: current.color }}
                 />
                 <span>
@@ -140,6 +182,8 @@ export function Board({
               </motion.div>
             </AnimatePresence>
           )}
+
+          <CenterLog log={state.log} />
         </div>
       </div>
     </div>

@@ -44,14 +44,14 @@ export function DiceRoller({ state }: { state: GameState }) {
   const faces = rolling ? tumble : finalDice
   if (!faces) {
     return (
-      <div className="flex gap-2.5">
+      <div className="flex gap-[1cqw]">
         <DieFace value={1} rolling={false} idle />
         <DieFace value={1} rolling={false} idle />
       </div>
     )
   }
   return (
-    <div className="flex gap-2.5">
+    <div className="flex gap-[1cqw]">
       <DieFace value={faces[0]} rolling={rolling} />
       <DieFace value={faces[1]} rolling={rolling} />
     </div>
@@ -70,7 +70,7 @@ function DieFace({ value, rolling, idle }: { value: number; rolling: boolean; id
           ? { duration: 0.26, repeat: Infinity, ease: 'easeInOut' }
           : { duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }
       }
-      className={`grid h-16 w-16 grid-cols-3 grid-rows-3 gap-1 rounded-2xl border-2 border-ink bg-surface p-2.5 ${
+      className={`grid h-[6.4cqw] w-[6.4cqw] grid-cols-3 grid-rows-3 gap-[0.4cqw] rounded-2xl border-2 border-ink bg-surface p-[1cqw] ${
         idle ? 'opacity-40 shadow-brutal-sm' : 'shadow-brutal'
       }`}
     >

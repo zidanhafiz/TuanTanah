@@ -166,19 +166,26 @@ export function Game() {
                       {pending !== null ? t('game.skipEndTurn') : t('game.endTurn')}
                     </Button>
                   )}
-                  {!turn.usedMetaAction && (
+                  {!turn.usedMetaAction && !rolling && (
                     <MetaActionBar
                       turn={turn}
                       pendingAction={pendingMeta?.action ?? null}
                       onPick={handlePickMeta}
                     />
                   )}
-                  {me && <AbilityBar me={me} onUse={useAbility} />}
-                  <Tooltip content={t('game.pinjolDesc')} className="w-full">
-                    <Button variant="secondary" size="sm" block onClick={() => setShowPinjol(true)}>
-                      {t('game.pinjol')}
-                    </Button>
-                  </Tooltip>
+                  {me && !rolling && <AbilityBar me={me} onUse={useAbility} />}
+                  {!rolling && (
+                    <Tooltip content={t('game.pinjolDesc')} className="w-full">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        block
+                        onClick={() => setShowPinjol(true)}
+                      >
+                        {t('game.pinjol')}
+                      </Button>
+                    </Tooltip>
+                  )}
                   {pendingMeta && (
                     <Card
                       tone="info"
@@ -215,7 +222,7 @@ export function Game() {
                   …
                 </Card>
               )}
-              {me && !me.isEliminated && (
+              {me && !me.isEliminated && !rolling && (
                 <Tooltip content={t('game.negotiateDesc')} className="w-full">
                   <Button
                     variant="secondary"

@@ -185,6 +185,7 @@ export const BOARD: TileDef[] = [
 export const BOARD_SIZE = BOARD.length // 40
 export const GO_TILE_ID = 0
 export const JAIL_TILE_ID = 10 // where you sit while in jail (Visiting Penjara)
+export const JAIL_GO_TILE_ID = BOARD.find((t) => t.type === 'jail_go')!.id // go-to-jail corner (Masuk Penjara)
 
 export const TRANSPORT_TILE_IDS: TileId[] = BOARD.filter((t) => t.type === 'transport').map(
   (t) => t.id,

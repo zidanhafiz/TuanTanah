@@ -10,7 +10,7 @@ import type { TFunction } from 'i18next'
 import { tileName } from '../../i18n/gameData.js'
 import { compactRupiah } from '../../lib/format.js'
 import type { Side } from './geometry.js'
-import { DevPip, TileGlyph, TYPE_COLOR } from './icons.js'
+import { DevGlyph, TileGlyph, TYPE_COLOR } from './icons.js'
 
 /**
  * One board cell. Properties show a colored region header band + name + price;
@@ -45,51 +45,57 @@ export function Tile({
   return (
     <div
       onClick={onSelect ? () => onSelect(def.id) : undefined}
-      className={`relative flex h-full w-full flex-col overflow-hidden rounded-md border border-ink bg-surface text-[11px] leading-tight transition-all ${
+      className={`relative flex h-full w-full flex-col overflow-hidden rounded-md border border-ink bg-surface text-[1.1cqw] leading-tight transition-all duration-200 ease-out ${
         isPending
           ? 'z-10 ring-2 ring-accent-strong shadow-brutal'
           : isCurrent
             ? 'z-10 ring-2 ring-info shadow-brutal-sm'
             : ''
-      } ${selectable ? 'cursor-pointer hover:z-10 hover:ring-2 hover:ring-info hover:shadow-brutal-sm' : ''}`}
+      } ${selectable ? 'cursor-pointer hover:z-10 hover:-translate-x-px hover:-translate-y-px hover:ring-2 hover:ring-info hover:shadow-brutal' : ''}`}
     >
-      <div className="flex h-full flex-col p-1.5">
+      <div className="flex h-full flex-col p-[0.6cqw]">
         {/* Colored header band — region color for property, type color otherwise. */}
-        <div className="-mx-1.5 -mt-1.5 h-2.5" style={{ background: stripColor }} />
+        <div className="-mx-[0.6cqw] -mt-[0.6cqw] h-[1cqw]" style={{ background: stripColor }} />
 
-        <div className="flex flex-1 flex-col items-center justify-center gap-1 px-0.5 text-center">
-          {hasIcon && <TileGlyph def={def} className="h-5 w-5 text-ink" />}
-          <span
-            className={`line-clamp-2 text-ink ${
-              hasIcon
-                ? 'text-[9px] font-bold uppercase tracking-tight'
-                : 'text-[10px] font-semibold'
-            }`}
-          >
+        {hasIcon ? (
+          /* Icon tiles (transport, GO, tax, jail, …): glyph + label, centered. */
+          <div className="flex flex-1 flex-col items-center justify-center gap-[0.4cqw] px-[0.2cqw] text-center">
+            <TileGlyph def={def} className="h-[2.4cqw] w-[2.4cqw] text-ink" />
+            <span className="line-clamp-2 text-[1cqw] font-extrabold uppercase leading-tight tracking-tight text-ink">
+              {name}
+            </span>
+          </div>
+        ) : (
+          /* Region (property) tiles: the location name sits right up at the top. */
+          <span className="mt-[0.2cqw] line-clamp-3 px-[0.2cqw] text-center text-[1.2cqw] font-extrabold leading-tight text-ink">
             {name}
           </span>
-          {isBuyable && price !== null && (
-            <span className="text-[10px] font-bold text-ink-muted">{compactRupiah(price)}</span>
-          )}
-          {def.type === 'tax' && def.taxAmount != null && (
-            <span className="text-[10px] font-bold text-danger-strong">
-              {compactRupiah(def.taxAmount)}
-            </span>
-          )}
-        </div>
+        )}
+
+        {/* Price sits close to the bottom edge — and disappears once the tile is owned. */}
+        {isBuyable && price !== null && !owner && (
+          <span className="mt-auto w-full pt-[0.2cqw] text-center text-[1.1cqw] font-bold text-ink-muted">
+            {compactRupiah(price)}
+          </span>
+        )}
+        {def.type === 'tax' && def.taxAmount != null && (
+          <span className="mt-auto w-full pt-[0.2cqw] text-center text-[1.1cqw] font-bold text-danger-strong">
+            {compactRupiah(def.taxAmount)}
+          </span>
+        )}
       </div>
 
       {/* Owner color band pinned to the bottom edge. */}
-      {owner && <div className="h-2" style={{ background: owner.color }} />}
+      {owner && <div className="h-[0.8cqw]" style={{ background: owner.color }} />}
     </div>
   )
 }
 
 const SIDE_POS: Record<Side, string> = {
-  top: 'bottom-full left-1/2 -translate-x-1/2 mb-1 flex-row',
-  bottom: 'top-full left-1/2 -translate-x-1/2 mt-1 flex-row',
-  left: 'right-full top-1/2 -translate-y-1/2 mr-1 flex-col',
-  right: 'left-full top-1/2 -translate-y-1/2 ml-1 flex-col',
+  top: 'bottom-full left-1/2 -translate-x-1/2 mb-[0.4cqw] flex-row',
+  bottom: 'top-full left-1/2 -translate-x-1/2 mt-[0.4cqw] flex-row',
+  left: 'right-full top-1/2 -translate-y-1/2 mr-[0.4cqw] flex-col',
+  right: 'left-full top-1/2 -translate-y-1/2 ml-[0.4cqw] flex-col',
 }
 
 /**
@@ -107,20 +113,19 @@ export function OwnerPips({
   side: Side
 }) {
   const tier = tile?.tier ?? 0
+  const track = tile?.track ?? null
   return (
     <div
       className={`absolute z-20 flex items-center ${SIDE_POS[side]}`}
       title={tier > 0 ? `${owner.name} · T${tier}` : owner.name}
     >
-      {tier <= 0 ? (
+      {tier <= 0 || !track ? (
         <span
-          className="h-3 w-3 rounded-full border border-ink"
+          className="h-[1.4cqw] w-[1.4cqw] rounded-full border border-ink"
           style={{ background: owner.color }}
         />
       ) : (
-        Array.from({ length: tier }, (_, i) => (
-          <DevPip key={i} track={tile?.track ?? null} color={owner.color} />
-        ))
+        <DevGlyph track={track} tier={tier} color={owner.color} />
       )}
     </div>
   )

@@ -65,7 +65,7 @@ export function innerSide(id: TileId): Side {
  */
 export function tokenOffset(seatIndex: number, total: number): { dx: number; dy: number } {
   if (total <= 1) return { dx: 0, dy: 0 }
-  const r = 1.7
+  const r = 2.2
   const ang = (seatIndex / total) * Math.PI * 2
   return { dx: Math.cos(ang) * r, dy: Math.sin(ang) * r }
 }
