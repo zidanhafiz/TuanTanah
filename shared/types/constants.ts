@@ -433,6 +433,7 @@ export const SABOTAGE_DURATION_ROUNDS = 2
 
 // Role abilities.
 export const INVESTOR_RENT_CUT_RATE = 0.05 // Investor skims 5% of rent paid between others
+export const SALES_DEAL_BONUS_RATE = 0.15 // Sales earns 15% bank bonus on deals it initiates
 export const INFLUENCER_BOOST_MULTIPLIER = 3 // viral boost passive multiplier
 export const INFLUENCER_BOOST_ROUNDS = 3 // viral boost duration
 

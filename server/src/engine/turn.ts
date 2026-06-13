@@ -32,8 +32,30 @@ export function collectPassiveIncome(state: GameState, player: Player): RupiahAm
       `${player.name} collected Rp ${total.toLocaleString('id-ID')} passive income`,
       player.id,
     )
+    payRevenueShares(state, player, total)
   }
   return total
+}
+
+/**
+ * Redirect a cut of `player`'s passive income to any beneficiaries of an active
+ * revenue-share deal (from an accepted negotiation). Mutates state.
+ */
+function payRevenueShares(state: GameState, player: Player, income: RupiahAmount): void {
+  for (const effect of state.activeEffects) {
+    if (effect.type !== 'revenue_share' || effect.targetPlayerId !== player.id) continue
+    const beneficiary = state.players.find((p) => p.id === effect.beneficiaryPlayerId)
+    if (!beneficiary || beneficiary.isEliminated) continue
+    const cut = Math.round(income * (effect.multiplier ?? 0))
+    if (cut <= 0) continue
+    player.cash -= cut
+    beneficiary.cash += cut
+    pushLog(
+      state,
+      `${player.name} shared Rp ${cut.toLocaleString('id-ID')} of passive income with ${beneficiary.name}`,
+      player.id,
+    )
+  }
 }
 
 function resetTurnState(state: GameState): void {

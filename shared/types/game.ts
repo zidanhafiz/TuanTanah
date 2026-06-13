@@ -42,6 +42,8 @@ export type EffectType =
   | 'passive_halved'
   | 'lobby_block'
   | 'turn_skip'
+  | 'rent_immunity' // a deal: targetPlayerId pays no rent on targetTileIds
+  | 'revenue_share' // a deal: targetPlayerId shares `multiplier` of passive income with beneficiaryPlayerId
 
 export interface PinjolLoan {
   id: string
@@ -91,6 +93,7 @@ export interface ActiveEffect {
   type: EffectType
   targetTileIds?: TileId[]
   targetPlayerId?: string
+  beneficiaryPlayerId?: string // revenue_share recipient
   multiplier?: number
   roundsRemaining: number
   sourceCard: string
@@ -148,6 +151,8 @@ export interface GameState {
   pendingVote?: PendingVote | null
   // Unpayable charges awaiting resolution; while non-empty the game is paused.
   pendingDebts: PendingDebt[]
+  // Outstanding negotiation offers awaiting the target's accept/reject.
+  pendingDeals: NegotiationDeal[]
   bank: RupiahAmount
   settings: RoomSettings
   log: LogEntry[]
@@ -176,5 +181,7 @@ export interface NegotiationDeal {
   cashAmount?: RupiahAmount
   rounds?: number
   sharePercent?: number
+  // revenue_share only: whose passive income is shared with the other party.
+  shareFrom?: 'proposer' | 'target'
   status: 'pending' | 'accepted' | 'rejected'
 }

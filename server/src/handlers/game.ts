@@ -4,7 +4,9 @@ import {
   buyProperty,
   endTurn,
   payJail,
+  proposeDeal,
   resolveDebt,
+  respondToDeal,
   rollDice,
   sellProperty,
   takeLoan,
@@ -159,9 +161,29 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
     }),
   )
 
+  socket.on('propose_deal', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      const deal = await mutateRoom(store, roomId, (state) =>
+        proposeDeal(state, playerId, payload.deal),
+      )
+      await broadcastState(io, store, roomId)
+      io.to(roomId).emit('deal_proposed', { deal })
+    }),
+  )
+
+  socket.on('respond_deal', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      await mutateRoom(store, roomId, (state) =>
+        respondToDeal(state, playerId, payload.dealId, payload.accept),
+      )
+      await broadcastState(io, store, roomId)
+      await concludeIfWon(io, store, roomId)
+    }),
+  )
+
   // ---- Not yet implemented (later milestones) ----
   const notImplemented = () => socket.emit('error', { message: NOT_IMPLEMENTED })
   socket.on('upgrade_property', notImplemented)
-  socket.on('propose_deal', notImplemented)
-  socket.on('respond_deal', notImplemented)
 }

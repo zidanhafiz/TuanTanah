@@ -5,6 +5,7 @@ import {
   type FinalStanding,
   type GameState,
   type MetaActionType,
+  type NegotiationDeal,
   type Role,
   type RoomSettings,
   type RupiahAmount,
@@ -71,6 +72,7 @@ interface GameStore {
   joining: boolean
   lastCard: DrawnCard | null
   finalStandings: FinalStanding[] | null
+  incomingDeal: NegotiationDeal | null
 
   // derived
   me: () => GameState['players'][number] | null
@@ -92,6 +94,9 @@ interface GameStore {
   payJail: () => void
   castVote: (targetId: string) => void
   endTurn: () => void
+  proposeDeal: (deal: NegotiationDeal) => void
+  respondDeal: (dealId: string, accept: boolean) => void
+  dismissIncomingDeal: () => void
   clearError: () => void
   dismissCard: () => void
 }
@@ -105,6 +110,7 @@ export const useGame = create<GameStore>((set, get) => ({
   joining: false,
   lastCard: null,
   finalStandings: null,
+  incomingDeal: null,
 
   me: () => {
     const { state, playerId } = get()
@@ -146,6 +152,10 @@ export const useGame = create<GameStore>((set, get) => ({
       })
     })
     socket.on('game_over', ({ finalStandings }) => set({ finalStandings }))
+    socket.on('deal_proposed', ({ deal }) => {
+      // Only the target needs to respond; ignore offers addressed to others.
+      if (deal.toPlayerId === get().playerId) set({ incomingDeal: deal })
+    })
 
     // autoConnect may have already fired 'connect' before this listener was registered.
     if (socket.connected) attemptRejoin()
@@ -176,6 +186,9 @@ export const useGame = create<GameStore>((set, get) => ({
   payJail: () => socket.emit('pay_jail'),
   castVote: (targetId) => socket.emit('cast_vote', { targetId }),
   endTurn: () => socket.emit('end_turn'),
+  proposeDeal: (deal) => socket.emit('propose_deal', { deal }),
+  respondDeal: (dealId, accept) => socket.emit('respond_deal', { dealId, accept }),
+  dismissIncomingDeal: () => set({ incomingDeal: null }),
   clearError: () => set({ error: null }),
   dismissCard: () => set({ lastCard: null }),
 }))

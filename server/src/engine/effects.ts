@@ -44,6 +44,19 @@ export function applyPassiveMultiplier(base: number, playerId: string, state: Ga
 }
 
 /**
+ * Whether `payerId` holds rent immunity on `tileId` (from an accepted rent-immunity
+ * deal). While active, landing on that tile costs the payer no rent.
+ */
+export function hasRentImmunity(state: GameState, payerId: string, tileId: TileId): boolean {
+  return state.activeEffects.some(
+    (e) =>
+      e.type === 'rent_immunity' &&
+      e.targetPlayerId === payerId &&
+      e.targetTileIds?.includes(tileId),
+  )
+}
+
+/**
  * A tile's effective tier after any `tier_drop` effects (e.g. Banjir Jakarta),
  * clamped to >= 0. Used for both rent and passive-income valuation.
  */

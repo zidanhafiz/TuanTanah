@@ -38,7 +38,7 @@ import type {
 import { getTileDef, ownsFullRegion, transportOwnedCount } from './board.js'
 import { drawHustle, drawKejadian } from './cards.js'
 import { charge, settleIfAble, tileValue } from './elimination.js'
-import { applyRentEffects, effectiveTier } from './effects.js'
+import { applyRentEffects, effectiveTier, hasRentImmunity } from './effects.js'
 import { buyPriceMultiplier, isTaxImmune, salaryFor } from './roles.js'
 import { advanceTurn, startTurn } from './turn.js'
 import { defaultRng, pushLog, shuffle, uid, type Rng } from './util.js'
@@ -74,6 +74,7 @@ export function createGameState(roomId: string, now: number): GameState {
     hustleDeck: [],
     pendingKejadianBlock: false,
     pendingDebts: [],
+    pendingDeals: [],
     bank: BANK_STARTING,
     settings: {
       winCondition: 'both',
@@ -324,7 +325,7 @@ function resolveTile(
         pushLog(state, `${player.name} landed on ${def.name} (unowned)`, player.id)
       } else if (tile.ownerId !== player.id) {
         const rent = computeRent(state, player.position)
-        payRent(state, player, tile.ownerId, rent)
+        payRent(state, player, tile.ownerId, rent, player.position)
       } else {
         pushLog(state, `${player.name} landed on their own ${def.name}`, player.id)
       }
@@ -369,13 +370,24 @@ export function sendToJail(state: GameState, player: Player): void {
   pushLog(state, `${player.name} was sent to jail`, player.id)
 }
 
-function payRent(state: GameState, payer: Player, ownerId: string, amount: RupiahAmount): void {
+function payRent(
+  state: GameState,
+  payer: Player,
+  ownerId: string,
+  amount: RupiahAmount,
+  tileId: TileId,
+): void {
   const owner = state.players.find((p) => p.id === ownerId)
   if (!owner) return
+  // An accepted rent-immunity deal waives this rent entirely (no charge, no Investor cut).
+  if (hasRentImmunity(state, payer.id, tileId)) {
+    pushLog(state, `${payer.name} is immune from rent on ${getTileDef(tileId).name}`, payer.id)
+    return
+  }
+
   // `charge` pays immediately if affordable (and applies the Investor cut), or
   // opens a pending debt the payer must settle before play continues.
   charge(state, payer, amount, ownerId, 'rent', `rent to ${owner.name}`)
-  // TODO: immunity deals.
 }
 
 /** Rent owed when an opponent lands on a tile. */
@@ -482,4 +494,5 @@ export * from './board.js'
 export { collectPassiveIncome } from './turn.js'
 export { useAbility } from './abilities.js'
 export { takeLoan } from './pinjol.js'
+export { proposeDeal, respondToDeal } from './negotiation.js'
 export { finalStandings, playerWealth, resolveDebt, resolveGameOver } from './elimination.js'
