@@ -7,6 +7,7 @@ import type {
   Player,
   RupiahAmount,
   TileState,
+  WinReason,
 } from '@tuan-tanah/shared'
 import { getTileDef } from './board.js'
 import { EngineError, rupiah } from './index.js'
@@ -42,7 +43,6 @@ export function playerWealth(state: GameState, player: Player): RupiahAmount {
   return Math.round(wealth)
 }
 
-export type WinReason = 'time' | 'wealth' | 'last_standing'
 export interface WinResult {
   winnerId: string
   reason: WinReason
@@ -103,6 +103,7 @@ export function endGame(state: GameState, winnerId: string, reason: WinReason): 
   if (state.phase === 'ended') return
   state.phase = 'ended'
   state.winner = winnerId
+  state.winReason = reason
   const winner = state.players.find((p) => p.id === winnerId)
   const name = winner?.name ?? 'Someone'
   const why =

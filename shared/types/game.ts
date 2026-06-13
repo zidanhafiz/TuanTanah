@@ -108,6 +108,10 @@ export interface PendingVote {
 
 export type WinCondition = 'time' | 'wealth' | 'both'
 
+// How a finished game was actually decided (settings.winCondition is the
+// configured goal; this is the outcome that triggered the win).
+export type WinReason = 'time' | 'wealth' | 'last_standing'
+
 export interface RoomSettings {
   winCondition: WinCondition
   timeLimitMinutes?: 30 | 60 | 90 | 120
@@ -157,6 +161,7 @@ export interface GameState {
   settings: RoomSettings
   log: LogEntry[]
   winner?: string
+  winReason?: WinReason
   startedAt?: number
   createdAt: number
   updatedAt: number

@@ -5,6 +5,7 @@
 import { finalStandings, resolveGameOver } from '../engine/index.js'
 import { mutateRoom } from '../rooms.js'
 import type { GameStore } from '../store.js'
+import { persistGameResult } from '../supabase.js'
 import { broadcastState, type TTServer } from './common.js'
 
 // Per-room time-limit timers. Cleared when the game ends or is rescheduled.
@@ -23,7 +24,8 @@ export function clearRoomTimer(roomId: string): void {
  * broadcast the final state, and emit `game_over` with the standings.
  */
 export async function concludeIfWon(io: TTServer, store: GameStore, roomId: string): Promise<void> {
-  const ended = await mutateRoom(store, roomId, (state) => resolveGameOver(state, Date.now()))
+  const now = Date.now()
+  const ended = await mutateRoom(store, roomId, (state) => resolveGameOver(state, now))
   if (!ended) return
   clearRoomTimer(roomId)
   await broadcastState(io, store, roomId)
@@ -33,6 +35,8 @@ export async function concludeIfWon(io: TTServer, store: GameStore, roomId: stri
     winner: state.winner,
     finalStandings: finalStandings(state),
   })
+  // Fire-and-forget: archive completed-game stats (no-op unless Supabase is set).
+  await persistGameResult(state, now)
 }
 
 /**
