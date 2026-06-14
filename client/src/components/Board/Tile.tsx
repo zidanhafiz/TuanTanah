@@ -46,12 +46,8 @@ export function Tile({
     <div
       onClick={onSelect ? () => onSelect(def.id) : undefined}
       className={`relative flex h-full w-full flex-col overflow-hidden rounded-md border border-ink bg-surface text-[1.1cqw] leading-tight transition-all duration-200 ease-out ${
-        isPending
-          ? 'z-10 ring-2 ring-accent-strong shadow-brutal'
-          : isCurrent
-            ? 'z-10 ring-2 ring-info shadow-brutal-sm'
-            : ''
-      } ${selectable ? 'cursor-pointer hover:z-10 hover:-translate-x-px hover:-translate-y-px hover:ring-2 hover:ring-info hover:shadow-brutal' : ''}`}
+        isCurrent ? 'z-10 ring-2 ring-info shadow-brutal-sm' : isPending ? 'z-10 shadow-brutal' : ''
+      } ${selectable ? 'cursor-pointer hover:z-10 hover:-translate-x-px hover:-translate-y-px hover:shadow-brutal' : ''}`}
     >
       <div className="flex h-full flex-col p-[0.6cqw]">
         {/* Colored header band — region color for property, type color otherwise. */}

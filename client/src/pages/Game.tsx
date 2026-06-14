@@ -100,7 +100,7 @@ export function Game() {
   return (
     <div className="mx-auto flex max-w-[1400px] flex-col gap-4 p-4 lg:flex-row">
       {/* Board */}
-      <div className="flex flex-1 justify-center">
+      <div className="flex flex-1 items-start justify-center">
         <Board state={state} onSelectTile={handleTileClick} />
       </div>
 
