@@ -2,10 +2,13 @@ import {
   BOARD,
   HOUSE_TIERS,
   PROPERTY_TIERS,
+  REGION_SET_RENT_MULTIPLIER,
   REGIONS,
   SELL_REFUND_RATE,
   TRANSPORT_BUY_PRICE,
+  TRANSPORT_RENT,
   type PropertyTrack,
+  type RegionDef,
   type RupiahAmount,
   type TileId,
   type TileState,
@@ -130,7 +133,7 @@ export function PropertyModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={tileName(t, tileId)} size="sm">
+    <Modal open={open} onClose={onClose} title={tileName(t, tileId)} size="lg">
       {/* Region accent + subtitle */}
       {region && (
         <div
@@ -178,6 +181,76 @@ export function PropertyModal({
         </Card>
       ) : (
         <div className="mt-4 text-sm text-ink-muted">{t('property.cantOwn')}</div>
+      )}
+
+      {isProperty && region && (
+        <div className="mt-4">
+          <div className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-muted">
+            {t('property.rentSchedule')}
+          </div>
+          <Card flat tone="sunken" className="max-h-80 overflow-y-auto p-1">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="text-[11px] font-bold uppercase tracking-wide text-ink-faint">
+                  <th className="px-2 py-1.5 text-left">{t('property.levelCol')}</th>
+                  <th className="px-2 py-1.5 text-right">{t('property.rentCol')}</th>
+                  <th className="px-2 py-1.5 text-right">{t('property.buildCol')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <ScheduleRow
+                  name={t('property.landOnly')}
+                  rent={formatRupiah(region.rentBase)}
+                  cost="—"
+                  current={tile.tier === 0}
+                />
+                {(tile.track ? [tile.track] : (['house', 'property'] as const)).map((track) => (
+                  <TrackSection
+                    key={track}
+                    region={region}
+                    track={track}
+                    currentTrack={tile.track}
+                    currentTier={tile.tier}
+                    t={t}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </Card>
+          <div className="mt-1.5 px-1 text-[11px] text-ink-muted">
+            {t('property.regionBonus', { mult: REGION_SET_RENT_MULTIPLIER, region: region.name })}
+          </div>
+        </div>
+      )}
+
+      {def.type === 'transport' && (
+        <div className="mt-4">
+          <div className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-muted">
+            {t('property.rentSchedule')}
+          </div>
+          <Card flat tone="sunken" className="p-1">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="text-[11px] font-bold uppercase tracking-wide text-ink-faint">
+                  <th className="px-2 py-1.5 text-left">{t('property.transportsOwned')}</th>
+                  <th className="px-2 py-1.5 text-right">{t('property.rentCol')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(TRANSPORT_RENT).map(([count, rent]) => (
+                  <tr key={count} className="text-ink-muted">
+                    <td className="px-2 py-1.5">
+                      {t('property.transportCount', { count: Number(count) })}
+                    </td>
+                    <td className="px-2 py-1.5 text-right font-semibold tabular-nums text-ink">
+                      {formatRupiah(rent)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </div>
       )}
 
       {canUpgrade && (
@@ -275,6 +348,65 @@ export function PropertyModal({
         {t('property.close')}
       </Button>
     </Modal>
+  )
+}
+
+/** A track sub-header row plus its per-tier rent/build-cost rows. */
+function TrackSection({
+  region,
+  track,
+  currentTrack,
+  currentTier,
+  t,
+}: {
+  region: RegionDef
+  track: PropertyTrack
+  currentTrack: PropertyTrack | null
+  currentTier: number
+  t: TFunc
+}) {
+  const tiers = track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
+  return (
+    <>
+      <tr>
+        <td
+          colSpan={3}
+          className="px-2 pb-0.5 pt-2.5 text-[11px] font-bold uppercase tracking-wide text-ink-faint"
+        >
+          {track === 'house' ? t('property.house') : t('property.property')}
+        </td>
+      </tr>
+      {tiers.map((td) => (
+        <ScheduleRow
+          key={td.tier}
+          name={tierName(t, track, td.tier)}
+          rent={formatRupiah(Math.round(region.rentBase * td.rentMult))}
+          cost={formatRupiah(Math.round(region.buyPrice * td.buildCostMult))}
+          current={currentTrack === track && currentTier === td.tier}
+        />
+      ))}
+    </>
+  )
+}
+
+/** One row of the development schedule: level name, rent earned, build cost. */
+function ScheduleRow({
+  name,
+  rent,
+  cost,
+  current,
+}: {
+  name: string
+  rent: string
+  cost: string
+  current?: boolean
+}) {
+  return (
+    <tr className={current ? 'bg-accent-soft font-semibold text-ink' : 'text-ink-muted'}>
+      <td className="px-2 py-1.5">{name}</td>
+      <td className="px-2 py-1.5 text-right font-semibold tabular-nums text-ink">{rent}</td>
+      <td className="px-2 py-1.5 text-right tabular-nums">{cost}</td>
+    </tr>
   )
 }
 
