@@ -1,5 +1,6 @@
 import {
   BOARD,
+  META_ACTIONS_PER_LAP,
   REGIONS,
   TRANSPORT_BUY_PRICE,
   type FinalStanding,
@@ -17,6 +18,7 @@ import { MetaActionBar, type MetaActionDef } from '../components/MetaActionBar/M
 import { NegotiationModal } from '../components/NegotiationModal/NegotiationModal.js'
 import { PinjolModal } from '../components/PinjolModal/PinjolModal.js'
 import { PlayerPanel } from '../components/PlayerPanel/PlayerPanel.js'
+import { PlayerStatus } from '../components/PlayerStatus/PlayerStatus.js'
 import { PropertyModal } from '../components/PropertyModal/PropertyModal.js'
 import { LeaveButton } from '../components/RoomActions.js'
 import { SoundToggle } from '../components/SoundToggle.js'
@@ -54,11 +56,11 @@ export function Game() {
   // the buy button only appears once the token has arrived on its tile.
   const rolling = useRollAnim((s) => isRollAnimating(s.phase))
 
-  const usedMetaAction = state?.turn.usedMetaAction ?? false
+  const metaActionsLeft = META_ACTIONS_PER_LAP - (me?.metaActionsUsed.length ?? 0)
   // Clear any in-progress target selection when it's no longer actionable.
   useEffect(() => {
-    if (!isMyTurn || usedMetaAction) setPendingMeta(null)
-  }, [isMyTurn, usedMetaAction])
+    if (!isMyTurn || metaActionsLeft <= 0) setPendingMeta(null)
+  }, [isMyTurn, metaActionsLeft])
 
   if (!state) return null
 
@@ -166,9 +168,10 @@ export function Game() {
                       {pending !== null ? t('game.skipEndTurn') : t('game.endTurn')}
                     </Button>
                   )}
-                  {!turn.usedMetaAction && !rolling && (
+                  {metaActionsLeft > 0 && !rolling && me && (
                     <MetaActionBar
                       turn={turn}
+                      used={me.metaActionsUsed}
                       pendingAction={pendingMeta?.action ?? null}
                       onPick={handlePickMeta}
                     />
@@ -237,6 +240,10 @@ export function Game() {
             </div>
           )}
         </Card>
+
+        {me && !me.isEliminated && phase === 'playing' && (
+          <PlayerStatus onOpenProperty={(tileId) => setSelectedTile(tileId)} />
+        )}
 
         <PlayerPanel
           state={state}

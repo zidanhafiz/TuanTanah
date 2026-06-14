@@ -96,7 +96,7 @@ export function PlayerPanel({
                 {t('player.loans', {
                   count: p.loans.length,
                   owed: formatRupiah(p.loans.reduce((s, l) => s + l.amount, 0)),
-                  perRound: formatRupiah(p.loans.reduce((s, l) => s + l.interestPerRound, 0)),
+                  perRound: formatRupiah(p.loans.reduce((s, l) => s + l.interestPerLap, 0)),
                 })}
               </div>
             )}

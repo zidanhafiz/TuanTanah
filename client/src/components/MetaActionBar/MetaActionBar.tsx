@@ -1,4 +1,4 @@
-import type { MetaActionType, TurnState } from '@tuan-tanah/shared'
+import { META_ACTIONS_PER_LAP, type MetaActionType, type TurnState } from '@tuan-tanah/shared'
 import { useTranslation } from 'react-i18next'
 import { Button, Tooltip } from '../ui/index.js'
 
@@ -25,25 +25,30 @@ export const META_ACTIONS: MetaActionDef[] = [
 
 interface Props {
   turn: TurnState
+  // Meta actions already used this lap (resets when the player passes GO).
+  used: MetaActionType[]
   pendingAction: MetaActionType | null
   onPick: (def: MetaActionDef) => void
 }
 
-export function MetaActionBar({ turn, pendingAction, onPick }: Props) {
+export function MetaActionBar({ turn, used, pendingAction, onPick }: Props) {
   const { t } = useTranslation()
+  const remaining = META_ACTIONS_PER_LAP - used.length
   return (
     <div className="space-y-1.5 rounded-lg border-2 border-ink bg-surface-sunken p-2">
-      <div className="text-[10px] font-bold uppercase tracking-wide text-ink-muted">
-        {t('meta.title')}
+      <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wide text-ink-muted">
+        <span>{t('meta.title')}</span>
+        <span>{t('meta.remaining', { count: remaining })}</span>
       </div>
       <div className="grid grid-cols-2 gap-1.5">
         {META_ACTIONS.map((def) => {
-          const disabled = Boolean(def.needsUnrolled && turn.hasRolled)
+          const alreadyUsed = used.includes(def.action)
+          const disabled = Boolean(def.needsUnrolled && turn.hasRolled) || alreadyUsed
           const active = pendingAction === def.action
           return (
             <Tooltip
               key={def.action}
-              content={t(`meta.descriptions.${def.action}`)}
+              content={alreadyUsed ? t('meta.alreadyUsed') : t(`meta.descriptions.${def.action}`)}
               className="w-full"
             >
               <Button

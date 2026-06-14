@@ -1,6 +1,6 @@
 import { PINJOL_INTEREST_RATE, REGIONS } from '@tuan-tanah/shared'
 import { describe, expect, it } from 'vitest'
-import { EngineError } from '../src/engine/index.js'
+import { EngineError, repayPinjol } from '../src/engine/index.js'
 import {
   canTakeLoan,
   chargeInterest,
@@ -13,9 +13,10 @@ import { makeGame, own } from './helpers.js'
 const loan = (amount: number, lenderId: string | null = null) => ({
   id: `loan-${amount}`,
   amount,
-  interestPerRound: 0,
+  interestPerLap: 0,
   lenderId,
   roundBorrowed: 1,
+  interestPaid: 0,
 })
 
 describe('chargeInterest', () => {
@@ -102,7 +103,7 @@ describe('takeLoan', () => {
     expect(p.loans[0]).toMatchObject({
       amount: 5_000_000,
       lenderId: null,
-      interestPerRound: Math.round(5_000_000 * PINJOL_INTEREST_RATE),
+      interestPerLap: Math.round(5_000_000 * PINJOL_INTEREST_RATE),
     })
   })
 
@@ -141,5 +142,38 @@ describe('value helpers', () => {
     const p = players[0]!
     p.loans = [loan(2_000_000), loan(5_000_000)]
     expect(outstandingPrincipal(p)).toBe(7_000_000)
+  })
+})
+
+describe('repayPinjol', () => {
+  it('repays all loans, returning principal to the bank', () => {
+    const { state, players } = makeGame(2, { cash: 10_000_000 })
+    const p = players[0]!
+    state.currentPlayerIndex = 0
+    p.loans = [loan(2_000_000), loan(5_000_000)]
+    const bankBefore = state.bank
+    repayPinjol(state, p.id)
+    expect(p.loans).toHaveLength(0)
+    expect(p.cash).toBe(3_000_000)
+    expect(state.bank).toBe(bankBefore + 7_000_000)
+  })
+
+  it('repays a single loan by id and routes principal to a Rentenir lender', () => {
+    const { state, players } = makeGame(2, { cash: 10_000_000, roles: [null, 'rentenir'] })
+    const [borrower, rentenir] = [players[0]!, players[1]!]
+    state.currentPlayerIndex = 0
+    rentenir.cash = 0
+    borrower.loans = [loan(2_000_000), loan(5_000_000, rentenir.id)]
+    repayPinjol(state, borrower.id, borrower.loans[1]!.id)
+    expect(borrower.loans).toHaveLength(1)
+    expect(rentenir.cash).toBe(5_000_000)
+  })
+
+  it('rejects repaying more than the player can afford', () => {
+    const { state, players } = makeGame(2, { cash: 1_000_000 })
+    const p = players[0]!
+    state.currentPlayerIndex = 0
+    p.loans = [loan(5_000_000)]
+    expect(() => repayPinjol(state, p.id)).toThrow(EngineError)
   })
 })

@@ -111,7 +111,14 @@ describe('eliminate', () => {
     const p = players[0]!
     own(state, 1, p.id, { track: 'property', tier: 2 })
     p.loans = [
-      { id: 'l', amount: 2_000_000, interestPerRound: 0, lenderId: null, roundBorrowed: 1 },
+      {
+        id: 'l',
+        amount: 2_000_000,
+        interestPerLap: 0,
+        lenderId: null,
+        roundBorrowed: 1,
+        interestPaid: 0,
+      },
     ]
     addDebt(state, { debtorId: p.id, amount: 5_000_000 })
     const bankBefore = state.bank

@@ -69,7 +69,6 @@ export function createGameState(roomId: string, now: number): GameState {
       lastDice: null,
       rolledDoubles: false,
       pendingBuyTileId: null,
-      usedMetaAction: false,
       upgradesUsed: 0,
     },
     activeEffects: [],
@@ -85,6 +84,7 @@ export function createGameState(roomId: string, now: number): GameState {
       targetWealth: 100_000_000,
       startingCash: STARTING_CASH_DEFAULT,
       enabledRoles: [...ALL_ROLES],
+      requireFullRegionToBuild: true,
     },
     log: [],
     createdAt: now,
@@ -110,6 +110,8 @@ export function addPlayer(state: GameState, name: string): Player {
     isRoomMaster: state.players.length === 0,
     isConnected: true,
     usedAbility: false,
+    metaActionsUsed: [],
+    owesLapInterest: false,
   }
   state.players.push(player)
   pushLog(state, `${player.name} joined the room`, player.id)
@@ -183,6 +185,9 @@ export function updateSettings(
     for (const p of state.players) {
       if (p.role && !partial.enabledRoles.includes(p.role)) p.role = null
     }
+  }
+  if (partial.requireFullRegionToBuild !== undefined) {
+    next.requireFullRegionToBuild = Boolean(partial.requireFullRegionToBuild)
   }
   state.settings = next
 }
@@ -320,6 +325,10 @@ function movePlayer(
     player.cash += salary
     state.bank -= salary
     pushLog(state, `${player.name} passed GO (+${rupiah(salary)} salary)`, player.id)
+    // A new lap: refresh the meta-action allowance, and mark loan interest due
+    // (charged at the start of their next turn, off the movement/debt path).
+    player.metaActionsUsed = []
+    if (player.loans.length > 0) player.owesLapInterest = true
   }
   return resolveTile(state, player, rng)
 }
@@ -487,6 +496,11 @@ export function upgradeProperty(
   const isKontraktorBuild = !isOwn && player.role === 'kontraktor'
   if (!isOwn && !isKontraktorBuild) throw new EngineError("You don't own that tile")
 
+  // Optional room rule: the tile owner must own the whole region before building.
+  if (state.settings.requireFullRegionToBuild && !ownsFullRegion(state, tile.ownerId, def.region)) {
+    throw new EngineError('You must own the whole region before building here')
+  }
+
   // Per-turn upgrade cap; Pengusaha may build twice.
   const limit = player.role === 'pengusaha' ? 2 : 1
   if (state.turn.upgradesUsed >= limit) {
@@ -556,6 +570,64 @@ export function sellProperty(state: GameState, playerId: string, tileId: TileId)
   )
   // If this covered a pending debt, settle it (and advance off an eliminated turn).
   settleIfAble(state, playerId)
+}
+
+/**
+ * Downgrade an owned tile one tier, refunding SELL_REFUND_RATE of the current
+ * tier's build cost. Turn-only. Dropping to tier 0 unlocks the track (ownership
+ * of the bare land is kept). Mutates state; throws EngineError on invalid input.
+ */
+export function downgradeProperty(state: GameState, playerId: string, tileId: TileId): void {
+  const player = requireTurn(state, playerId)
+  const def = getTileDef(tileId)
+  if (def.type !== 'property' || !def.region) {
+    throw new EngineError('Only property tiles can be downgraded')
+  }
+  const tile = state.tiles[tileId]
+  if (!tile) throw new EngineError('Invalid tile')
+  if (tile.ownerId !== player.id) throw new EngineError("You don't own that tile")
+  if (tile.tier < 1) throw new EngineError('Nothing to downgrade')
+
+  const tiers = tile.track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
+  const tierDef = tiers[tile.tier - 1]!
+  const refund = Math.round(REGIONS[def.region].buyPrice * tierDef.buildCostMult * SELL_REFUND_RATE)
+  player.cash += refund
+  state.bank -= refund
+  tile.tier -= 1
+  if (tile.tier === 0) {
+    tile.track = null
+    tile.builderId = null
+  }
+  pushLog(
+    state,
+    `${player.name} downgraded ${def.name} from ${tierDef.name} for ${rupiah(refund)}`,
+    player.id,
+  )
+}
+
+/**
+ * Voluntarily repay pinjol principal on your turn — one loan by id, or every
+ * loan when `loanId` is omitted. The principal returns to the lending Rentenir
+ * (if still in the game) or the bank. Mutates state; throws if unaffordable.
+ */
+export function repayPinjol(state: GameState, playerId: string, loanId?: string): void {
+  const player = requireTurn(state, playerId)
+  if (player.loans.length === 0) throw new EngineError('You have no loans to repay')
+  const loans = loanId ? player.loans.filter((l) => l.id === loanId) : [...player.loans]
+  if (loans.length === 0) throw new EngineError('Loan not found')
+  const total = loans.reduce((sum, l) => sum + l.amount, 0)
+  if (player.cash < total) throw new EngineError('Not enough cash to repay')
+
+  for (const loan of loans) {
+    const lender = loan.lenderId
+      ? state.players.find((p) => p.id === loan.lenderId && !p.isEliminated)
+      : null
+    if (lender) lender.cash += loan.amount
+    else state.bank += loan.amount
+    player.cash -= loan.amount
+    player.loans = player.loans.filter((l) => l.id !== loan.id)
+  }
+  pushLog(state, `${player.name} repaid ${rupiah(total)} in pinjol`, player.id)
 }
 
 export function payJail(state: GameState, playerId: string): void {

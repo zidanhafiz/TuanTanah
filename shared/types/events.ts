@@ -54,9 +54,12 @@ export interface ClientToServerEvents {
   use_ability: (payload: { ability: AbilityType }) => void
   pay_jail: () => void
   take_pinjol: (payload: { amount: RupiahAmount; lenderId?: string }) => void
+  // Voluntarily repay a pinjol loan's principal. Omit `loanId` to repay all loans.
+  repay_pinjol: (payload: { loanId?: string }) => void
   propose_deal: (payload: { deal: NegotiationDeal }) => void
   respond_deal: (payload: { dealId: string; accept: boolean }) => void
   sell_property: (payload: { tileId: TileId }) => void
+  downgrade_property: (payload: { tileId: TileId }) => void
   resolve_debt: (payload: { giveUp: boolean }) => void
   cast_vote: (payload: { targetId: string }) => void
   end_turn: () => void

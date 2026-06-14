@@ -56,6 +56,9 @@
     "timeLimitValue": "{{count}}m",
     "targetWealth": "Target kekayaan",
     "enabledRoles": "Peran aktif",
+    "buildRules": "Aturan membangun",
+    "requireFullRegion": "Wajib miliki satu kawasan penuh untuk membangun",
+    "requireFullRegionHint": "Pemain harus memiliki semua petak dalam satu kawasan sebelum membangun rumah atau properti di sana.",
     "startGame": "Mulai permainan",
     "waitingForRoles": "Menunggu pemilihan peran…",
     "waitingForHost": "Menunggu host memulai…",
@@ -136,7 +139,7 @@
   },
   "pinjol": {
     "title": "🏦 Pinjol — Ambil pinjaman",
-    "terms": "Bunga 10%/ronde · maks {{maxLoans}} pinjaman · pinjam hingga {{limit}}",
+    "terms": "Bunga 10%/putaran · maks {{maxLoans}} pinjaman · pinjam hingga {{limit}}",
     "lender": "Pemberi pinjaman",
     "bank": "Bank",
     "notEnoughToLend": "Kas tidak cukup untuk meminjamkan",
@@ -149,7 +152,9 @@
     "cancel": "Batal"
   },
   "meta": {
-    "title": "Aksi meta (1 per giliran)",
+    "title": "Aksi meta",
+    "remaining": "sisa {{count}}",
+    "alreadyUsed": "Sudah dipakai putaran ini",
     "invest": "💰 Investasi",
     "work": "💼 Kerja",
     "hustle": "🎴 Hustle",
@@ -236,17 +241,30 @@
     "buildHouse": "Bangun Rumah ({{name}}) — {{cost}}",
     "buildProperty": "Bangun Properti ({{name}}) — {{cost}}",
     "upgradeTo": "Tingkatkan ke {{name}} — {{cost}}",
+    "needFullRegion": "Kamu harus memiliki seluruh kawasan sebelum membangun di sini.",
+    "downgrade": "Turunkan satu tingkat — pengembalian {{refund}}",
     "sellConfirm": "Jual {{name}} kembali ke bank seharga {{refund}}?",
     "confirmSell": "Konfirmasi jual",
     "sellBack": "Jual ke bank — {{refund}}",
     "close": "Tutup"
   },
+  "status": {
+    "title": "Status saya",
+    "myProperties": "Properti saya",
+    "noProperties": "Kamu belum memiliki properti.",
+    "unbuilt": "Belum dibangun",
+    "myLoans": "Pinjaman saya",
+    "loanMeta": "{{lender}} · {{perLap}}/putaran · {{paid}} dibayar",
+    "repay": "Lunasi",
+    "payOffAll": "Lunasi semua — {{amount}}",
+    "bank": "Bank"
+  },
   "player": {
     "players": "Pemain",
     "jail": "🔒 penjara",
     "offline": "offline",
-    "loans_one": "🏦 {{count}} pinjaman · {{owed}} terutang · {{perRound}}/ronde",
-    "loans_other": "🏦 {{count}} pinjaman · {{owed}} terutang · {{perRound}}/ronde"
+    "loans_one": "🏦 {{count}} pinjaman · {{owed}} terutang · {{perRound}}/putaran",
+    "loans_other": "🏦 {{count}} pinjaman · {{owed}} terutang · {{perRound}}/putaran"
   },
   "turnBanner": {
     "yourTurn": "Giliranmu!"

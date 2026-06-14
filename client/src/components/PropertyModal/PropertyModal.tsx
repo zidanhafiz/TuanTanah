@@ -73,6 +73,7 @@ export function PropertyModal({
   const isMyTurn = useGame((s) => s.isMyTurn)()
   const sell = useGame((s) => s.sell)
   const upgrade = useGame((s) => s.upgrade)
+  const downgrade = useGame((s) => s.downgrade)
   // Mounted per-tile (keyed in Game.tsx), so the confirm step starts fresh each open.
   const [confirming, setConfirming] = useState(false)
 
@@ -100,11 +101,31 @@ export function PropertyModal({
   const atMaxTier = tile.track
     ? tile.tier >= (tile.track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS).length
     : false
-  const canUpgrade =
-    isProperty && isMyTurn && upgradesLeft && !atMaxTier && (ownsTile || canKontraktorBuild)
+  // Optional room rule: the tile owner must own the whole region before building.
+  const needFullRegion =
+    state.settings.requireFullRegionToBuild &&
+    def.region != null &&
+    tile.ownerId != null &&
+    !REGIONS[def.region].tileIds.every((tid) => state.tiles[tid]?.ownerId === tile.ownerId)
+  const canBuildHere = isProperty && (ownsTile || canKontraktorBuild)
+  const canUpgrade = canBuildHere && isMyTurn && upgradesLeft && !atMaxTier && !needFullRegion
+
+  // Downgrade one tier on your own tile for a partial refund of that tier's build cost.
+  const currentTierMult =
+    tile.tier >= 1 && tile.track
+      ? ((tile.track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS)[tile.tier - 1]?.buildCostMult ?? 0)
+      : 0
+  const downgradeRefund = def.region
+    ? Math.round(REGIONS[def.region].buyPrice * currentTierMult * SELL_REFUND_RATE)
+    : 0
+  const canDowngrade = isProperty && isMyTurn && ownsTile && tile.tier >= 1
 
   const handleSell = () => {
     sell(tileId)
+    onClose()
+  }
+  const handleDowngrade = () => {
+    downgrade(tileId)
     onClose()
   }
 
@@ -210,6 +231,18 @@ export function PropertyModal({
             })()
           )}
         </div>
+      )}
+
+      {canBuildHere && needFullRegion && (
+        <Card flat tone="sunken" className="mt-4 px-3 py-2 text-center text-xs text-ink-muted">
+          {t('property.needFullRegion')}
+        </Card>
+      )}
+
+      {canDowngrade && (
+        <Button block variant="secondary" className="mt-3" onClick={handleDowngrade}>
+          {t('property.downgrade', { refund: formatRupiah(downgradeRefund) })}
+        </Button>
       )}
 
       {canSell &&

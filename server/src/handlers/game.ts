@@ -2,9 +2,11 @@ import type { GameState } from '@tuan-tanah/shared'
 import { castVote, performMetaAction } from '../engine/actions.js'
 import {
   buyProperty,
+  downgradeProperty,
   endTurn,
   payJail,
   proposeDeal,
+  repayPinjol,
   resolveDebt,
   respondToDeal,
   rollDice,
@@ -189,6 +191,22 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       await mutateRoom(store, roomId, (state) =>
         upgradeProperty(state, playerId, payload.tileId, payload.track),
       )
+      await broadcastState(io, store, roomId)
+    }),
+  )
+
+  socket.on('downgrade_property', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      await mutateRoom(store, roomId, (state) => downgradeProperty(state, playerId, payload.tileId))
+      await broadcastState(io, store, roomId)
+    }),
+  )
+
+  socket.on('repay_pinjol', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      await mutateRoom(store, roomId, (state) => repayPinjol(state, playerId, payload.loanId))
       await broadcastState(io, store, roomId)
     }),
   )

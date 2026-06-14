@@ -101,10 +101,12 @@ interface GameStore {
   roll: () => void
   buy: (tileId: TileId) => void
   upgrade: (tileId: TileId, track?: PropertyTrack) => void
+  downgrade: (tileId: TileId) => void
   sell: (tileId: TileId) => void
   metaAction: (action: MetaActionType, targetId?: string, tileId?: TileId) => void
   useAbility: (ability: AbilityType) => void
   takePinjol: (amount: RupiahAmount, lenderId?: string) => void
+  repayPinjol: (loanId?: string) => void
   resolveDebt: (giveUp: boolean) => void
   payJail: () => void
   castVote: (targetId: string) => void
@@ -244,6 +246,10 @@ export const useGame = create<GameStore>((set, get) => ({
     playSound('click', { volume: 0.5 })
     socket.emit('upgrade_property', { tileId, track })
   },
+  downgrade: (tileId) => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('downgrade_property', { tileId })
+  },
   sell: (tileId) => socket.emit('sell_property', { tileId }),
   metaAction: (action, targetId, tileId) => {
     playSound('click', { volume: 0.5 })
@@ -254,6 +260,10 @@ export const useGame = create<GameStore>((set, get) => ({
     socket.emit('use_ability', { ability })
   },
   takePinjol: (amount, lenderId) => socket.emit('take_pinjol', { amount, lenderId }),
+  repayPinjol: (loanId) => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('repay_pinjol', { loanId })
+  },
   resolveDebt: (giveUp) => socket.emit('resolve_debt', { giveUp }),
   payJail: () => {
     playSound('click', { volume: 0.5 })

@@ -1,5 +1,6 @@
 // Core game state types — mirrors the tech requirements doc (§6), with a few
 // additions needed to drive the UI (turn substate, event log, player colors).
+import type { MetaActionType } from './events.js'
 
 export type RupiahAmount = number // always in rupiah, e.g. 2_000_000 = Rp 2 juta
 export type TileId = number // 0–39
@@ -48,9 +49,10 @@ export type EffectType =
 export interface PinjolLoan {
   id: string
   amount: RupiahAmount // 2jt / 5jt / 10jt
-  interestPerRound: RupiahAmount
+  interestPerLap: RupiahAmount // charged each time the borrower passes GO (a lap)
   lenderId: string | null // null = bank, playerId = Rentenir
   roundBorrowed: number
+  interestPaid: RupiahAmount // running total of interest paid so far (history)
 }
 
 export interface Player {
@@ -67,6 +69,13 @@ export interface Player {
   isRoomMaster: boolean
   isConnected: boolean
   usedAbility: boolean // for once-per-game role abilities
+  // Distinct meta actions used in the current lap (since last passing GO). Capped
+  // at META_ACTIONS_PER_LAP, no repeats; reset when the player passes GO.
+  // Pinjol/Negosiasi are unlimited and not tracked here.
+  metaActionsUsed: MetaActionType[]
+  // Set when the player passes GO; pinjol interest is then charged once at the
+  // start of their next turn (keeps interest off the movement/debt path).
+  owesLapInterest: boolean
 }
 
 export interface TileState {
@@ -122,6 +131,8 @@ export interface RoomSettings {
   targetWealth?: RupiahAmount
   startingCash: RupiahAmount // Rp 5jt – Rp 50jt
   enabledRoles: Role[]
+  // When true, a player must own every tile in a region before building there.
+  requireFullRegionToBuild: boolean
 }
 
 // Per-turn substate, reset at the start of each player's turn.
@@ -131,8 +142,6 @@ export interface TurnState {
   rolledDoubles: boolean
   // An unowned property the current player just landed on and may buy.
   pendingBuyTileId: TileId | null
-  // One optional meta action per turn (turn structure step 5).
-  usedMetaAction: boolean
   // Tile upgrades built this turn (cap 1, or 2 for Pengusaha).
   upgradesUsed: number
 }

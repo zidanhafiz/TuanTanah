@@ -64,7 +64,6 @@ function resetTurnState(state: GameState): void {
     lastDice: null,
     rolledDoubles: false,
     pendingBuyTileId: null,
-    usedMetaAction: false,
     upgradesUsed: 0,
   }
 }
@@ -89,9 +88,13 @@ export function startTurn(state: GameState): void {
   resetTurnState(state)
   const player = state.players[state.currentPlayerIndex]
   if (!player) return
-  // Per turn structure: collect passive income, then pay pinjol interest.
+  // Per turn structure: collect passive income, then pay pinjol interest — but
+  // interest is now per lap, so only charge it the turn after they passed GO.
   collectPassiveIncome(state, player)
-  chargeInterest(state, player)
+  if (player.owesLapInterest) {
+    chargeInterest(state, player)
+    player.owesLapInterest = false
+  }
   pushLog(state, `${player.name}'s turn`, player.id)
 }
 

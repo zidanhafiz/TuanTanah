@@ -44,18 +44,48 @@ describe('advanceTurn', () => {
 })
 
 describe('startTurn upkeep', () => {
-  it('collects passive income then charges pinjol interest', () => {
+  it('collects passive income then charges pinjol interest when a lap is due', () => {
     const { state, players } = makeGame(2, { cash: 1_000_000 })
     const p = players[0]!
     state.currentPlayerIndex = 0
     own(state, 1, p.id, { track: 'property', tier: 1 })
     p.loans = [
-      { id: 'l1', amount: 2_000_000, interestPerRound: 0, lenderId: null, roundBorrowed: 1 },
+      {
+        id: 'l1',
+        amount: 2_000_000,
+        interestPerLap: 0,
+        lenderId: null,
+        roundBorrowed: 1,
+        interestPaid: 0,
+      },
     ]
+    p.owesLapInterest = true // interest is per-lap; flag it as due this turn
 
     const passive = REGIONS.papua.passiveBase * PROPERTY_TIERS[0]!.passiveMult // 100k
     const interest = Math.round(2_000_000 * PINJOL_INTEREST_RATE) // 200k
     startTurn(state)
     expect(p.cash).toBe(1_000_000 + passive - interest)
+  })
+
+  it('does not charge interest at turn start when no lap is due', () => {
+    const { state, players } = makeGame(2, { cash: 1_000_000 })
+    const p = players[0]!
+    state.currentPlayerIndex = 0
+    own(state, 1, p.id, { track: 'property', tier: 1 })
+    p.loans = [
+      {
+        id: 'l1',
+        amount: 2_000_000,
+        interestPerLap: 0,
+        lenderId: null,
+        roundBorrowed: 1,
+        interestPaid: 0,
+      },
+    ]
+    p.owesLapInterest = false // hasn't passed GO since last charge
+
+    const passive = REGIONS.papua.passiveBase * PROPERTY_TIERS[0]!.passiveMult // 100k
+    startTurn(state)
+    expect(p.cash).toBe(1_000_000 + passive) // passive only, no interest
   })
 })

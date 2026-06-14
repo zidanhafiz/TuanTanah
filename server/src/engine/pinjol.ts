@@ -83,9 +83,10 @@ export function takeLoan(
   player.loans.push({
     id: uid(),
     amount,
-    interestPerRound: Math.round(amount * PINJOL_INTEREST_RATE),
+    interestPerLap: Math.round(amount * PINJOL_INTEREST_RATE),
     lenderId: lender ? lender.id : null,
     roundBorrowed: state.round,
+    interestPaid: 0,
   })
   pushLog(
     state,
@@ -97,16 +98,17 @@ export function takeLoan(
 }
 
 /**
- * Charge interest on all active loans at the start of a player's turn. Interest
- * goes to the lending Rentenir (if still in the game) or the bank. If the player
- * can't cover it, cash goes negative and the insolvency flow is triggered.
+ * Charge a lap's interest on all active loans (called once at the start of the
+ * turn after the borrower passed GO). Interest goes to the lending Rentenir (if
+ * still in the game) or the bank. If the player can't cover it, cash goes
+ * negative and the insolvency flow is triggered.
  */
 export function chargeInterest(state: GameState, player: Player): RupiahAmount {
   if (player.loans.length === 0) return 0
   let total = 0
   for (const loan of player.loans) {
     const interest = Math.round(loan.amount * PINJOL_INTEREST_RATE)
-    loan.interestPerRound = interest
+    loan.interestPerLap = interest
     total += interest
   }
 
@@ -116,8 +118,9 @@ export function chargeInterest(state: GameState, player: Player): RupiahAmount {
       const lender = loan.lenderId
         ? state.players.find((p) => p.id === loan.lenderId && !p.isEliminated)
         : null
-      if (lender) lender.cash += loan.interestPerRound
-      else state.bank += loan.interestPerRound
+      if (lender) lender.cash += loan.interestPerLap
+      else state.bank += loan.interestPerLap
+      loan.interestPaid += loan.interestPerLap
     }
     player.cash -= total
     pushLog(state, `${player.name} paid ${rupiah(total)} pinjol interest`, player.id)

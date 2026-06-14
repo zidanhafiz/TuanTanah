@@ -39,6 +39,9 @@ export function makeGame(
   })
   const cash = opts.cash ?? 1_000_000_000
   for (const p of players) p.cash = cash
+  // Most engine tests build on a single tile and aren't about the region rule;
+  // default it off so they stay focused. Tests for the rule opt in via settings.
+  state.settings.requireFullRegionToBuild = false
   if (opts.settings) Object.assign(state.settings, opts.settings)
 
   if (!opts.lobby) {

@@ -6,6 +6,7 @@ import {
   KORUPSI_STEAL_AMOUNT,
   KORUPSI_SUCCESS_RATE,
   META_ACTION_COSTS,
+  META_ACTIONS_PER_LAP,
   PEMILU_SKIP_ROUNDS,
   SABOTAGE_DURATION_ROUNDS,
   SABOTAGE_RENT_MULTIPLIER,
@@ -57,8 +58,15 @@ export function performMetaAction(
   rng: Rng = defaultRng,
 ): MetaActionResult {
   const player = requireTurn(state, req.playerId)
-  if (state.turn.usedMetaAction) {
-    throw new EngineError('Already used a meta action this turn')
+  // Negotiate is unlimited (open-only signal) and skips the per-lap cap below.
+  if (req.action !== 'negotiate') {
+    const used = player.metaActionsUsed
+    if (used.length >= META_ACTIONS_PER_LAP) {
+      throw new EngineError(`Already used ${META_ACTIONS_PER_LAP} meta actions this lap`)
+    }
+    if (used.includes(req.action)) {
+      throw new EngineError('You already used that action this lap')
+    }
   }
 
   switch (req.action) {
@@ -66,7 +74,7 @@ export function performMetaAction(
       // Buy-only for now; upgrading your own tile is deferred to TTG-18.
       if (req.tileId == null) throw new EngineError('Select a tile to buy')
       buyTile(state, player, req.tileId)
-      state.turn.usedMetaAction = true
+      player.metaActionsUsed.push(req.action)
       return {}
     }
 
@@ -79,13 +87,13 @@ export function performMetaAction(
       state.bank -= salary
       state.turn.hasRolled = true // forgoes movement; lets the player end their turn
       pushLog(state, `${player.name} worked instead of moving (+${rupiah(salary)})`, player.id)
-      state.turn.usedMetaAction = true
+      player.metaActionsUsed.push(req.action)
       return {}
     }
 
     case 'hustle': {
       const card = drawHustle(state, player)
-      state.turn.usedMetaAction = true
+      player.metaActionsUsed.push(req.action)
       return card ? { card } : {}
     }
 
@@ -106,7 +114,7 @@ export function performMetaAction(
         `${player.name} lobbied against ${target.name} (${rupiah(cost)}) — their next turn is skipped`,
         player.id,
       )
-      state.turn.usedMetaAction = true
+      player.metaActionsUsed.push(req.action)
       return {}
     }
 
@@ -129,7 +137,7 @@ export function performMetaAction(
         `${player.name} sabotaged ${getTileDef(req.tileId).name} (${rupiah(META_ACTION_COSTS.sabotage)})`,
         player.id,
       )
-      state.turn.usedMetaAction = true
+      player.metaActionsUsed.push(req.action)
       return {}
     }
 
@@ -148,7 +156,7 @@ export function performMetaAction(
         // Fine on top of jail; opens a pending debt if they can't cover it.
         charge(state, player, KORUPSI_FINE, null, 'fine', 'korupsi fine')
       }
-      state.turn.usedMetaAction = true
+      player.metaActionsUsed.push(req.action)
       return {}
     }
 

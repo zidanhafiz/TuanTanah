@@ -56,6 +56,9 @@
     "timeLimitValue": "{{count}}m",
     "targetWealth": "Target wealth",
     "enabledRoles": "Enabled roles",
+    "buildRules": "Build rules",
+    "requireFullRegion": "Require full region to build",
+    "requireFullRegionHint": "Players must own every tile in a region before building houses or properties there.",
     "startGame": "Start game",
     "waitingForRoles": "Waiting for roles…",
     "waitingForHost": "Waiting for the host to start…",
@@ -136,7 +139,7 @@
   },
   "pinjol": {
     "title": "🏦 Pinjol — Take a loan",
-    "terms": "10% interest/round · max {{maxLoans}} loans · borrow up to {{limit}}",
+    "terms": "10% interest/lap · max {{maxLoans}} loans · borrow up to {{limit}}",
     "lender": "Lender",
     "bank": "Bank",
     "notEnoughToLend": "Not enough cash to lend",
@@ -149,7 +152,9 @@
     "cancel": "Cancel"
   },
   "meta": {
-    "title": "Meta action (1 per turn)",
+    "title": "Meta actions",
+    "remaining": "{{count}} left",
+    "alreadyUsed": "Already used this lap",
     "invest": "💰 Invest",
     "work": "💼 Work",
     "hustle": "🎴 Hustle",
@@ -236,17 +241,30 @@
     "buildHouse": "Build House ({{name}}) — {{cost}}",
     "buildProperty": "Build Property ({{name}}) — {{cost}}",
     "upgradeTo": "Upgrade to {{name}} — {{cost}}",
+    "needFullRegion": "You must own the whole region before building here.",
+    "downgrade": "Downgrade one tier — refund {{refund}}",
     "sellConfirm": "Sell {{name}} back to the bank for {{refund}}?",
     "confirmSell": "Confirm sell",
     "sellBack": "Sell back to bank — {{refund}}",
     "close": "Close"
   },
+  "status": {
+    "title": "My status",
+    "myProperties": "My properties",
+    "noProperties": "You don't own any properties yet.",
+    "unbuilt": "Unbuilt",
+    "myLoans": "My loans",
+    "loanMeta": "{{lender}} · {{perLap}}/lap · {{paid}} paid",
+    "repay": "Repay",
+    "payOffAll": "Pay off all — {{amount}}",
+    "bank": "Bank"
+  },
   "player": {
     "players": "Players",
     "jail": "🔒 jail",
     "offline": "offline",
-    "loans_one": "🏦 {{count}} loan · {{owed}} owed · {{perRound}}/round",
-    "loans_other": "🏦 {{count}} loans · {{owed}} owed · {{perRound}}/round"
+    "loans_one": "🏦 {{count}} loan · {{owed}} owed · {{perRound}}/lap",
+    "loans_other": "🏦 {{count}} loans · {{owed}} owed · {{perRound}}/lap"
   },
   "turnBanner": {
     "yourTurn": "Your turn!"

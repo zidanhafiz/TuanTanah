@@ -275,6 +275,27 @@ export function Lobby() {
             </ul>
           </div>
 
+          <div>
+            <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">
+              {t('lobby.buildRules')}
+            </h2>
+            <label
+              className={`flex items-center gap-2 rounded-lg border-2 border-ink bg-surface px-3 py-1.5 text-sm shadow-brutal-sm ${
+                isMaster ? 'cursor-pointer' : ''
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={state.settings.requireFullRegionToBuild}
+                disabled={!isMaster}
+                onChange={(e) => updateSettings({ requireFullRegionToBuild: e.target.checked })}
+                className="accent-accent-strong"
+              />
+              <span className="font-medium text-ink">{t('lobby.requireFullRegion')}</span>
+            </label>
+            <p className="mt-1 text-xs text-ink-faint">{t('lobby.requireFullRegionHint')}</p>
+          </div>
+
           {isMaster ? (
             <Button block size="lg" disabled={!canStart} onClick={startGame}>
               {everyoneReady ? t('lobby.startGame') : t('lobby.waitingForRoles')}

@@ -315,7 +315,7 @@ export const PLAYER_COLORS = [
 
 // ---- Pinjol ----
 export const PINJOL_AMOUNTS: RupiahAmount[] = [jt(2), jt(5), jt(10)]
-export const PINJOL_INTEREST_RATE = 0.1 // 10% per round
+export const PINJOL_INTEREST_RATE = 0.1 // 10% per lap (charged when the borrower passes GO)
 export const PINJOL_MAX_LOANS = 3
 export const PINJOL_BORROW_LIMIT_MULTIPLE = 3 // ≤ 3× total property value
 
@@ -423,6 +423,11 @@ export const META_ACTION_COSTS = {
   lobby: jt(2),
   sabotage: jt(3),
 } as const
+
+// Max distinct meta actions a player may use per lap around the board — i.e.
+// between passing GO and passing it again (no repeats). Resets on passing GO.
+// Pinjol and Negosiasi are unlimited and not counted against this.
+export const META_ACTIONS_PER_LAP = 3
 
 export const KORUPSI_SUCCESS_RATE = 0.6 // 60% success, 40% caught
 export const KORUPSI_STEAL_AMOUNT: RupiahAmount = jt(5) // taken from bank on success
