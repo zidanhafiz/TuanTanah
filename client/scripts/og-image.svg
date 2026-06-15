@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- Tuan Tanah social share card (1200x630). Neobrutalist: paper bg, ink
+       borders, hard offset shadows. Source for client/public/og-image.png;
+       rebuild via the client og:image package script. -->
+  <rect width="1200" height="630" fill="#FBF3E2"/>
+
+  <!-- Inset ink frame -->
+  <rect x="24" y="24" width="1152" height="582" fill="none" stroke="#1A1714" stroke-width="6"/>
+
+  <!-- House badge: accent tile with hard shadow (favicon motif, scaled up) -->
+  <g transform="translate(96 150)">
+    <rect x="14" y="14" width="300" height="300" rx="36" fill="#1A1714"/>
+    <rect x="0" y="0" width="300" height="300" rx="36" fill="#FBBF24" stroke="#1A1714" stroke-width="10"/>
+    <!-- roof -->
+    <path d="M58 168 L150 80 L242 168 Z" fill="#1A1714" stroke="#1A1714" stroke-width="16" stroke-linejoin="round"/>
+    <!-- walls -->
+    <rect x="86" y="156" width="128" height="96" fill="#FFFFFF" stroke="#1A1714" stroke-width="16" stroke-linejoin="round"/>
+    <!-- door -->
+    <rect x="132" y="196" width="36" height="56" fill="#1A1714"/>
+  </g>
+
+  <!-- Wordmark + tagline -->
+  <text x="452" y="250" font-family="Archivo Black" font-size="128" fill="#1A1714" letter-spacing="-2">TUAN</text>
+  <text x="452" y="372" font-family="Archivo Black" font-size="128" fill="#1A1714" letter-spacing="-2">TANAH</text>
+  <text x="458" y="438" font-family="Plus Jakarta Sans" font-weight="700" font-size="34" fill="#6B6256">Real-time multiplayer property game</text>
+
+  <!-- Property-tile strip along the bottom -->
+  <g>
+    <rect x="96" y="492" width="240" height="62" fill="#FF6B6B" stroke="#1A1714" stroke-width="6"/>
+    <rect x="360" y="492" width="240" height="62" fill="#4DABF7" stroke="#1A1714" stroke-width="6"/>
+    <rect x="624" y="492" width="240" height="62" fill="#51CF66" stroke="#1A1714" stroke-width="6"/>
+    <rect x="888" y="492" width="216" height="62" fill="#FBBF24" stroke="#1A1714" stroke-width="6"/>
+    <text x="996" y="533" font-family="Plus Jakarta Sans" font-weight="800" font-size="30" fill="#1A1714" text-anchor="middle">2–8 PLAYERS</text>
+  </g>
+</svg>
