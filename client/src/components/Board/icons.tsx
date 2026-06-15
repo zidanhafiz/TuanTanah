@@ -46,7 +46,12 @@ const TYPE_ICON: Partial<Record<TileType, LucideIcon>> = {
 export function TileGlyph({ def, className }: { def: TileDef; className?: string }) {
   const Icon = def.type === 'transport' ? transportIcon(def.name) : TYPE_ICON[def.type]
   return Icon
-    ? createElement(Icon, { className, strokeWidth: 2.1, absoluteStrokeWidth: true })
+    ? createElement(Icon, {
+        className,
+        style: { color: TYPE_COLOR[def.type] },
+        strokeWidth: 2.1,
+        absoluteStrokeWidth: true,
+      })
     : null
 }
 

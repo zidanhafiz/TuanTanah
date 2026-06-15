@@ -24,6 +24,7 @@ export function Tile({
   isPending,
   isCurrent,
   selectable,
+  flip,
   onSelect,
   t,
 }: {
@@ -32,15 +33,64 @@ export function Tile({
   isPending: boolean
   isCurrent: boolean
   selectable: boolean
+  /** Top-row tiles flip their internal order so the colored band hugs the board center. */
+  flip?: boolean
   onSelect?: (id: TileId) => void
   t: TFunction
 }) {
   const region = def.region ? REGIONS[def.region] : null
   const isBuyable = def.type === 'property' || def.type === 'transport'
   const hasIcon = def.type !== 'property'
-  const stripColor = region ? region.color : TYPE_COLOR[def.type]
   const price = region ? region.buyPrice : def.type === 'transport' ? TRANSPORT_BUY_PRICE : null
   const name = tileName(t, def.id)
+
+  // When flipped, the header band sits on the bottom (band pulled into bottom
+  // padding) and the price floats to the top; otherwise the classic top-down
+  // order. Region (property) tiles use their region color; transport tiles use
+  // the type color; everything else has no band.
+  const bandColor = region ? region.color : def.type === 'transport' ? TYPE_COLOR.transport : null
+  const band = bandColor ? (
+    <div
+      className={`-mx-[0.6cqw] h-[1cqw] ${flip ? '-mb-[0.6cqw]' : '-mt-[0.6cqw]'}`}
+      style={{ background: bandColor }}
+    />
+  ) : null
+
+  const body = hasIcon ? (
+    /* Icon tiles (transport, GO, tax, jail, …): glyph + label, centered. */
+    <div className="flex flex-1 flex-col items-center justify-center gap-[0.4cqw] px-[0.2cqw] text-center">
+      <TileGlyph def={def} className="h-[2.4cqw] w-[2.4cqw]" />
+      <span className="line-clamp-2 text-[1cqw] font-extrabold uppercase leading-tight tracking-tight text-ink">
+        {name}
+      </span>
+    </div>
+  ) : (
+    /* Region (property) tiles: the location name sits next to the header band.
+       When flipped, mt-auto on the name carries the gap so the band stays pinned
+       to the bottom even when the tile is owned (and the price line is hidden). */
+    <span
+      className={`line-clamp-3 px-[0.2cqw] text-center text-[1.2cqw] font-extrabold leading-tight text-ink ${flip ? 'mb-[0.2cqw] mt-auto' : 'mt-[0.2cqw]'}`}
+    >
+      {name}
+    </span>
+  )
+
+  // Price/tax line: pinned to the far edge from the band (bottom normally; top
+  // when flipped, where the name's mt-auto provides the spacing instead).
+  const edgeMargin = flip ? 'pb-[0.2cqw]' : 'mt-auto pt-[0.2cqw]'
+  const priceLine = isBuyable && price !== null && !owner && (
+    <span className={`w-full text-center text-[1.1cqw] font-bold text-ink-muted ${edgeMargin}`}>
+      {compactRupiah(price)}
+    </span>
+  )
+  const taxLine = def.type === 'tax' && def.taxAmount != null && (
+    <span className={`w-full text-center text-[1.1cqw] font-bold text-danger-strong ${edgeMargin}`}>
+      {compactRupiah(def.taxAmount)}
+    </span>
+  )
+
+  // Owner color band pinned to the edge nearest the board center (bottom, or top when flipped).
+  const ownerBand = owner && <div className="h-[0.8cqw]" style={{ background: owner.color }} />
 
   return (
     <div
@@ -49,40 +99,25 @@ export function Tile({
         isCurrent ? 'z-10 ring-2 ring-info shadow-brutal-sm' : isPending ? 'z-10 shadow-brutal' : ''
       } ${selectable ? 'cursor-pointer hover:z-10 hover:-translate-x-px hover:-translate-y-px hover:shadow-brutal' : ''}`}
     >
+      {flip && ownerBand}
       <div className="flex h-full flex-col p-[0.6cqw]">
-        {/* Colored header band — region color for property, type color otherwise. */}
-        <div className="-mx-[0.6cqw] -mt-[0.6cqw] h-[1cqw]" style={{ background: stripColor }} />
-
-        {hasIcon ? (
-          /* Icon tiles (transport, GO, tax, jail, …): glyph + label, centered. */
-          <div className="flex flex-1 flex-col items-center justify-center gap-[0.4cqw] px-[0.2cqw] text-center">
-            <TileGlyph def={def} className="h-[2.4cqw] w-[2.4cqw] text-ink" />
-            <span className="line-clamp-2 text-[1cqw] font-extrabold uppercase leading-tight tracking-tight text-ink">
-              {name}
-            </span>
-          </div>
+        {flip ? (
+          <>
+            {priceLine}
+            {taxLine}
+            {body}
+            {band}
+          </>
         ) : (
-          /* Region (property) tiles: the location name sits right up at the top. */
-          <span className="mt-[0.2cqw] line-clamp-3 px-[0.2cqw] text-center text-[1.2cqw] font-extrabold leading-tight text-ink">
-            {name}
-          </span>
-        )}
-
-        {/* Price sits close to the bottom edge — and disappears once the tile is owned. */}
-        {isBuyable && price !== null && !owner && (
-          <span className="mt-auto w-full pt-[0.2cqw] text-center text-[1.1cqw] font-bold text-ink-muted">
-            {compactRupiah(price)}
-          </span>
-        )}
-        {def.type === 'tax' && def.taxAmount != null && (
-          <span className="mt-auto w-full pt-[0.2cqw] text-center text-[1.1cqw] font-bold text-danger-strong">
-            {compactRupiah(def.taxAmount)}
-          </span>
+          <>
+            {band}
+            {body}
+            {priceLine}
+            {taxLine}
+          </>
         )}
       </div>
-
-      {/* Owner color band pinned to the bottom edge. */}
-      {owner && <div className="h-[0.8cqw]" style={{ background: owner.color }} />}
+      {!flip && ownerBand}
     </div>
   )
 }

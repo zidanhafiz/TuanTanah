@@ -128,6 +128,9 @@ export function Board({
           const isCurrent = current?.position === def.id
 
           const rotate = sideRotation(row, col)
+          // Top-row tiles flip their internal order (owner band + price on top,
+          // header band on the bottom) so the colored band hugs the board center.
+          const flip = row === 1
           const tileEl = (
             <Tile
               def={def}
@@ -135,6 +138,7 @@ export function Board({
               isPending={isPending}
               isCurrent={isCurrent}
               selectable={selectable}
+              flip={flip}
               onSelect={onSelectTile}
               t={t}
             />
