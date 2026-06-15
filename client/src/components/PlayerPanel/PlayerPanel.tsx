@@ -1,42 +1,8 @@
 import { type GameState } from '@tuan-tanah/shared'
-import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { roleName } from '../../i18n/gameData.js'
-import { compactRupiah } from '../../lib/format.js'
 import { formatRupiah } from '../../store/gameStore.js'
-import { FloatUp } from '../ui/FloatUp.js'
-
-/**
- * Floats a "+Rp …" / "−Rp …" pop above a player's cash whenever it changes,
- * by diffing the latest cash against the previously-rendered value.
- */
-function MoneyDelta({ cash }: { cash: number }) {
-  const prev = useRef(cash)
-  const counter = useRef(0)
-  const [pop, setPop] = useState<{ id: number; delta: number } | null>(null)
-
-  useEffect(() => {
-    const delta = cash - prev.current
-    prev.current = cash
-    if (!delta) return
-    const id = ++counter.current
-    setPop({ id, delta })
-    const timer = setTimeout(() => setPop((p) => (p?.id === id ? null : p)), 1100)
-    return () => clearTimeout(timer)
-  }, [cash])
-
-  return (
-    <FloatUp
-      id={pop?.id ?? null}
-      rise={18}
-      className={`pointer-events-none absolute -top-3.5 right-0 whitespace-nowrap font-mono text-[11px] font-extrabold ${
-        pop && pop.delta > 0 ? 'text-success-strong' : 'text-danger-strong'
-      }`}
-    >
-      {pop ? `${pop.delta > 0 ? '+' : '−'}${compactRupiah(Math.abs(pop.delta))}` : null}
-    </FloatUp>
-  )
-}
+import { MoneyDelta } from '../ui/MoneyDelta.js'
 
 export function PlayerPanel({
   state,

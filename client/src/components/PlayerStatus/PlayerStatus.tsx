@@ -2,6 +2,7 @@ import type { TileId } from '@tuan-tanah/shared'
 import { useTranslation } from 'react-i18next'
 import { tierName, tileName } from '../../i18n/gameData.js'
 import { formatRupiah, useGame } from '../../store/gameStore.js'
+import { MoneyDelta } from '../ui/MoneyDelta.js'
 import { Badge, Button, Card } from '../ui/index.js'
 
 /**
@@ -9,7 +10,14 @@ import { Badge, Button, Card } from '../ui/index.js'
  * property dialog and act on them without hunting for the tile on the board),
  * and pinjol status with a one-tap repay. Reads `me` from the store directly.
  */
-export function PlayerStatus({ onOpenProperty }: { onOpenProperty: (tileId: TileId) => void }) {
+export function PlayerStatus({
+  onOpenProperty,
+  bare = false,
+}: {
+  onOpenProperty: (tileId: TileId) => void
+  /** Render the inner content without the framed Card wrapper (for embedding). */
+  bare?: boolean
+}) {
   const { t } = useTranslation()
   const state = useGame((s) => s.state)
   const me = useGame((s) => s.me)()
@@ -27,12 +35,13 @@ export function PlayerStatus({ onOpenProperty }: { onOpenProperty: (tileId: Tile
       ? (state.players.find((p) => p.id === lenderId)?.name ?? t('status.bank'))
       : t('status.bank')
 
-  return (
-    <Card className="space-y-3 p-3">
+  const body = (
+    <>
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase text-ink-muted">{t('status.title')}</h2>
-        <span className="font-mono text-sm font-bold text-success-strong">
+        <span className="relative font-mono text-sm font-bold text-success-strong">
           {formatRupiah(me.cash)}
+          <MoneyDelta cash={me.cash} />
         </span>
       </div>
 
@@ -109,6 +118,9 @@ export function PlayerStatus({ onOpenProperty }: { onOpenProperty: (tileId: Tile
           </Button>
         </div>
       )}
-    </Card>
+    </>
   )
+
+  if (bare) return <div className="space-y-3">{body}</div>
+  return <Card className="space-y-3 p-3">{body}</Card>
 }

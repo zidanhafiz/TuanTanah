@@ -23,6 +23,7 @@ import { PropertyModal } from '../components/PropertyModal/PropertyModal.js'
 import { LeaveButton } from '../components/RoomActions.js'
 import { SoundToggle } from '../components/SoundToggle.js'
 import { Badge, Button, Card, Tooltip } from '../components/ui/index.js'
+import { useMediaQuery } from '../hooks/useMediaQuery.js'
 import { formatRupiah, useGame } from '../store/gameStore.js'
 import { isRollAnimating, useRollAnim } from '../store/rollAnimation.js'
 
@@ -55,6 +56,10 @@ export function Game() {
   // While the dice/token cinematic is playing, hold back post-roll actions so
   // the buy button only appears once the token has arrived on its tile.
   const rolling = useRollAnim((s) => isRollAnimating(s.phase))
+  // On tablet/desktop the turn actions live on the board itself, next to the
+  // dice where attention already is, leaving a lighter sidebar. On phones the
+  // board center is too cramped, so they stay in the sidebar (previous layout).
+  const actionsOnBoard = useMediaQuery('(min-width: 768px)')
 
   const metaActionsLeft = META_ACTIONS_PER_LAP - (me?.metaActionsUsed.length ?? 0)
   // Clear any in-progress target selection when it's no longer actionable.
@@ -97,11 +102,115 @@ export function Game() {
   const handleTileClick =
     pendingMeta?.target === 'tile' ? handleSelectTile : (tileId: TileId) => setSelectedTile(tileId)
 
+  // Active player's per-turn controls — only while play isn't paused for a
+  // debt or game-over. Rendered identically whether on the board or in the
+  // sidebar; only their container differs by breakpoint.
+  const turnActive = phase === 'playing' && !myDebt && !debtor && isMyTurn
+  const turnControls = turnActive ? (
+    <>
+      {me?.inJail && !turn.hasRolled && (
+        <Button variant="secondary" size="sm" block onClick={payJail}>
+          {t('game.payBail')}
+        </Button>
+      )}
+      {!turn.hasRolled && (
+        <Button block onClick={roll} disabled={rolling}>
+          🎲 {me?.inJail ? t('game.rollForDoubles') : t('game.rollDice')}
+        </Button>
+      )}
+      {turn.hasRolled && !rolling && pending !== null && (
+        <Button variant="success" block onClick={() => buy(pending)}>
+          {t('game.buy', {
+            name: tileName(t, pending),
+            price: formatRupiah(basePrice(pending)),
+          })}
+        </Button>
+      )}
+      {turn.hasRolled && !rolling && (
+        <Button variant="secondary" size="sm" block onClick={endTurn}>
+          {pending !== null ? t('game.skipEndTurn') : t('game.endTurn')}
+        </Button>
+      )}
+      {metaActionsLeft > 0 && !rolling && me && (
+        <MetaActionBar
+          turn={turn}
+          used={me.metaActionsUsed}
+          pendingAction={pendingMeta?.action ?? null}
+          onPick={handlePickMeta}
+        />
+      )}
+      {me && !rolling && <AbilityBar me={me} onUse={useAbility} />}
+      {!rolling && (
+        <Tooltip content={t('game.pinjolDesc')} className="w-full">
+          <Button variant="secondary" size="sm" block onClick={() => setShowPinjol(true)}>
+            {t('game.pinjol')}
+          </Button>
+        </Tooltip>
+      )}
+      {pendingMeta && (
+        <Card
+          tone="info"
+          flat
+          className="flex items-center justify-between px-3 py-2 text-xs text-ink"
+        >
+          <span>
+            {t('game.selectTarget', {
+              target: pendingMeta.target === 'tile' ? t('game.targetTile') : t('game.targetPlayer'),
+              location:
+                pendingMeta.target === 'tile' ? t('game.locationBoard') : t('game.locationPlayers'),
+            })}
+          </span>
+          <button
+            onClick={() => setPendingMeta(null)}
+            className="font-bold text-ink hover:text-info-strong"
+          >
+            {t('common.cancel')}
+          </button>
+        </Card>
+      )}
+    </>
+  ) : null
+
+  // Negotiation is offered even off-turn (you can propose deals any time).
+  const canNegotiate =
+    phase === 'playing' && !myDebt && !debtor && Boolean(me && !me.isEliminated) && !rolling
+  const negotiateButton = canNegotiate ? (
+    <Tooltip content={t('game.negotiateDesc')} className="w-full">
+      <Button variant="secondary" size="sm" block onClick={() => setShowNegotiate(true)}>
+        {t('game.negotiate')}
+      </Button>
+    </Tooltip>
+  ) : null
+
+  // "Waiting for X" hint — sidebar-only; on the board the center turn indicator
+  // already conveys whose turn it is.
+  const waitingHint =
+    phase === 'playing' && !myDebt && !debtor && !isMyTurn ? (
+      <Card tone="sunken" flat className="py-3 text-center text-sm text-ink-muted">
+        {t('game.waitingFor')}{' '}
+        <span className="font-semibold" style={{ color: current?.color }}>
+          {current?.name}
+        </span>
+        …
+      </Card>
+    ) : null
+
+  // What goes inside the board center on tablet/desktop.
+  const boardActions =
+    actionsOnBoard && (turnControls || negotiateButton) ? (
+      <>
+        {turnControls}
+        {negotiateButton}
+      </>
+    ) : null
+
+  const showStatusPanel = Boolean(me && !me.isEliminated && phase === 'playing')
+
   return (
     <div className="mx-auto flex max-w-[1400px] flex-col gap-4 p-4 lg:flex-row">
       {/* Board */}
       <div className="flex flex-1 items-start justify-center">
-        <Board state={state} onSelectTile={handleTileClick} />
+        <Board state={state} onSelectTile={handleTileClick} centerSlot={boardActions} />
       </div>
 
       {/* Sidebar */}
@@ -141,107 +250,25 @@ export function Game() {
               </span>{' '}
               {t('game.pausedWaitingPost')}
             </Card>
-          ) : (
+          ) : !actionsOnBoard ? (
+            // Phones: the turn actions stay here in the sidebar.
             <div className="mt-3 space-y-2">
-              {isMyTurn ? (
-                <>
-                  {me?.inJail && !turn.hasRolled && (
-                    <Button variant="secondary" size="sm" block onClick={payJail}>
-                      {t('game.payBail')}
-                    </Button>
-                  )}
-                  {!turn.hasRolled && (
-                    <Button block onClick={roll} disabled={rolling}>
-                      🎲 {me?.inJail ? t('game.rollForDoubles') : t('game.rollDice')}
-                    </Button>
-                  )}
-                  {turn.hasRolled && !rolling && pending !== null && (
-                    <Button variant="success" block onClick={() => buy(pending)}>
-                      {t('game.buy', {
-                        name: tileName(t, pending),
-                        price: formatRupiah(basePrice(pending)),
-                      })}
-                    </Button>
-                  )}
-                  {turn.hasRolled && !rolling && (
-                    <Button variant="secondary" size="sm" block onClick={endTurn}>
-                      {pending !== null ? t('game.skipEndTurn') : t('game.endTurn')}
-                    </Button>
-                  )}
-                  {metaActionsLeft > 0 && !rolling && me && (
-                    <MetaActionBar
-                      turn={turn}
-                      used={me.metaActionsUsed}
-                      pendingAction={pendingMeta?.action ?? null}
-                      onPick={handlePickMeta}
-                    />
-                  )}
-                  {me && !rolling && <AbilityBar me={me} onUse={useAbility} />}
-                  {!rolling && (
-                    <Tooltip content={t('game.pinjolDesc')} className="w-full">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        block
-                        onClick={() => setShowPinjol(true)}
-                      >
-                        {t('game.pinjol')}
-                      </Button>
-                    </Tooltip>
-                  )}
-                  {pendingMeta && (
-                    <Card
-                      tone="info"
-                      flat
-                      className="flex items-center justify-between px-3 py-2 text-xs text-ink"
-                    >
-                      <span>
-                        {t('game.selectTarget', {
-                          target:
-                            pendingMeta.target === 'tile'
-                              ? t('game.targetTile')
-                              : t('game.targetPlayer'),
-                          location:
-                            pendingMeta.target === 'tile'
-                              ? t('game.locationBoard')
-                              : t('game.locationPlayers'),
-                        })}
-                      </span>
-                      <button
-                        onClick={() => setPendingMeta(null)}
-                        className="font-bold text-ink hover:text-info-strong"
-                      >
-                        {t('common.cancel')}
-                      </button>
-                    </Card>
-                  )}
-                </>
-              ) : (
-                <Card tone="sunken" flat className="py-3 text-center text-sm text-ink-muted">
-                  {t('game.waitingFor')}{' '}
-                  <span className="font-semibold" style={{ color: current?.color }}>
-                    {current?.name}
-                  </span>
-                  …
-                </Card>
-              )}
-              {me && !me.isEliminated && !rolling && (
-                <Tooltip content={t('game.negotiateDesc')} className="w-full">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    block
-                    onClick={() => setShowNegotiate(true)}
-                  >
-                    {t('game.negotiate')}
-                  </Button>
-                </Tooltip>
-              )}
+              {turnControls ?? waitingHint}
+              {negotiateButton}
+            </div>
+          ) : null}
+
+          {/* Tablet/desktop: the actions moved to the board, so the player's own
+              status panel takes their place here for a lighter, focused sidebar. */}
+          {actionsOnBoard && showStatusPanel && (
+            <div className="mt-3 border-t-2 border-ink/10 pt-3">
+              <PlayerStatus bare onOpenProperty={(tileId) => setSelectedTile(tileId)} />
             </div>
           )}
         </Card>
 
-        {me && !me.isEliminated && phase === 'playing' && (
+        {/* Phones: status panel keeps its own card below (previous layout). */}
+        {!actionsOnBoard && showStatusPanel && (
           <PlayerStatus onOpenProperty={(tileId) => setSelectedTile(tileId)} />
         )}
 

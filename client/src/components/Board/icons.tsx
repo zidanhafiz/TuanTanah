@@ -1,7 +1,7 @@
 import type { PropertyTrack, TileDef, TileType } from '@tuan-tanah/shared'
 import { createElement } from 'react'
 import {
-  ArrowRightToLine,
+  ChevronsLeft,
   Building2,
   Coins,
   HelpCircle,
@@ -33,7 +33,7 @@ function transportIcon(name: string): LucideIcon {
 }
 
 const TYPE_ICON: Partial<Record<TileType, LucideIcon>> = {
-  go: ArrowRightToLine,
+  go: ChevronsLeft,
   tax: Landmark,
   event: HelpCircle, // the "?" Kejadian card
   hustle: Coins,

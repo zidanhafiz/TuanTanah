@@ -1,6 +1,6 @@
 import { BOARD, type GameState, type TileId } from '@tuan-tanah/shared'
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { isRollAnimating, useRollAnim } from '../../store/rollAnimation.js'
 import { DiceRoller } from '../DiceRoller/DiceRoller.js'
@@ -9,22 +9,48 @@ import { EDGE_TRACK, gridPos, innerSide } from './geometry.js'
 import { OwnerPips, Tile } from './Tile.js'
 import { TokenLayer } from './Tokens.js'
 
+// Beat added after the token lands before the center flash appears, so it reads
+// as a consequence of the move rather than racing the token onto the tile.
+const CENTER_LOG_LAND_DELAY_MS = 360
+
 /**
  * Flashes the newest log entry in the middle of the board — it rises and fades
  * so play has a glanceable "what just happened" without watching the side log.
+ *
+ * Like the post-roll action buttons, it holds while the dice/token cinematic is
+ * in flight: a log entry that arrives in the same broadcast as a roll is shown
+ * only once the token has landed (plus a short beat), keeping the flash in sync
+ * with the token's actual position. Out-of-band entries (e.g. a buy after the
+ * move has settled) fire immediately as before.
  */
 function CenterLog({ log }: { log: GameState['log'] }) {
+  const animating = useRollAnim((s) => isRollAnimating(s.phase))
   const last = log[log.length - 1]
   const prevId = useRef(last?.id)
+  // Tracks whether the pending entry surfaced mid-cinematic, so we only add the
+  // landing beat to entries that were actually waiting on the token.
+  const heldDuringMove = useRef(false)
   const [item, setItem] = useState<GameState['log'][number] | null>(null)
 
   useEffect(() => {
     if (!last || last.id === prevId.current) return
+    // Hold the flash until the token finishes walking (matches the action buttons).
+    if (animating) {
+      heldDuringMove.current = true
+      return
+    }
     prevId.current = last.id
-    setItem(last)
-    const timer = setTimeout(() => setItem((x) => (x?.id === last.id ? null : x)), 2400)
+    const delay = heldDuringMove.current ? CENTER_LOG_LAND_DELAY_MS : 0
+    heldDuringMove.current = false
+    const show = setTimeout(() => setItem(last), delay)
+    return () => clearTimeout(show)
+  }, [last, animating])
+
+  useEffect(() => {
+    if (!item) return
+    const timer = setTimeout(() => setItem((x) => (x?.id === item.id ? null : x)), 2400)
     return () => clearTimeout(timer)
-  }, [last])
+  }, [item])
 
   return (
     <div className="pointer-events-none absolute inset-x-[1.2cqw] bottom-[1.2cqw] flex justify-center">
@@ -68,9 +94,12 @@ function sideRotation(row: number, col: number): number {
 export function Board({
   state,
   onSelectTile,
+  centerSlot,
 }: {
   state: GameState
   onSelectTile?: (id: TileId) => void
+  /** Turn-action controls (roll, meta actions) surfaced inside the board center. */
+  centerSlot?: ReactNode
 }) {
   const { t } = useTranslation()
   const current = state.players[state.currentPlayerIndex]
@@ -158,6 +187,12 @@ export function Board({
           <div className="flex min-h-[6.4cqw] items-center justify-center">
             <DiceRoller state={state} />
           </div>
+
+          {centerSlot && (
+            <div className="relative z-10 flex w-full max-w-[18rem] flex-col gap-2">
+              {centerSlot}
+            </div>
+          )}
 
           {current && (
             <AnimatePresence mode="wait">
