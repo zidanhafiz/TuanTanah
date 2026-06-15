@@ -10,6 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource/archivo-black": "^5.2.8",
+    "@fontsource/plus-jakarta-sans": "^5.2.8",
     "@tuan-tanah/shared": "workspace:*",
     "framer-motion": "^11.3.0",
     "i18next": "^26.3.1",

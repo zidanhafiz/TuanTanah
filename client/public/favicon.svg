@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Neobrutalist favicon for Tuan Tanah: accent-yellow tile, thick ink border. -->
+  <rect x="2" y="2" width="28" height="28" rx="5" fill="#FBBF24" stroke="#1A1714" stroke-width="2.5"/>
+  <!-- House roof -->
+  <path d="M6 16 L16 7 L26 16 Z" fill="#1A1714" stroke="#1A1714" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- House walls -->
+  <rect x="9" y="15" width="14" height="10" fill="#FFFFFF" stroke="#1A1714" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Door -->
+  <rect x="14" y="19" width="4" height="6" fill="#1A1714"/>
+</svg>
