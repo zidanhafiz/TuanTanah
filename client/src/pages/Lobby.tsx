@@ -10,6 +10,7 @@ import {
   WIN_CONDITIONS,
   type Role,
 } from '@tuan-tanah/shared'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { roleAbility, roleName } from '../i18n/gameData.js'
 import { LanguageSwitcher } from '../components/LanguageSwitcher.js'
@@ -142,25 +143,16 @@ export function Lobby() {
             </ul>
           </div>
 
-          <div>
-            <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">
-              {t('lobby.startingCash')}
-            </h2>
-            <div className="text-lg font-bold text-ink">
-              {formatRupiah(state.settings.startingCash)}
-            </div>
-            {isMaster && (
-              <input
-                type="range"
-                min={STARTING_CASH_MIN}
-                max={STARTING_CASH_MAX}
-                step={1_000_000}
-                value={state.settings.startingCash}
-                onChange={(e) => updateSettings({ startingCash: Number(e.target.value) })}
-                className="mt-2 w-full accent-accent-strong"
-              />
-            )}
-          </div>
+          <SettingSlider
+            label={t('lobby.startingCash')}
+            value={state.settings.startingCash}
+            min={STARTING_CASH_MIN}
+            max={STARTING_CASH_MAX}
+            step={1_000_000}
+            editable={isMaster}
+            format={formatRupiah}
+            onCommit={(startingCash) => updateSettings({ startingCash })}
+          />
 
           <div>
             <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">
@@ -215,25 +207,16 @@ export function Lobby() {
           )}
 
           {showWealth && (
-            <div>
-              <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">
-                {t('lobby.targetWealth')}
-              </h2>
-              <div className="text-lg font-bold text-ink">
-                {formatRupiah(state.settings.targetWealth ?? TARGET_WEALTH_MIN)}
-              </div>
-              {isMaster && (
-                <input
-                  type="range"
-                  min={TARGET_WEALTH_MIN}
-                  max={TARGET_WEALTH_MAX}
-                  step={TARGET_WEALTH_STEP}
-                  value={state.settings.targetWealth ?? TARGET_WEALTH_MIN}
-                  onChange={(e) => updateSettings({ targetWealth: Number(e.target.value) })}
-                  className="mt-2 w-full accent-accent-strong"
-                />
-              )}
-            </div>
+            <SettingSlider
+              label={t('lobby.targetWealth')}
+              value={state.settings.targetWealth ?? TARGET_WEALTH_MIN}
+              min={TARGET_WEALTH_MIN}
+              max={TARGET_WEALTH_MAX}
+              step={TARGET_WEALTH_STEP}
+              editable={isMaster}
+              format={formatRupiah}
+              onCommit={(targetWealth) => updateSettings({ targetWealth })}
+            />
           )}
 
           <div>
@@ -307,6 +290,69 @@ export function Lobby() {
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+/**
+ * A range slider that stays visually responsive while dragging but only emits
+ * `onCommit` once the value is released (mouse up / touch end / key up). This
+ * keeps the slider smooth without flooding the server with one `update_settings`
+ * per pixel of drag — which would otherwise trip the per-socket rate limiter.
+ */
+function SettingSlider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  editable,
+  format,
+  onCommit,
+}: {
+  label: string
+  value: number
+  min: number
+  max: number
+  step: number
+  editable: boolean
+  format: (n: number) => string
+  onCommit: (n: number) => void
+}) {
+  // While dragging we track the value locally; `null` means "follow the
+  // authoritative server value". The local override is dropped whenever the
+  // confirmed server value changes (adjusting state during render, per the
+  // React "you might not need an effect" guidance).
+  const [local, setLocal] = useState<number | null>(null)
+  const [prevValue, setPrevValue] = useState(value)
+  if (value !== prevValue) {
+    setPrevValue(value)
+    setLocal(null)
+  }
+  const display = local ?? value
+
+  const commit = (n: number) => {
+    if (n !== value) onCommit(n)
+  }
+
+  return (
+    <div>
+      <h2 className="mb-2 text-sm font-bold uppercase text-ink-muted">{label}</h2>
+      <div className="text-lg font-bold text-ink">{format(display)}</div>
+      {editable && (
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={display}
+          onChange={(e) => setLocal(Number(e.target.value))}
+          onMouseUp={(e) => commit(Number(e.currentTarget.value))}
+          onTouchEnd={(e) => commit(Number(e.currentTarget.value))}
+          onKeyUp={(e) => commit(Number(e.currentTarget.value))}
+          className="mt-2 w-full accent-accent-strong"
+        />
+      )}
     </div>
   )
 }
