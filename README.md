@@ -6,7 +6,19 @@ See [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) and [`docs/TECHNICAL_REQUIREMEN
 
 ## Status
 
-Early scaffold + **vertical slice**: create room → lobby → pick role → start → roll dice → move → buy property → end turn, fully synced over Socket.io. Many mechanics (meta actions, full card effects, pinjol, tier upgrades, role abilities, elimination/win conditions) are stubbed for later milestones.
+The full game loop is playable end-to-end, synced over Socket.io:
+
+- Create / join / leave / rejoin rooms (shareable URLs, seat held by a reconnect token)
+- Lobby: pick role, room-master settings, start
+- Turns: roll → move → resolve tile (buy property, pay rent, tax, draw card, jail) → end turn
+- Meta-actions (invest / work / hustle / sabotage / korupsi / negotiate)
+- Property & tier upgrades, downgrades, and sells
+- Pinjol (loan) system + debt resolution
+- Structured negotiation deals between players
+- Role active abilities, voting, elimination / bankruptcy cascade, and win conditions
+- Game-over standings, optionally archived to Supabase
+
+Client extras: neobrutalist design system, framer-motion animations, a sound system, and per-player EN/ID i18n. The engine is covered by a Vitest suite. Remaining work is balance/content tuning and server-side log/error i18n — see `CLAUDE.md`.
 
 ## Monorepo layout
 
@@ -40,10 +52,14 @@ Then open http://localhost:5173 in two browser tabs to create + join a room.
 Useful scripts:
 
 ```bash
+pnpm test                 # run the engine test suite (Vitest)
+pnpm check                # typecheck + lint + format:check (full gate)
 pnpm typecheck            # typecheck all workspaces
 pnpm --filter server dev  # backend only
 pnpm --filter client dev  # frontend only
 ```
+
+A live gallery of the design-system components is served at http://localhost:5173/design.
 
 ### Redis vs in-memory
 
@@ -64,4 +80,4 @@ See [`docs/DEPLOY.md`](docs/DEPLOY.md) for the full runbook (DNS, firewall, veri
 
 ## Environment
 
-Copy `.env.example` to `.env`. Supabase is optional/deferred for the MVP — leave the keys blank to disable it.
+Copy `.env.example` to `.env`. Supabase is optional — it archives final game history on game-over; leave the keys blank to disable it (live state lives in Redis/memory regardless).

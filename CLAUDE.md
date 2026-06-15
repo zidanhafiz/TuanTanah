@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Tuan Tanah is a real-time multiplayer Indonesian-themed Monopoly web game (2–8 players). It's a pnpm monorepo with three workspaces: `shared` (types + game data), `server` (Fastify + Socket.io + game engine), `client` (React + Vite + Zustand). Currently an early scaffold + **vertical slice** — many mechanics are deliberately stubbed (see "Implementation status" below).
+Tuan Tanah is a real-time multiplayer Indonesian-themed Monopoly web game (2–8 players). It's a pnpm monorepo with three workspaces: `shared` (types + game data), `server` (Fastify + Socket.io + game engine), `client` (React + Vite + Zustand). The full game loop is implemented end-to-end — property/tier upgrades, the pinjol (loan) system, meta-actions, structured negotiation, role abilities, voting, elimination/bankruptcy cascade, and win conditions all work. A few balance/content TODOs remain (see "Implementation status" below). The client ships a neobrutalist design system, framer-motion animations, a sound system, and EN/ID i18n.
 
 Design docs live in `docs/GAME_DESIGN.md` (gameplay) and `docs/TECHNICAL_REQUIREMENT.md` (architecture). Consult them when implementing a new mechanic — the type definitions and constants are derived from these.
 
@@ -17,6 +17,7 @@ pnpm install
 pnpm dev                  # server :3000 + client :5173 in parallel
 pnpm dev:server           # backend only (pnpm --filter server dev)
 pnpm dev:client           # frontend only
+pnpm test                 # vitest run (server engine tests)
 pnpm typecheck            # tsc --noEmit across all workspaces
 pnpm lint                 # eslint . (flat config; 0 errors required)
 pnpm lint:fix             # eslint . --fix
@@ -27,7 +28,7 @@ pnpm build                # builds client to client/dist
 pnpm redis                # docker compose -f docker-compose.dev.yml up -d redis
 ```
 
-**There is no test runner yet**, but Prettier + ESLint are configured. `pnpm check` (typecheck + lint + format) is the automated gate; run it after changes. A PostToolUse hook (`.claude/hooks/format-and-lint.sh`, wired in `.claude/settings.json`) auto-runs `prettier --write` + `eslint --fix` on every file Claude edits and surfaces any unfixable lint errors. Config: `.prettierrc.json`, `eslint.config.js`. The engine is written to be pure and testable (RNG is injectable via the `Rng` param), so a test harness can be added later without refactoring.
+**Tests** run on Vitest and cover the engine (`server/test/*.test.ts` — turn, rent, cards, effects, pinjol, negotiation, elimination, win, roles, actions, property, passive-income). Run them with `pnpm test` (or `pnpm --filter server test:watch`). The engine is pure and testable because RNG is injectable via the `Rng` param, so games are reproducible. There's no client test suite yet. `pnpm check` (typecheck + lint + format) is the automated gate; run it after changes — and run `pnpm test` when you touch engine code. A PostToolUse hook (`.claude/hooks/format-and-lint.sh`, wired in `.claude/settings.json`) auto-runs `prettier --write` + `eslint --fix` on every file Claude edits and surfaces any unfixable lint errors. Config: `.prettierrc.json`, `eslint.config.js`.
 
 To exercise the game locally, open http://localhost:5173 in two browser tabs to create + join a room.
 
@@ -51,7 +52,7 @@ When adding a new action: add the event to **both** maps in `shared/types/events
 
 ### The engine is pure and I/O-free
 
-`server/src/engine/` contains all game rules with **no I/O**. Functions take `GameState` and mutate it in place (or throw `EngineError`). Randomness is always passed as an injectable `Rng` (`util.ts`, defaults to `Math.random`) so games are reproducible/testable. `engine/index.ts` is the entry point and re-exports board helpers. Key submodules: `turn.ts` (turn/round state machine, passive income), `board.ts` (tile/region queries over shared data), `cards.ts` (Kejadian/Hustle decks), `roles.ts` (role modifiers), plus stubs `effects.ts`, `pinjol.ts`, `negotiation.ts`, `elimination.ts`, `actions.ts`.
+`server/src/engine/` contains all game rules with **no I/O**. Functions take `GameState` and mutate it in place (or throw `EngineError`). Randomness is always passed as an injectable `Rng` (`util.ts`, defaults to `Math.random`) so games are reproducible/testable. `engine/index.ts` is the entry point and re-exports board helpers. Submodules: `turn.ts` (turn/round state machine, passive income), `board.ts` (tile/region queries over shared data), `cards.ts` (Kejadian/Hustle decks), `roles.ts` (role modifiers), `abilities.ts` (role active abilities), `actions.ts` (meta-actions: invest/work/hustle/etc.), `effects.ts` (timed card/status effects), `pinjol.ts` (loans + debt resolution), `negotiation.ts` (structured deals), `elimination.ts` (bankruptcy cascade, voting, final standings).
 
 All player-visible events append to `state.log` via `pushLog` (bounded to 200 entries). Rupiah is always a raw number (`RupiahAmount`); format with `Rp ${n.toLocaleString('id-ID')}`.
 
@@ -61,15 +62,23 @@ All player-visible events append to `state.log` via `pushLog` (bounded to 200 en
 
 ### Client
 
-React with no router — `App.tsx` switches between `Home` / `Lobby` / `Game` screens based on `roomId` and `state.phase` from the store. `store/gameStore.ts` is a single Zustand store that wires up all socket listeners in `init()` and exposes `emit` wrappers as actions plus derived selectors (`me()`, `isMyTurn()`). The socket singleton is in `socket.ts`. In dev, Vite proxies `/api` and `/socket.io` to the backend (`vite.config.ts`); in prod, Caddy does.
+React + `react-router-dom` — `App.tsx` defines routes: `/` (`Home`), `/room/:roomId` (`RoomGate`, which shows `Lobby` or `Game` based on `state.phase`), and `/design` (`StyleGuide`, a live gallery of the design-system primitives). Room URLs are shareable and support leave/auto-rejoin (seat is held by a secret reconnect token). `store/gameStore.ts` is a single Zustand store that wires up all socket listeners in `init()` and exposes `emit` wrappers as actions plus derived selectors (`me()`, `isMyTurn()`). The socket singleton is in `socket.ts`. In dev, Vite proxies `/api` and `/socket.io` to the backend (`vite.config.ts`); in prod, Caddy does.
+
+UI building blocks: a neobrutalist design system under `components/ui/`, framer-motion for board/token/dice animations (`lib/motion.ts`, `store/rollAnimation.ts`), `lucide-react` icons, and a sound system (`sound/` — `AudioManager`, cues driven off state transitions in `stateSounds.ts`, toggle persisted via `sound/settings.ts`).
+
+**i18n** is client-side and per-player (EN/ID) via `i18next` + `react-i18next` (`client/src/i18n/`). UI strings live in `locales/{en,id}.json`; game data from `shared` constants is localized through an overlay in `i18n/gameData.ts`. Server-side game-log/error strings are not yet localized — that's the remaining i18n gap.
 
 ### Persistence
 
-`store.ts` defines a `GameStore` interface with two implementations chosen at startup: `RedisStore` if `REDIS_URL` is set and reachable, else `MemoryStore` (in-memory Map — no Docker needed for local dev). State survives restarts only with Redis. Rooms have a TTL (`ROOM_TTL_HOURS`, default 24h). Supabase (`supabase.ts`) is wired but deferred post-MVP — leave keys blank to disable.
+`store.ts` defines a `GameStore` interface with two implementations chosen at startup: `RedisStore` if `REDIS_URL` is set and reachable, else `MemoryStore` (in-memory Map — no Docker needed for local dev). State survives restarts only with Redis. Rooms have a TTL (`ROOM_TTL_HOURS`, default 24h).
+
+Supabase (`supabase.ts`) persists **final game history** (game row + per-player standings) on game-over via `persistGameResult`, called from `handlers/gameOver.ts`. It's optional: with `SUPABASE_URL`/`SUPABASE_SERVICE_KEY` blank, `getSupabase()` returns null and persistence silently no-ops. This is durable archival only — live game state still lives in Redis/memory, not Supabase.
 
 ## Implementation status
 
-The vertical slice covers: create/join room → lobby (pick role, room-master settings) → start → roll → move → resolve tile (buy property, pay rent, tax, draw card, jail) → end turn. Stubbed and emitting "not implemented" (`game.ts`): `upgrade_property`, `meta_action`, `take_pinjol`, `propose_deal`, `respond_deal`, `sell_property`. Within implemented code, search for `TODO` markers (e.g. investor rent cut, immunity deals, can't-pay→elimination, timed card effects, most role abilities) — these are intentional later-milestone gaps, not bugs.
+The full loop is implemented — there are **no `notImplemented` stubs left** in `game.ts`. Working: create/join/leave/rejoin room → lobby (pick role, room-master settings) → start → roll → move → resolve tile (buy property, pay rent, tax, draw card, jail) → meta-actions (invest/work/hustle/sabotage/korupsi/negotiate) → property & tier upgrades / downgrades / sells → pinjol loans + debt resolution → structured negotiation deals → role active abilities → voting → elimination/bankruptcy cascade → win conditions → game-over with final standings (optionally archived to Supabase).
+
+Remaining gaps are balance/content TODOs, not missing systems — search for `TODO` in `server/src/engine/` (e.g. the role-modifier follow-ups in `roles.ts`). The other known gap is server-side i18n (game-log/error strings are English-only). Treat `TODO` markers as intentional later-milestone work, not bugs.
 
 ## Conventions
 
