@@ -18,11 +18,11 @@
     "@tuan-tanah/shared": "workspace:*",
     "fastify": "^5.8.3",
     "ioredis": "^5.4.1",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "tsx": "^4.19.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
-    "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.9"
   }
