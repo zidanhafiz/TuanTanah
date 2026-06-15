@@ -11,7 +11,14 @@ import {
 import { createRoom, mutateRoom } from '../rooms.js'
 import { clearSession, setSession } from '../sessions.js'
 import type { GameStore } from '../store.js'
-import { broadcastState, guard, requireSession, type TTServer, type TTSocket } from './common.js'
+import {
+  broadcastState,
+  guard,
+  requireSession,
+  sendStateTo,
+  type TTServer,
+  type TTSocket,
+} from './common.js'
 import { concludeIfWon, scheduleTimeLimit } from './gameOver.js'
 
 export function registerLobbyHandlers(io: TTServer, socket: TTSocket, store: GameStore): void {
@@ -75,6 +82,15 @@ export function registerLobbyHandlers(io: TTServer, socket: TTSocket, store: Gam
       ack?.({ ok: false, error: (err as Error).message ?? 'Could not rejoin' })
     }
   })
+
+  // Resync on demand (e.g. a tab returning from the background). Read-only: just
+  // re-send the caller the canonical state — no mutation, and only to this socket.
+  socket.on('request_state', () =>
+    guard(socket, async () => {
+      const { roomId } = requireSession(socket)
+      await sendStateTo(socket, store, roomId)
+    }),
+  )
 
   socket.on('pick_role', (payload) =>
     guard(socket, async () => {

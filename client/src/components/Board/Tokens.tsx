@@ -1,8 +1,9 @@
 import { JAIL_GO_TILE_ID, JAIL_TILE_ID, type GameState, type Player } from '@tuan-tanah/shared'
 import { motion, useAnimationControls } from 'framer-motion'
 import { useEffect, useRef } from 'react'
+import { onResync } from '../../lib/resync.js'
 import { useGame } from '../../store/gameStore.js'
-import { useRollAnim } from '../../store/rollAnimation.js'
+import { isRollAnimStuck, useRollAnim } from '../../store/rollAnimation.js'
 import { tileCenter, tokenOffset } from './geometry.js'
 
 const STEP_SEC = 0.13 // per-tile hop duration
@@ -64,6 +65,9 @@ function PlayerToken({
   const bob = useAnimationControls()
   const prevPos = useRef(player.position)
   const prevInJail = useRef(player.inJail)
+  // Cancel handle for the in-flight walk/teleport, held in a ref so the
+  // visibility reconcile (below) can abort a journey frozen by tab-backgrounding.
+  const runRef = useRef<{ cancelled: boolean } | null>(null)
   const off = tokenOffset(seatIndex, totalSeats)
   const phase = useRollAnim((s) => s.phase)
 
@@ -100,13 +104,14 @@ function PlayerToken({
     prevPos.current = to
     prevInJail.current = player.inJail
 
-    let cancelled = false
+    const journey = { cancelled: false }
+    runRef.current = journey
 
     // Hop through each intermediate tile from `from` to `target` (forward only).
     const walkTo = async (target: number) => {
       const steps = (target - from + 40) % 40
       for (let s = 1; s <= steps; s++) {
-        if (cancelled) return
+        if (journey.cancelled) return
         const id = (from + s) % 40
         void bob.start({
           y: [0, -9, 0],
@@ -121,14 +126,14 @@ function PlayerToken({
     // little tumble), then land with a squash. Shared by every way into jail.
     const pullToJail = async () => {
       await bob.start({ scale: 1.35, y: -4, transition: { duration: 0.12, ease: 'easeOut' } })
-      if (cancelled) return
+      if (journey.cancelled) return
       void bob.start({
         rotate: [0, -14, 6, 0],
         scale: [1.35, 0.9, 1],
         transition: { duration: 0.42, ease: 'easeIn' },
       })
       await move.start({ ...coord(JAIL_TILE_ID), transition: { duration: 0.42, ease: 'easeIn' } })
-      if (cancelled) return
+      if (journey.cancelled) return
       await bob.start({ scale: [1.12, 1], y: 0, transition: { duration: 0.12, ease: 'easeOut' } })
     }
 
@@ -137,35 +142,56 @@ function PlayerToken({
         // Step onto the go-to-jail corner first (dice landing), beat, then get pulled.
         if (jailVia != null) {
           await walkTo(jailVia)
-          if (cancelled) return
+          if (journey.cancelled) return
           await bob.start({ scale: [1, 1.2, 1], transition: { duration: 0.16, ease: 'easeOut' } })
           await wait(JAIL_BEAT_MS)
-          if (cancelled) return
+          if (journey.cancelled) return
         }
         await pullToJail()
       } else if (isWalk) {
         await walkTo(to)
-        if (!cancelled) {
+        if (!journey.cancelled) {
           void bob.start({ scale: [1, 1.25, 1], transition: { duration: 0.18, ease: 'easeOut' } })
         }
       } else {
         // Teleport: lift, slide, drop.
         await bob.start({ scale: 1.35, transition: { duration: 0.12 } })
-        if (cancelled) return
+        if (journey.cancelled) return
         await move.start({ ...coord(to), transition: { duration: 0.28, ease: 'easeInOut' } })
-        if (cancelled) return
+        if (journey.cancelled) return
         await bob.start({ scale: 1, transition: { duration: 0.12 } })
       }
     }
     void run()
     return () => {
-      cancelled = true
+      journey.cancelled = true
     }
     // Re-runs on position change, jail state, and cinematic phase change (so a held
     // walk resumes when the dice settle). expectedSteps/isRoller are read fresh on
     // each run and intentionally not in the dep list.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player.position, player.inJail, phase])
+
+  // Backgrounding a tab pauses requestAnimationFrame and throttles timers, so a
+  // walk in flight freezes mid-board and Framer never reliably resumes it — the
+  // token is left stranded until a reload. On return (or, as a fallback, a click
+  // when the cinematic looks stuck), abort the frozen journey and snap this token
+  // straight to its authoritative position (what a reload does), then reset the
+  // resting transforms. The store also requests a fresh state broadcast; this snap
+  // is what moves the token's imperative controls, since a same-position resync
+  // won't re-run the walk effect below. Skip a plain click during a healthy
+  // animation so it isn't cut short.
+  useEffect(() => {
+    return onResync((viaInteraction) => {
+      if (viaInteraction && !isRollAnimStuck()) return
+      if (runRef.current) runRef.current.cancelled = true
+      move.set(coord(player.position))
+      bob.set({ x: 0, y: 0, scale: 1, rotate: 0 })
+      prevPos.current = player.position
+      prevInJail.current = player.inJail
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player.position, player.inJail, seatIndex, totalSeats])
 
   return (
     <motion.div

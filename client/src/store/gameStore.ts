@@ -13,9 +13,16 @@ import {
   type TileId,
 } from '@tuan-tanah/shared'
 import { create } from 'zustand'
+import { onResync } from '../lib/resync.js'
 import { socket } from '../socket.js'
 import { audio, playSound, playStateSounds } from '../sound/index.js'
-import { noteIncomingState, playOnMoveSettled, resetRollAnim } from './rollAnimation.js'
+import {
+  isRollAnimStuck,
+  noteIncomingState,
+  playOnMoveSettled,
+  reconcileRollAnim,
+  resetRollAnim,
+} from './rollAnimation.js'
 
 const HUSTLE_NAME = new Map(HUSTLE_CARDS.map((c) => [c.id, c.name]))
 const KEJADIAN_NAME = new Map(KEJADIAN_CARDS.map((c) => [c.id, c.name]))
@@ -202,6 +209,20 @@ export const useGame = create<GameStore>((set, get) => ({
     socket.on('deal_proposed', ({ deal }) => {
       // Only the target needs to respond; ignore offers addressed to others.
       if (deal.toPlayerId === get().playerId) set({ incomingDeal: deal })
+    })
+
+    // Resync the UI with the server when the page returns to the foreground, and
+    // also on user interaction as a fallback (some setups don't fire focus/
+    // visibility reliably). A backgrounded tab freezes requestAnimationFrame and
+    // throttles timers, so in-flight animations stall and broadcasts can be missed
+    // without ever disconnecting (so no auto-rejoin fires). Always re-request
+    // authoritative state — that's cheap and read-only. Only force-reset the roll
+    // cinematic on a true reactivation, or on a click when it actually looks stuck,
+    // so clicking during a healthy animation doesn't cut it short.
+    onResync((viaInteraction) => {
+      if (!socket.connected || !get().roomId) return
+      if (!viaInteraction || isRollAnimStuck()) reconcileRollAnim()
+      socket.emit('request_state')
     })
 
     // autoConnect may have already fired 'connect' before this listener was registered.

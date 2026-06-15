@@ -20,6 +20,19 @@ export async function broadcastState(
   io.to(roomId).emit('game_state', safe)
 }
 
+/** Send the canonical game state to a single socket (e.g. a resync request). */
+export async function sendStateTo(
+  socket: TTSocket,
+  store: GameStore,
+  roomId: string,
+): Promise<void> {
+  const state = await store.get(roomId)
+  if (!state) return
+  // Same token-stripping invariant as broadcastState — never leak reconnect tokens.
+  const { reconnectTokens: _tokens, ...safe } = state
+  socket.emit('game_state', safe)
+}
+
 /** Run an async handler body, turning thrown errors into a socket `error` event. */
 export async function guard(socket: TTSocket, fn: () => Promise<void>): Promise<void> {
   try {

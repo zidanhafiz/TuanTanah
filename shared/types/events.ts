@@ -43,6 +43,10 @@ export interface ClientToServerEvents {
   // Deliberate exit: leave the lobby (removed) or forfeit an in-progress game
   // (eliminated). Distinct from a socket disconnect, which keeps the seat.
   leave_room: () => void
+  // Read-only resync: re-send the caller the canonical state. Used when a tab
+  // returns from the background (where rAF/timers froze and the UI may have
+  // drifted) without a socket disconnect to trigger an auto-rejoin.
+  request_state: () => void
   pick_role: (payload: { role: Role | null }) => void
   update_settings: (payload: { settings: Partial<RoomSettings> }) => void
   start_game: () => void
