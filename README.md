@@ -49,14 +49,18 @@ pnpm --filter client dev  # frontend only
 
 If `REDIS_URL` is unset or unreachable, the server falls back to an in-memory game store — handy for quick local dev. Set `REDIS_URL` (see `.env.example`) to use Redis so state survives a server restart.
 
-## Production (Contabo VPS)
+## Production (VPS, HTTPS)
+
+The prod stack is Docker Compose: **Caddy** (serves the built client, proxies the
+API, auto-issues Let's Encrypt TLS) + **backend** + **redis**. No host build step —
+the client is built inside the image.
 
 ```bash
-cp .env.example .env      # fill in Supabase keys (optional for MVP)
-pnpm install
-pnpm build                # builds client to client/dist
-docker compose up -d      # nginx + backend + redis
+cp .env.example .env      # set NODE_ENV, CORS_ORIGINS, DOMAIN, ACME_EMAIL
+make deploy               # git pull + docker compose up -d --build
 ```
+
+See [`docs/DEPLOY.md`](docs/DEPLOY.md) for the full runbook (DNS, firewall, verify, ops).
 
 ## Environment
 

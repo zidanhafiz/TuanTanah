@@ -1,0 +1,48 @@
+# Tuan Tanah production reverse proxy + static host (Caddy v2, auto-TLS).
+# Caddy obtains and renews Let's Encrypt certs automatically for $DOMAIN and
+# redirects HTTP->HTTPS on its own. DOMAIN and ACME_EMAIL come from the prod .env
+# (passed through docker-compose). For local testing without a public domain,
+# set DOMAIN=localhost (Caddy issues an internal self-signed cert).
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	# Cap request bodies — this API has no large-upload routes.
+	request_body {
+		max_size 64KB
+	}
+
+	# Security headers (mirrors the previous nginx config). HSTS is safe here
+	# because Caddy always terminates TLS.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		# SPA + same-origin websocket. 'unsafe-inline' style is needed for the
+		# framer-motion / Vite inline styles; scripts stay locked to 'self'.
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; media-src 'self'; connect-src 'self' wss:"
+		# Drop the Server header.
+		-Server
+	}
+
+	# REST API (room creation, health).
+	handle /api/* {
+		reverse_proxy backend:3000
+	}
+
+	# Socket.io — Caddy upgrades to WebSocket automatically.
+	handle /socket.io/* {
+		reverse_proxy backend:3000
+	}
+
+	# Built React SPA — fall back to index.html for client-side routes.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

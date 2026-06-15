@@ -61,7 +61,7 @@ All player-visible events append to `state.log` via `pushLog` (bounded to 200 en
 
 ### Client
 
-React with no router — `App.tsx` switches between `Home` / `Lobby` / `Game` screens based on `roomId` and `state.phase` from the store. `store/gameStore.ts` is a single Zustand store that wires up all socket listeners in `init()` and exposes `emit` wrappers as actions plus derived selectors (`me()`, `isMyTurn()`). The socket singleton is in `socket.ts`. In dev, Vite proxies `/api` and `/socket.io` to the backend (`vite.config.ts`); in prod, nginx does.
+React with no router — `App.tsx` switches between `Home` / `Lobby` / `Game` screens based on `roomId` and `state.phase` from the store. `store/gameStore.ts` is a single Zustand store that wires up all socket listeners in `init()` and exposes `emit` wrappers as actions plus derived selectors (`me()`, `isMyTurn()`). The socket singleton is in `socket.ts`. In dev, Vite proxies `/api` and `/socket.io` to the backend (`vite.config.ts`); in prod, Caddy does.
 
 ### Persistence
 
