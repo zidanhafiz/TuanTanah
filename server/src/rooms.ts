@@ -45,10 +45,13 @@ export async function mutateRoom<T>(
     return result
   })
   // Keep the chain alive regardless of individual failures.
-  chains.set(
-    roomId,
-    next.catch(() => undefined),
-  )
+  const settled = next.catch(() => undefined)
+  chains.set(roomId, settled)
+  // Drop the entry once this mutation settles, unless a newer one was queued
+  // behind it — otherwise the map would grow by one promise per room forever.
+  void settled.finally(() => {
+    if (chains.get(roomId) === settled) chains.delete(roomId)
+  })
   return next
 }
 

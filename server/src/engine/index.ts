@@ -181,9 +181,15 @@ export function updateSettings(
     }
   }
   if (partial.enabledRoles) {
+    if (!Array.isArray(partial.enabledRoles)) throw new EngineError('Invalid roles')
+    // Reject unknown role ids and de-dupe, so a crafted client can't inject
+    // arbitrary strings into shared state.
+    const valid = [...new Set(partial.enabledRoles)].filter((r) => ALL_ROLES.includes(r))
+    if (valid.length === 0) throw new EngineError('At least one role must be enabled')
+    next.enabledRoles = valid
     // Unpick any roles that became disabled.
     for (const p of state.players) {
-      if (p.role && !partial.enabledRoles.includes(p.role)) p.role = null
+      if (p.role && !valid.includes(p.role)) p.role = null
     }
   }
   if (partial.requireFullRegionToBuild !== undefined) {
