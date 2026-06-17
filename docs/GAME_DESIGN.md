@@ -81,14 +81,14 @@ Richest = total cash + all property values at current tier
 
 | Region     | Color      | Buy Price   | House Rent Base | Property Passive Base |
 | ---------- | ---------- | ----------- | --------------- | --------------------- |
-| Papua      | Brown      | Rp 600rb    | Rp 200rb        | Rp 100rb              |
-| Kalimantan | Dark Green | Rp 1 juta   | Rp 350rb        | Rp 175rb              |
-| Medan      | Yellow     | Rp 1.5 juta | Rp 500rb        | Rp 250rb              |
-| Yogyakarta | Light Blue | Rp 2 juta   | Rp 700rb        | Rp 350rb              |
-| Lombok     | Pink       | Rp 2.5 juta | Rp 900rb        | Rp 450rb              |
-| Surabaya   | Red        | Rp 3.5 juta | Rp 1.2 juta     | Rp 600rb              |
-| Bali       | Orange     | Rp 6 juta   | Rp 2 juta       | Rp 1 juta             |
-| Jakarta    | Dark Grey  | Rp 10 juta  | Rp 4 juta       | Rp 2 juta             |
+| Papua      | Brown      | Rp 600rb    | Rp 140rb        | Rp 100rb              |
+| Kalimantan | Dark Green | Rp 1 juta   | Rp 245rb        | Rp 175rb              |
+| Medan      | Yellow     | Rp 1.5 juta | Rp 350rb        | Rp 250rb              |
+| Yogyakarta | Light Blue | Rp 2 juta   | Rp 490rb        | Rp 350rb              |
+| Lombok     | Pink       | Rp 2.5 juta | Rp 630rb        | Rp 450rb              |
+| Surabaya   | Red        | Rp 3.5 juta | Rp 840rb        | Rp 600rb              |
+| Bali       | Orange     | Rp 4.5 juta | Rp 1.4 juta     | Rp 1 juta             |
+| Jakarta    | Dark Grey  | Rp 6 juta   | Rp 2.8 juta     | Rp 2 juta             |
 
 Region bonus when full set owned: **rent ×2, passive ×2**
 
@@ -172,15 +172,15 @@ During **Mudik Season** card: all transport tiles earn 2x
 
 ### ⚡ Meta Actions
 
-| Action    | Cost           | Effect                                                       |
-| --------- | -------------- | ------------------------------------------------------------ |
-| Invest    | Property price | Buy unowned tile or upgrade your tile                        |
-| Work      | Free           | Skip movement this turn, collect salary                      |
-| Hustle    | Free           | Draw one Hustle card                                         |
-| Lobby     | Rp 2 juta      | Negatively affect another player (block upgrade, delay turn) |
-| Sabotage  | Rp 3 juta      | Trigger a kejadian effect on one specific tile               |
-| Korupsi   | Risk           | Steal from bank — 60% success, 40% caught = jail + fine      |
-| Negotiate | Free           | Propose structured deal to any player                        |
+| Action    | Cost           | Effect                                                                      |
+| --------- | -------------- | --------------------------------------------------------------------------- |
+| Invest    | Property price | Buy unowned tile or upgrade your tile                                       |
+| Work      | Free           | Skip movement this turn, collect salary                                     |
+| Hustle    | Free           | Draw one Hustle card                                                        |
+| Lobby     | Rp 2 juta      | Negatively affect another player (block upgrade, delay turn)                |
+| Sabotage  | Rp 3 juta      | Trigger a kejadian effect on one specific tile                              |
+| Korupsi   | Risk           | Steal Rp 7 juta from bank — 30% success, 70% caught = jail + Rp 2 juta fine |
+| Negotiate | Free           | Propose structured deal to any player                                       |
 
 ---
 

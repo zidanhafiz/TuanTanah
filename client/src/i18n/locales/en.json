@@ -169,7 +169,7 @@
       "hustle": "Draw a Hustle card — a risky side gig with a random payoff.",
       "lobby": "Pay to make a rival skip their next turn.",
       "sabotage": "Pay to halve the rent a rival collects on a chosen tile for 2 rounds.",
-      "korupsi": "Gamble for a quick payout — 60% you steal from the bank, 40% you're jailed and fined."
+      "korupsi": "Gamble for a quick payout — 30% you steal Rp 7 juta from the bank, 70% you're jailed and fined."
     }
   },
   "ability": {

@@ -54,7 +54,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     name: 'Papua',
     color: '#8B5A2B', // brown
     buyPrice: rb(600),
-    rentBase: rb(200),
+    rentBase: rb(140),
     passiveBase: rb(100),
     tileIds: [1, 2, 3],
   },
@@ -63,7 +63,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     name: 'Kalimantan',
     color: '#14532D', // dark green
     buyPrice: jt(1),
-    rentBase: rb(350),
+    rentBase: rb(245),
     passiveBase: rb(175),
     tileIds: [6, 7, 8],
   },
@@ -72,7 +72,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     name: 'Medan',
     color: '#CA8A04', // yellow
     buyPrice: jt(1.5),
-    rentBase: rb(500),
+    rentBase: rb(350),
     passiveBase: rb(250),
     tileIds: [11, 12, 13],
   },
@@ -81,7 +81,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     name: 'Yogyakarta',
     color: '#7DD3FC', // light blue
     buyPrice: jt(2),
-    rentBase: rb(700),
+    rentBase: rb(490),
     passiveBase: rb(350),
     tileIds: [15, 17, 18],
   },
@@ -90,7 +90,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     name: 'Lombok',
     color: '#F472B6', // pink
     buyPrice: jt(2.5),
-    rentBase: rb(900),
+    rentBase: rb(630),
     passiveBase: rb(450),
     tileIds: [21, 22, 23],
   },
@@ -99,7 +99,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     name: 'Surabaya',
     color: '#DC2626', // red
     buyPrice: jt(3.5),
-    rentBase: jt(1.2),
+    rentBase: rb(840),
     passiveBase: rb(600),
     tileIds: [25, 26, 27],
   },
@@ -107,8 +107,8 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     id: 'bali',
     name: 'Bali',
     color: '#EA580C', // orange
-    buyPrice: jt(6),
-    rentBase: jt(2),
+    buyPrice: jt(4.5),
+    rentBase: jt(1.4),
     passiveBase: jt(1),
     tileIds: [31, 32],
   },
@@ -116,8 +116,8 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     id: 'jakarta',
     name: 'Jakarta',
     color: '#374151', // dark grey
-    buyPrice: jt(10),
-    rentBase: jt(4),
+    buyPrice: jt(6),
+    rentBase: jt(2.8),
     passiveBase: jt(2),
     tileIds: [35, 36],
   },
@@ -429,9 +429,9 @@ export const META_ACTION_COSTS = {
 // Pinjol and Negosiasi are unlimited and not counted against this.
 export const META_ACTIONS_PER_LAP = 3
 
-export const KORUPSI_SUCCESS_RATE = 0.6 // 60% success, 40% caught
-export const KORUPSI_STEAL_AMOUNT: RupiahAmount = jt(5) // taken from bank on success
-export const KORUPSI_FINE: RupiahAmount = jt(3) // paid to bank when caught (matches Korupsi Terungkap card)
+export const KORUPSI_SUCCESS_RATE = 0.3 // 30% success, 70% caught
+export const KORUPSI_STEAL_AMOUNT: RupiahAmount = jt(7) // taken from bank on success
+export const KORUPSI_FINE: RupiahAmount = jt(2) // paid to bank when caught (matches Korupsi Terungkap card)
 
 // Sabotage applies a temporary rent_multiplier effect to one tile.
 export const SABOTAGE_RENT_MULTIPLIER = 0.5 // halves the target tile's rent
