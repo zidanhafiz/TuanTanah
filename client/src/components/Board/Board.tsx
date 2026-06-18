@@ -6,7 +6,7 @@ import { isRollAnimating, useRollAnim } from '../../store/rollAnimation.js'
 import { DiceRoller } from '../DiceRoller/DiceRoller.js'
 import { FloatUp } from '../ui/FloatUp.js'
 import { EDGE_TRACK, gridPos, innerSide } from './geometry.js'
-import { OwnerPips, Tile } from './Tile.js'
+import { Tile, TilePips } from './Tile.js'
 import { TokenLayer } from './Tokens.js'
 
 // Beat added after the token lands before the center flash appears, so it reads
@@ -140,7 +140,6 @@ export function Board({
               isCurrent={isCurrent}
               selectable={selectable}
               flip={flip}
-              effects={tileEffects}
               onSelect={onSelectTile}
               t={t}
             />
@@ -162,7 +161,13 @@ export function Board({
               ) : (
                 tileEl
               )}
-              {owner && <OwnerPips tile={tile} owner={owner} side={innerSide(def.id)} />}
+              <TilePips
+                tile={tile}
+                owner={owner}
+                effects={tileEffects}
+                side={innerSide(def.id)}
+                t={t}
+              />
             </div>
           )
         })}

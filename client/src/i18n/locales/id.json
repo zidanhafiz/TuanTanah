@@ -263,6 +263,7 @@
     "transportsOwned": "Transportasi dimiliki",
     "transportCount": "{{count}} dimiliki",
     "cantOwn": "Petak ini tidak bisa dimiliki.",
+    "activeEffects": "Efek aktif",
     "unbuilt": "Belum dibangun",
     "tierFallback": "Tingkat {{tier}}",
     "buildRentCut": "Bangun di petak ini — kamu dapat potongan sewa:",
@@ -502,7 +503,8 @@
       "transport_multiplier": "Transport ×{{multiplier}}",
       "tier_drop": "Tingkat −{{multiplier}}",
       "rounds_one": "{{count}} ronde lagi",
-      "rounds_other": "{{count}} ronde lagi"
+      "rounds_other": "{{count}} ronde lagi",
+      "sabotageSource": "Sabotase"
     }
   }
 }

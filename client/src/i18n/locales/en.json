@@ -263,6 +263,7 @@
     "transportsOwned": "Transports owned",
     "transportCount": "{{count}} owned",
     "cantOwn": "This tile can't be owned.",
+    "activeEffects": "Active effects",
     "unbuilt": "Unbuilt",
     "tierFallback": "Tier {{tier}}",
     "buildRentCut": "Build on this tile — you earn a rent cut:",
@@ -502,7 +503,8 @@
       "transport_multiplier": "Transport ×{{multiplier}}",
       "tier_drop": "Tier −{{multiplier}}",
       "rounds_one": "{{count}} round left",
-      "rounds_other": "{{count}} rounds left"
+      "rounds_other": "{{count}} rounds left",
+      "sabotageSource": "Sabotage"
     }
   }
 }

@@ -331,6 +331,33 @@ export function rollDice(state: GameState, playerId: string, rng: Rng = defaultR
   return { dice: [d1, d2], ...movePlayer(state, player, d1 + d2, rng) }
 }
 
+/**
+ * DEV-only: place the current player on `tileId` and resolve that tile exactly as
+ * a normal landing would (rent, buy prompt, card draw, jail, tax, vacation, …),
+ * but with no dice roll. The tile is resolved in isolation — no GO salary or
+ * passive income — so a single tile's effect can be tested cleanly; roll normally
+ * to exercise passing GO. Marks the turn as moved (`hasRolled`) so the only valid
+ * follow-up is ending the turn. Exposed via the `dev_teleport` handler, which is
+ * gated to dev builds.
+ */
+export function devTeleport(
+  state: GameState,
+  playerId: string,
+  tileId: TileId,
+  rng: Rng = defaultRng,
+): RollResult {
+  const player = requireTurn(state, playerId)
+  if (!Number.isInteger(tileId) || tileId < 0 || tileId >= BOARD_SIZE) {
+    throw new EngineError('Invalid tile')
+  }
+  player.position = tileId
+  state.turn.hasRolled = true
+  state.turn.lastDice = null
+  state.turn.rolledDoubles = false
+  pushLog(state, `[DEV] ${player.name} teleported to ${getTileDef(tileId).name}`, player.id)
+  return { dice: [0, 0], ...resolveTile(state, player, rng) }
+}
+
 function movePlayer(
   state: GameState,
   player: Player,

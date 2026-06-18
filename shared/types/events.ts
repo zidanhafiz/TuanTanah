@@ -82,6 +82,9 @@ export interface ClientToServerEvents {
   resolve_debt: (payload: { giveUp: boolean }) => void
   cast_vote: (payload: { targetId: string }) => void
   end_turn: () => void
+  // DEV-only: move the current player straight to a tile (no dice) and resolve it.
+  // The server ignores this outside dev builds (see `isDev`).
+  dev_teleport: (payload: { tileId: TileId }) => void
 }
 
 // ---- Server → Client ----

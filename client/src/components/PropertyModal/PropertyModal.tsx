@@ -18,7 +18,8 @@ import {
 } from '@tuan-tanah/shared'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { tierName, tileName } from '../../i18n/gameData.js'
+import { effectSourceName, tierName, tileEffectLabel, tileName } from '../../i18n/gameData.js'
+import { EffectIcon, isTileEffect } from '../Board/icons.js'
 import { Badge, Button, Card, Modal } from '../ui/index.js'
 import { formatRupiah, useGame } from '../../store/gameStore.js'
 
@@ -97,6 +98,11 @@ export function PropertyModal({
   const isLand = def.type === 'buildable_land'
   const owner = tile.ownerId ? state.players.find((p) => p.id === tile.ownerId) : null
   const region = def.region ? REGIONS[def.region] : null
+  // Card effects currently on this tile (rent/transport multiplier, gempa/banjir
+  // tier drop) — same set surfaced as the on-board indicator.
+  const tileEffects = state.activeEffects.filter(
+    (e) => isTileEffect(e) && e.targetTileIds?.includes(tileId),
+  )
   const refund = Math.round(tileValue(tile) * SELL_REFUND_RATE)
   // Sellable on your turn, or out of turn while you owe a debt (to raise cash).
   const iOweDebt = me ? state.pendingDebts.some((d) => d.debtorId === me.id) : false
@@ -290,6 +296,33 @@ export function PropertyModal({
                 ))}
               </tbody>
             </table>
+          </Card>
+        </div>
+      )}
+
+      {tileEffects.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-muted">
+            {t('property.activeEffects')}
+          </div>
+          <Card flat tone="sunken" className="space-y-2 p-3 text-sm">
+            {tileEffects.map((effect) => {
+              const source = effectSourceName(t, effect.sourceCard)
+              return (
+                <div key={effect.id} className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-2 border-ink bg-surface shadow-brutal-xs">
+                    <EffectIcon effect={effect} className="h-4 w-4" />
+                  </span>
+                  <div className="flex flex-1 items-baseline justify-between gap-2">
+                    <span className="font-semibold text-ink">
+                      {source ??
+                        t(`data.effects.${effect.type}`, { multiplier: effect.multiplier ?? 1 })}
+                    </span>
+                    <span className="text-xs text-ink-muted">{tileEffectLabel(t, effect)}</span>
+                  </div>
+                </div>
+              )
+            })}
           </Card>
         </div>
       )}

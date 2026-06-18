@@ -3,6 +3,7 @@ import { castVote, performMetaAction } from '../engine/actions.js'
 import {
   buildLahan,
   buyProperty,
+  devTeleport,
   downgradeProperty,
   endTurn,
   lawOfficeBuy,
@@ -21,6 +22,7 @@ import {
   upgradeProperty,
   useAbility,
 } from '../engine/index.js'
+import { isDev } from '../env.js'
 import { mutateRoom } from '../rooms.js'
 import type { GameStore } from '../store.js'
 import { broadcastState, guard, requireSession, type TTServer, type TTSocket } from './common.js'
@@ -50,6 +52,29 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       const { roomId, playerId } = requireSession(socket)
       const { value: result, eliminated } = await mutateRoom(store, roomId, (state) =>
         runWithEliminations(state, () => rollDice(state, playerId)),
+      )
+      await broadcastState(io, store, roomId)
+      emitEliminated(io, roomId, eliminated)
+      if (result.card) {
+        io.to(roomId).emit('card_drawn', {
+          type: result.card.type,
+          card: result.card.card,
+          playerId,
+        })
+      }
+      if (result.rent) io.to(roomId).emit('rent_paid', result.rent)
+      await concludeIfWon(io, store, roomId)
+    }),
+  )
+
+  // DEV-only: jump the current player to a tile and resolve it (no dice). Mirrors
+  // the roll_dice side-effects (card/rent/elimination); ignored in production.
+  socket.on('dev_teleport', (payload) =>
+    guard(socket, async () => {
+      if (!isDev) return
+      const { roomId, playerId } = requireSession(socket)
+      const { value: result, eliminated } = await mutateRoom(store, roomId, (state) =>
+        runWithEliminations(state, () => devTeleport(state, playerId, payload.tileId)),
       )
       await broadcastState(io, store, roomId)
       emitEliminated(io, roomId, eliminated)

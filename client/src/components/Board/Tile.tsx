@@ -8,10 +8,10 @@ import {
   type TileState,
 } from '@tuan-tanah/shared'
 import type { TFunction } from 'i18next'
-import { tileEffectLabel, tileName } from '../../i18n/gameData.js'
+import { tileName } from '../../i18n/gameData.js'
 import { compactRupiah } from '../../lib/format.js'
 import type { Side } from './geometry.js'
-import { DevGlyph, TileGlyph, TYPE_COLOR } from './icons.js'
+import { DevGlyph, EffectGlyph, isTileEffect, TileGlyph, TYPE_COLOR } from './icons.js'
 
 /**
  * One board cell. Properties show a colored region header band + name + price;
@@ -26,7 +26,6 @@ export function Tile({
   isCurrent,
   selectable,
   flip,
-  effects,
   onSelect,
   t,
 }: {
@@ -37,8 +36,6 @@ export function Tile({
   selectable: boolean
   /** Top-row tiles flip their internal order so the colored band hugs the board center. */
   flip?: boolean
-  /** Active card effects currently targeting this tile (for the impact marker). */
-  effects?: ActiveEffect[]
   onSelect?: (id: TileId) => void
   t: TFunction
 }) {
@@ -47,26 +44,6 @@ export function Tile({
   const hasIcon = def.type !== 'property'
   const price = region ? region.buyPrice : def.type === 'transport' ? TRANSPORT_BUY_PRICE : null
   const name = tileName(t, def.id)
-
-  // Impact marker for any card effect targeting this tile (e.g. Viral di Medsos
-  // rent boost, Banjir Jakarta tier drop). Shows a badge with the full list on hover.
-  const effectLabels = (effects ?? [])
-    .map((e) => tileEffectLabel(t, e))
-    .filter((l): l is string => l !== null)
-  const effectMarker =
-    effectLabels.length > 0 ? (
-      <div
-        className="absolute left-[0.3cqw] top-[0.3cqw] z-20 flex items-center gap-[0.2cqw] rounded border border-ink bg-warning px-[0.3cqw] text-[0.9cqw] font-extrabold leading-none text-ink"
-        title={effectLabels.join(' · ')}
-      >
-        <span>⚡</span>
-        {effectLabels.length === 1 ? (
-          <span>{effectLabels[0]}</span>
-        ) : (
-          <span>{effectLabels.length}</span>
-        )}
-      </div>
-    ) : null
 
   // When flipped, the header band sits on the bottom (band pulled into bottom
   // padding) and the price floats to the top; otherwise the classic top-down
@@ -123,7 +100,6 @@ export function Tile({
         isCurrent ? 'z-10 ring-2 ring-info shadow-brutal-sm' : isPending ? 'z-10 shadow-brutal' : ''
       } ${selectable ? 'cursor-pointer hover:z-10 hover:-translate-x-px hover:-translate-y-px hover:shadow-brutal' : ''}`}
     >
-      {effectMarker}
       {flip && ownerBand}
       <div className="flex h-full flex-col p-[0.6cqw]">
         {flip ? (
@@ -155,34 +131,47 @@ const SIDE_POS: Record<Side, string> = {
 }
 
 /**
- * Development pips for an owned tile, floated just outside the tile toward the
- * board center (so they never crowd the small cell). A single dot means owned
- * but undeveloped; otherwise one house/building pip per tier in the owner color.
+ * Pips floated just outside the tile toward the board center (so they never
+ * crowd the small cell). Renders the ownership indicator — a single dot when
+ * owned-but-undeveloped, otherwise the house/building dev glyph — followed by an
+ * icon for each active card effect on the tile (rent/transport multiplier, the
+ * gempa/banjir tier drop). Renders nothing when the tile is neither owned nor
+ * affected.
  */
-export function OwnerPips({
+export function TilePips({
   tile,
   owner,
+  effects,
   side,
+  t,
 }: {
   tile: TileState | undefined
-  owner: Player
+  owner: Player | null
+  effects: ActiveEffect[]
   side: Side
+  t: TFunction
 }) {
   const tier = tile?.tier ?? 0
   const track = tile?.track ?? null
+  const tileEffects = effects.filter(isTileEffect)
+  if (!owner && tileEffects.length === 0) return null
   return (
-    <div
-      className={`absolute z-20 flex items-center ${SIDE_POS[side]}`}
-      title={tier > 0 ? `${owner.name} · T${tier}` : owner.name}
-    >
-      {tier <= 0 || !track ? (
-        <span
-          className="h-[1.4cqw] w-[1.4cqw] rounded-full border border-ink"
-          style={{ background: owner.color }}
-        />
-      ) : (
-        <DevGlyph track={track} tier={tier} color={owner.color} />
-      )}
+    <div className={`absolute z-20 flex items-center gap-[0.3cqw] ${SIDE_POS[side]}`}>
+      {owner &&
+        (tier <= 0 || !track ? (
+          <span
+            className="h-[1.4cqw] w-[1.4cqw] rounded-full border border-ink"
+            style={{ background: owner.color }}
+            title={owner.name}
+          />
+        ) : (
+          <span className="flex items-center" title={`${owner.name} · T${tier}`}>
+            <DevGlyph track={track} tier={tier} color={owner.color} />
+          </span>
+        ))}
+      {tileEffects.map((effect) => (
+        <EffectGlyph key={effect.id} effect={effect} t={t} />
+      ))}
     </div>
   )
 }
