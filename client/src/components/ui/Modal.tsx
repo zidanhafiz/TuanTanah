@@ -57,10 +57,10 @@ export function Modal({
           <motion.div
             {...modalPanel}
             onClick={(e) => e.stopPropagation()}
-            className={`w-full ${MAX_W[size]} overflow-hidden rounded-xl border-2 border-ink bg-surface shadow-brutal-xl ${className}`}
+            className={`flex max-h-full w-full ${MAX_W[size]} flex-col overflow-hidden rounded-xl border-2 border-ink bg-surface shadow-brutal-xl ${className}`}
           >
             {title != null && (
-              <div className="flex items-center justify-between gap-3 border-b-2 border-ink bg-accent px-4 py-2.5">
+              <div className="flex shrink-0 items-center justify-between gap-3 border-b-2 border-ink bg-accent px-4 py-2.5">
                 <h2 className="font-display text-lg uppercase tracking-tight text-ink">{title}</h2>
                 {dismissable && (
                   <button
@@ -73,7 +73,7 @@ export function Modal({
                 )}
               </div>
             )}
-            <div className="p-4">{children}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
           </motion.div>
         </motion.div>
       )}
