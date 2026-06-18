@@ -48,7 +48,7 @@ import type {
 } from '@tuan-tanah/shared'
 import { getTileDef, ownsFullRegion, transportOwnedCount } from './board.js'
 import { drawHustle, drawKejadian } from './cards.js'
-import { charge, settleIfAble, tileValue } from './elimination.js'
+import { charge, playerWealth, settleIfAble, tileValue } from './elimination.js'
 import { applyRentEffects, consumeOwnedCard, effectiveTier, hasRentImmunity } from './effects.js'
 import { buyPriceMultiplier, isTaxImmune, salaryFor } from './roles.js'
 import { advanceTurn, collectPassiveIncome, startTurn } from './turn.js'
@@ -383,7 +383,8 @@ function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): T
         pushLog(state, `${player.name} used a tax-free pass on ${def.name}`, player.id)
         return {}
       }
-      const amount = def.taxAmount ?? 0
+      const percent = def.taxPercent ?? 0
+      const amount = Math.round((playerWealth(state, player) * percent) / 100)
       charge(state, player, amount, null, 'tax', def.name)
       return {}
     }

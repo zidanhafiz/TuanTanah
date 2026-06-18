@@ -144,17 +144,17 @@ export interface TileDef {
   name: string
   type: TileType
   region?: RegionId
-  taxAmount?: RupiahAmount // for type 'tax'
+  taxPercent?: number // for type 'tax' — percentage of player's total wealth (0–100)
 }
 
-// NOTE: Tax amounts are not specified in the design doc; these are assumptions
-// (Penghasilan 2jt, Kemewahan 3jt, Hadiah 1jt) — adjust when finalized.
+// Tax tiles charge a percentage of the player's total wealth (cash + property value).
+// Penghasilan (income) 11%, Kemewahan (luxury) 25%.
 export const BOARD: TileDef[] = [
   { id: 0, name: 'GO', type: 'go' },
   { id: 1, name: 'Sentani', type: 'property', region: 'papua' },
   { id: 2, name: 'Timika', type: 'property', region: 'papua' },
   { id: 3, name: 'Jayapura', type: 'property', region: 'papua' },
-  { id: 4, name: 'Pajak Penghasilan', type: 'tax', taxAmount: jt(2) },
+  { id: 4, name: 'Pajak Penghasilan', type: 'tax', taxPercent: 11 },
   { id: 5, name: 'Bandara Soekarno-Hatta', type: 'transport' },
   { id: 6, name: 'Balikpapan', type: 'property', region: 'kalimantan' },
   { id: 7, name: 'Samarinda', type: 'property', region: 'kalimantan' },
@@ -180,7 +180,7 @@ export const BOARD: TileDef[] = [
   { id: 27, name: 'Pakuwon', type: 'property', region: 'surabaya' },
   { id: 28, name: 'Pelabuhan Tanjung Priok', type: 'transport' },
   { id: 29, name: 'Lahan Kosong', type: 'buildable_land' },
-  { id: 30, name: 'Pajak Kemewahan', type: 'tax', taxAmount: jt(3) },
+  { id: 30, name: 'Pajak Kemewahan', type: 'tax', taxPercent: 25 },
   { id: 31, name: 'Kuta', type: 'property', region: 'bali' },
   { id: 32, name: 'Kintamani', type: 'property', region: 'bali' },
   { id: 33, name: 'Stasiun Gambir', type: 'transport' },

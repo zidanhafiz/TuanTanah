@@ -107,9 +107,9 @@ export function Tile({
       {compactRupiah(price)}
     </span>
   )
-  const taxLine = def.type === 'tax' && def.taxAmount != null && (
+  const taxLine = def.type === 'tax' && def.taxPercent != null && (
     <span className={`w-full text-center text-[1.1cqw] font-bold text-danger-strong ${edgeMargin}`}>
-      {compactRupiah(def.taxAmount)}
+      {def.taxPercent}%
     </span>
   )
 
