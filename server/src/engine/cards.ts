@@ -5,13 +5,14 @@
 import {
   BANJIR_DURATION_ROUNDS,
   BANJIR_TIER_DROP,
-  BOARD,
   DEMO_BURUH_DURATION_ROUNDS,
   DEMO_BURUH_PASSIVE_MULTIPLIER,
+  DOLLAR_NAIK_CASH_RATE,
   GEMPA_DURATION_ROUNDS,
   GEMPA_RENT_MULTIPLIER,
   HUSTLE_CARDS,
   INSPEKSI_PAJAK_RATE,
+  INVESTASI_ASING_BONUS,
   KEJADIAN_CARDS,
   KORUPSI_FINE,
   MUDIK_DURATION_ROUNDS,
@@ -20,11 +21,8 @@ import {
   REGION_BONUS_DURATION_ROUNDS,
   REGION_BONUS_MULTIPLIER,
   TRANSPORT_TILE_IDS,
-  VIRAL_MEDSOS_DURATION_ROUNDS,
-  VIRAL_MEDSOS_MULTIPLIER,
 } from '@tuan-tanah/shared'
 import type { ActiveEffect, GameState, Player, RegionId } from '@tuan-tanah/shared'
-import { getTileDef } from './board.js'
 import { charge } from './elimination.js'
 import { isTaxImmune } from './roles.js'
 import { defaultRng, pushLog, uid, type Rng } from './util.js'
@@ -64,13 +62,32 @@ export function drawHustle(
   const id = drawFrom(state.hustleDeck)
   if (!id) return null
   const card = HUSTLE_BY_ID.get(id)!
-  player.cash += card.earn
-  state.bank -= card.earn
-  pushLog(
-    state,
-    `${player.name} hustled "${card.name}" (+Rp ${card.earn.toLocaleString('id-ID')})`,
-    player.id,
-  )
+  switch (card.kind) {
+    case 'earn': {
+      player.cash += card.amount
+      state.bank -= card.amount
+      pushLog(
+        state,
+        `${player.name} hustled "${card.name}" (+Rp ${card.amount.toLocaleString('id-ID')})`,
+        player.id,
+      )
+      break
+    }
+    case 'cost': {
+      // A losing hustle — routed through charge so it can open a debt if unaffordable.
+      charge(state, player, card.amount, null, 'fine', card.name)
+      break
+    }
+    case 'pass': {
+      player.ownedCards.push({ id: uid(), type: card.pass })
+      pushLog(
+        state,
+        `${player.name} hustled "${card.name}" — gained a ${card.pass} pass`,
+        player.id,
+      )
+      break
+    }
+  }
   return { cardId: id, name: card.name }
 }
 
@@ -110,13 +127,20 @@ export function drawKejadian(
       break
     }
     case 'investasi_asing': {
-      const bonus = 1_000_000
+      const bonus = INVESTASI_ASING_BONUS
       for (const p of activePlayers(state)) {
         const ownsProperty = state.tiles.some((t) => t.ownerId === p.id && t.track === 'property')
         if (ownsProperty) {
           p.cash += bonus
           state.bank -= bonus
         }
+      }
+      break
+    }
+    case 'dollar_naik': {
+      for (const p of activePlayers(state)) {
+        const loss = Math.round(p.cash * DOLLAR_NAIK_CASH_RATE)
+        if (loss > 0) charge(state, p, loss, null, 'fine', 'dollar naik')
       }
       break
     }
@@ -144,10 +168,20 @@ export function drawKejadian(
       break
     }
     case 'reshuffle_kabinet': {
+      // Wipe every card-driven effect (kejadian, hustle, meta-lobby) and all
+      // free-pass inventories. Player-agreed negotiation deals (deal_*) survive.
       const before = state.activeEffects.length
-      state.activeEffects = state.activeEffects.filter((e) => e.sourceCard !== 'meta_lobby')
+      state.activeEffects = state.activeEffects.filter((e) => e.sourceCard.startsWith('deal_'))
       const cleared = before - state.activeEffects.length
-      pushLog(state, `Reshuffle Kabinet — ${cleared} lobby effect(s) reset`)
+      let passesWiped = 0
+      for (const p of state.players) {
+        passesWiped += p.ownedCards.length
+        p.ownedCards = []
+      }
+      pushLog(
+        state,
+        `Reshuffle Kabinet — ${cleared} effect(s) and ${passesWiped} free-pass card(s) wiped`,
+      )
       break
     }
 
@@ -172,25 +206,6 @@ export function drawKejadian(
         roundsRemaining: MUDIK_DURATION_ROUNDS,
         sourceCard: id,
       })
-      break
-    }
-    case 'viral_medsos': {
-      const propTiles = BOARD.filter((t) => t.type === 'property').map((t) => t.id)
-      const target = propTiles[Math.floor(rng() * propTiles.length)]
-      if (target != null) {
-        state.activeEffects.push({
-          id: uid(),
-          type: 'rent_multiplier',
-          targetTileIds: [target],
-          multiplier: VIRAL_MEDSOS_MULTIPLIER,
-          roundsRemaining: VIRAL_MEDSOS_DURATION_ROUNDS,
-          sourceCard: id,
-        })
-        pushLog(
-          state,
-          `${getTileDef(target).name} went viral — ${VIRAL_MEDSOS_MULTIPLIER}× rent for ${VIRAL_MEDSOS_DURATION_ROUNDS} rounds`,
-        )
-      }
       break
     }
     case 'gempa_bumi': {

@@ -9,10 +9,12 @@ import {
   House,
   Landmark,
   Lock,
+  Mountain,
   Plane,
+  Scale,
   Ship,
   Siren,
-  SquareParking,
+  Sprout,
   Store,
   TrainFront,
   type LucideIcon,
@@ -39,7 +41,9 @@ const TYPE_ICON: Partial<Record<TileType, LucideIcon>> = {
   hustle: Coins,
   jail_visit: Lock, // just visiting
   jail_go: Siren, // go to jail — police siren
-  parking: SquareParking,
+  buildable_land: Sprout, // Lahan Kosong — empty plot to develop
+  law_office: Scale, // Kantor Hukum — scales of justice
+  vacation: Mountain, // Gunung Rinjani
 }
 
 /** The icon for a tile def, or null for plain property tiles (they show a price). */
@@ -64,7 +68,9 @@ export const TYPE_COLOR: Record<TileType, string> = {
   hustle: '#2F9E44', // success-strong
   jail_visit: '#9A8F7D', // ink-faint
   jail_go: '#E03131', // danger-strong
-  parking: '#51CF66', // success
+  buildable_land: '#A16207', // soil / greenfield
+  law_office: '#4F46E5', // indigo — legal
+  vacation: '#0D9488', // teal — mountain getaway
   property: '#9A8F7D', // unused (region color wins)
 }
 

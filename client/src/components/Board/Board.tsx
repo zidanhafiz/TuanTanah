@@ -126,6 +126,7 @@ export function Board({
           // doesn't appear before the token has walked over to the tile.
           const isPending = state.turn.pendingBuyTileId === def.id && !animating
           const isCurrent = current?.position === def.id
+          const tileEffects = state.activeEffects.filter((e) => e.targetTileIds?.includes(def.id))
 
           const rotate = sideRotation(row, col)
           // Top-row tiles flip their internal order (owner band + price on top,
@@ -139,6 +140,7 @@ export function Board({
               isCurrent={isCurrent}
               selectable={selectable}
               flip={flip}
+              effects={tileEffects}
               onSelect={onSelectTile}
               t={t}
             />

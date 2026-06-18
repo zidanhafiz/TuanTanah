@@ -1,5 +1,10 @@
 // Turn state machine: start-of-turn upkeep, turn advancement, round ticks.
-import { PROPERTY_TIERS, REGIONS, REGION_SET_PASSIVE_MULTIPLIER } from '@tuan-tanah/shared'
+import {
+  DAPUR_PASSIVE,
+  PROPERTY_TIERS,
+  REGIONS,
+  REGION_SET_PASSIVE_MULTIPLIER,
+} from '@tuan-tanah/shared'
 import type { GameState, Player, RupiahAmount } from '@tuan-tanah/shared'
 import { getTileDef, ownsFullRegion } from './board.js'
 import { applyPassiveMultiplier, effectiveTier, tickEffects } from './effects.js'
@@ -34,7 +39,23 @@ export function collectPassiveIncome(state: GameState, player: Player): RupiahAm
     )
     payRevenueShares(state, player, total)
   }
-  return total
+
+  // Dapur MBG (Lahan Kosong) pays a flat passive, deliberately isolated from all
+  // property multipliers, the region-set bonus, and revenue-share deals.
+  let dapur = 0
+  for (const tile of state.tiles) {
+    if (tile.ownerId === player.id && tile.landBuild === 'dapur_mbg') dapur += DAPUR_PASSIVE
+  }
+  if (dapur > 0) {
+    player.cash += dapur
+    state.bank -= dapur
+    pushLog(
+      state,
+      `${player.name} collected Rp ${dapur.toLocaleString('id-ID')} from Dapur MBG`,
+      player.id,
+    )
+  }
+  return total + dapur
 }
 
 /**
@@ -65,6 +86,7 @@ function resetTurnState(state: GameState): void {
     rolledDoubles: false,
     pendingBuyTileId: null,
     upgradesUsed: 0,
+    pendingLawOffice: false,
   }
 }
 
@@ -88,9 +110,8 @@ export function startTurn(state: GameState): void {
   resetTurnState(state)
   const player = state.players[state.currentPlayerIndex]
   if (!player) return
-  // Per turn structure: collect passive income, then pay pinjol interest — but
-  // interest is now per lap, so only charge it the turn after they passed GO.
-  collectPassiveIncome(state, player)
+  // Pinjol interest is charged per lap, the turn after they passed GO. Passive
+  // income is also per lap now, collected on the pass-GO path (see movePlayer).
   if (player.owesLapInterest) {
     chargeInterest(state, player)
     player.owesLapInterest = false

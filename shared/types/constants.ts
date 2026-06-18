@@ -1,7 +1,7 @@
 // Single source of truth for all Tuan Tanah game data, transcribed from
 // docs/GAME_DESIGN.md. Both the server engine and the client import from here.
 
-import type { Role, RupiahAmount, TileId, TileType, WinCondition } from './game.js'
+import type { PassType, Role, RupiahAmount, TileId, TileType, WinCondition } from './game.js'
 
 // Convenience helpers for readability.
 const jt = (n: number): RupiahAmount => n * 1_000_000
@@ -37,6 +37,7 @@ export type RegionId =
   | 'surabaya'
   | 'bali'
   | 'jakarta'
+  | 'tangerang'
 
 export interface RegionDef {
   id: RegionId
@@ -121,6 +122,15 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     passiveBase: jt(2),
     tileIds: [35, 36],
   },
+  tangerang: {
+    id: 'tangerang',
+    name: 'Tangerang',
+    color: '#581C87', // deep purple — new top tier (premium townships)
+    buyPrice: jt(8),
+    rentBase: jt(4),
+    passiveBase: jt(3),
+    tileIds: [38, 39],
+  },
 }
 
 // Full-set bonus when one player owns every tile in a region.
@@ -149,7 +159,7 @@ export const BOARD: TileDef[] = [
   { id: 6, name: 'Balikpapan', type: 'property', region: 'kalimantan' },
   { id: 7, name: 'Samarinda', type: 'property', region: 'kalimantan' },
   { id: 8, name: 'Bontang', type: 'property', region: 'kalimantan' },
-  { id: 9, name: 'Hustle', type: 'hustle' },
+  { id: 9, name: 'Lahan Kosong', type: 'buildable_land' },
   { id: 10, name: 'Visiting Penjara', type: 'jail_visit' },
   { id: 11, name: 'Merdeka Walk', type: 'property', region: 'medan' },
   { id: 12, name: 'Kesawan', type: 'property', region: 'medan' },
@@ -159,17 +169,17 @@ export const BOARD: TileDef[] = [
   { id: 16, name: 'Kejadian Nasional', type: 'event' },
   { id: 17, name: 'Prambanan', type: 'property', region: 'yogyakarta' },
   { id: 18, name: 'Kotagede', type: 'property', region: 'yogyakarta' },
-  { id: 19, name: 'Parkir Bebas', type: 'parking' },
+  { id: 19, name: 'Kantor Hukum', type: 'law_office' },
   { id: 20, name: 'Masuk Penjara', type: 'jail_go' },
   { id: 21, name: 'Senggigi', type: 'property', region: 'lombok' },
   { id: 22, name: 'Kuta Mandalika', type: 'property', region: 'lombok' },
   { id: 23, name: 'Sembalun', type: 'property', region: 'lombok' },
-  { id: 24, name: 'Hustle', type: 'hustle' },
+  { id: 24, name: 'Gunung Rinjani', type: 'vacation' },
   { id: 25, name: 'Darmo', type: 'property', region: 'surabaya' },
   { id: 26, name: 'Gubeng', type: 'property', region: 'surabaya' },
   { id: 27, name: 'Pakuwon', type: 'property', region: 'surabaya' },
   { id: 28, name: 'Pelabuhan Tanjung Priok', type: 'transport' },
-  { id: 29, name: 'Kejadian Nasional', type: 'event' },
+  { id: 29, name: 'Lahan Kosong', type: 'buildable_land' },
   { id: 30, name: 'Pajak Kemewahan', type: 'tax', taxAmount: jt(3) },
   { id: 31, name: 'Kuta', type: 'property', region: 'bali' },
   { id: 32, name: 'Kintamani', type: 'property', region: 'bali' },
@@ -178,8 +188,8 @@ export const BOARD: TileDef[] = [
   { id: 35, name: 'Sudirman', type: 'property', region: 'jakarta' },
   { id: 36, name: 'Thamrin', type: 'property', region: 'jakarta' },
   { id: 37, name: 'Kejadian Nasional', type: 'event' },
-  { id: 38, name: 'Parkir Bebas', type: 'parking' },
-  { id: 39, name: 'Pajak Hadiah', type: 'tax', taxAmount: jt(1) },
+  { id: 38, name: 'BSD City', type: 'property', region: 'tangerang' },
+  { id: 39, name: 'Alam Sutera', type: 'property', region: 'tangerang' },
 ]
 
 export const BOARD_SIZE = BOARD.length // 40
@@ -327,6 +337,20 @@ export const SELL_REFUND_RATE = 0.5
 export const JAIL_DURATION_TURNS = 2
 export const JAIL_EXIT_COST = jt(1)
 
+// ---- Special tiles (board re-layout, TTG-29) ----
+// Lahan Kosong (buildable_land): buy bare land, then build one of two businesses.
+export const LAHAN_LAND_PRICE: RupiahAmount = jt(1.5)
+export const LAHAN_BUILD_COST: RupiahAmount = jt(2)
+export const DAPUR_PASSIVE: RupiahAmount = jt(0.6) // Dapur MBG flat passive income per lap
+export const WARKOP_RENT: RupiahAmount = jt(1.2) // Warkop-Cafe landing rent
+// Kantor Hukum (law_office) landing actions.
+export const LAW_OFFICE_TRANSFER_RATE = 0.7 // force-buy a rival's property at 70% of invested value
+export const LAW_OFFICE_JAIL_FEE: RupiahAmount = jt(2) // bribe (to bank) to force-jail a rival
+export const LAW_OFFICE_FREEPASS_PRICE: RupiahAmount = jt(3) // buy one free-pass card
+// Gunung Rinjani (vacation): gathers all active players to the tile; each pays this fee.
+export const RINJANI_FEE: RupiahAmount = jt(1)
+export const RINJANI_TILE_ID: TileId = 24
+
 // ---- Cards ----
 export interface KejadianCard {
   id: string
@@ -343,14 +367,14 @@ export const KEJADIAN_CARDS: KejadianCard[] = [
   },
   { id: 'mudik_season', name: 'Mudik Season', effect: 'All transport tiles earn 2× for 3 rounds' },
   {
-    id: 'viral_medsos',
-    name: 'Viral di Medsos',
-    effect: 'One random property earns 3× for 3 rounds',
+    id: 'dollar_naik',
+    name: 'Dollar Naik',
+    effect: 'Every player loses 10% of their cash',
   },
   {
     id: 'reshuffle_kabinet',
     name: 'Reshuffle Kabinet',
-    effect: 'All lobby effects immediately reset',
+    effect: 'All card effects and free-pass cards are wiped',
   },
   {
     id: 'inspeksi_pajak',
@@ -390,32 +414,37 @@ export const KEJADIAN_CARDS: KejadianCard[] = [
   {
     id: 'investasi_asing',
     name: 'Investasi Asing',
-    effect: 'All property track owners earn Rp 1 juta bonus',
+    effect: 'All property track owners earn Rp 2 juta bonus',
   },
   { id: 'pemilu', name: 'Pemilu', effect: 'All players vote — most voted player skips next turn' },
 ]
 
-export interface HustleCard {
-  id: string
-  name: string
-  earn: RupiahAmount
-}
+// Hustle cards come in three kinds: `earn` adds cash, `cost` deducts cash, and
+// `pass` grants a free-pass card to the drawer's inventory.
+export type HustleCard =
+  | { id: string; name: string; kind: 'earn'; amount: RupiahAmount }
+  | { id: string; name: string; kind: 'cost'; amount: RupiahAmount }
+  | { id: string; name: string; kind: 'pass'; pass: PassType }
 export const HUSTLE_CARDS: HustleCard[] = [
-  { id: 'gofood_driver', name: 'GoFood Driver', earn: rb(500) },
-  { id: 'dropshipper', name: 'Dropshipper', earn: jt(1) },
-  { id: 'jual_online', name: 'Jual Online', earn: rb(750) },
-  { id: 'freelance_design', name: 'Freelance Design', earn: jt(1.5) },
-  { id: 'endorse_produk', name: 'Endorse Produk', earn: jt(2) },
-  { id: 'ojek_wisata', name: 'Ojek Wisata', earn: rb(600) },
-  { id: 'rental_motor_bali', name: 'Rental Motor Bali', earn: rb(800) },
-  { id: 'jual_pulsa', name: 'Jual Pulsa', earn: rb(400) },
-  { id: 'warung_dadakan', name: 'Warung Dadakan', earn: rb(700) },
-  { id: 'content_creator', name: 'Content Creator', earn: jt(1.2) },
-  { id: 'reseller_thrift', name: 'Reseller Thrift', earn: rb(900) },
-  { id: 'joki_tugas', name: 'Joki Tugas', earn: jt(1.1) },
-  { id: 'ngamen_online', name: 'Ngamen Online', earn: rb(500) },
-  { id: 'affiliate_marketing', name: 'Affiliate Marketing', earn: jt(1.3) },
-  { id: 'jualan_snack_viral', name: 'Jualan Snack Viral', earn: rb(600) },
+  { id: 'gofood_driver', name: 'GoFood Driver', kind: 'earn', amount: rb(500) },
+  { id: 'dropshipper', name: 'Dropshipper', kind: 'earn', amount: jt(1) },
+  { id: 'jual_online', name: 'Jual Online', kind: 'earn', amount: rb(750) },
+  { id: 'freelance_design', name: 'Freelance Design', kind: 'earn', amount: jt(1.5) },
+  { id: 'endorse_produk', name: 'Endorse Produk', kind: 'earn', amount: jt(2) },
+  { id: 'jual_pulsa', name: 'Jual Pulsa', kind: 'earn', amount: rb(400) },
+  { id: 'content_creator', name: 'Content Creator', kind: 'earn', amount: jt(1.2) },
+  { id: 'joki_tugas', name: 'Joki Tugas', kind: 'earn', amount: jt(1.1) },
+  { id: 'affiliate_marketing', name: 'Affiliate Marketing', kind: 'earn', amount: jt(1.3) },
+  { id: 'jualan_snack_viral', name: 'Jualan Snack Viral', kind: 'earn', amount: rb(600) },
+  // Overhaul additions (TTG-28)
+  { id: 'profit_kripto', name: 'Profit Kripto', kind: 'earn', amount: jt(1.5) },
+  { id: 'giveaway_terlucu', name: 'Giveaway Komentar Terlucu', kind: 'earn', amount: rb(800) },
+  { id: 'teman_bayar_utang', name: 'Teman Lama Bayar Utang', kind: 'earn', amount: jt(1) },
+  { id: 'joki_mobile_legend', name: 'Joki Mobile Legend', kind: 'earn', amount: rb(700) },
+  { id: 'ulang_tahun', name: 'Ulang Tahun', kind: 'pass', pass: 'jail_free' },
+  { id: 'undangan_kondangan', name: 'Undangan Kondangan', kind: 'cost', amount: rb(500) },
+  { id: 'top_up_diamond', name: 'Top Up Diamond', kind: 'cost', amount: rb(600) },
+  { id: 'donate_dramok', name: 'Donate Dramok', kind: 'cost', amount: rb(400) },
 ]
 
 // ---- Meta action costs ----
@@ -432,6 +461,14 @@ export const META_ACTIONS_PER_LAP = 3
 export const KORUPSI_SUCCESS_RATE = 0.3 // 30% success, 70% caught
 export const KORUPSI_STEAL_AMOUNT: RupiahAmount = jt(7) // taken from bank on success
 export const KORUPSI_FINE: RupiahAmount = jt(2) // paid to bank when caught (matches Korupsi Terungkap card)
+
+// Judol (online gambling): deposit cash for a long-shot payout, else lose it.
+export const JUDOL_WIN_RATE = 0.1 // 10% chance to win
+export const JUDOL_JACKPOT_RATE = 0.01 // 1% sub-roll within a win → jackpot
+export const JUDOL_WIN_MULT_MIN = 3 // inclusive integer payout multiplier on a win
+export const JUDOL_WIN_MULT_MAX = 5
+export const JUDOL_JACKPOT_MULTIPLIER = 10 // payout multiplier on a jackpot
+export const JUDOL_PRESET_DEPOSITS: RupiahAmount[] = [jt(1), jt(3), jt(5)] // quick-pick chips
 
 // Sabotage applies a temporary rent_multiplier effect to one tile.
 export const SABOTAGE_RENT_MULTIPLIER = 0.5 // halves the target tile's rent
@@ -450,9 +487,10 @@ export const BANJIR_TIER_DROP = 1
 export const BANJIR_DURATION_ROUNDS = 3
 // Mudik Season: transport tiles earn MUDIK_TRANSPORT_MULTIPLIER× (defined above).
 export const MUDIK_DURATION_ROUNDS = 3
-// Viral di Medsos: one random property earns 3× rent.
-export const VIRAL_MEDSOS_MULTIPLIER = 3
-export const VIRAL_MEDSOS_DURATION_ROUNDS = 3
+// Dollar Naik: every player immediately loses this fraction of their cash.
+export const DOLLAR_NAIK_CASH_RATE = 0.1
+// Investasi Asing: each property-track owner receives this bonus.
+export const INVESTASI_ASING_BONUS: RupiahAmount = jt(2)
 // Gempa Bumi: one random region's tiles lose their rent bonus (halved).
 export const GEMPA_RENT_MULTIPLIER = 0.5
 export const GEMPA_DURATION_ROUNDS = 2

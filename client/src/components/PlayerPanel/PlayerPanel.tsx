@@ -1,6 +1,6 @@
 import { type GameState } from '@tuan-tanah/shared'
 import { useTranslation } from 'react-i18next'
-import { roleName } from '../../i18n/gameData.js'
+import { passTypeName, roleName } from '../../i18n/gameData.js'
 import { formatRupiah } from '../../store/gameStore.js'
 import { MoneyDelta } from '../ui/MoneyDelta.js'
 
@@ -63,6 +63,14 @@ export function PlayerPanel({
                   count: p.loans.length,
                   owed: formatRupiah(p.loans.reduce((s, l) => s + l.amount, 0)),
                   perRound: formatRupiah(p.loans.reduce((s, l) => s + l.interestPerLap, 0)),
+                })}
+              </div>
+            )}
+            {p.ownedCards.length > 0 && (
+              <div className="mt-1 text-[10px] font-semibold text-ink-muted">
+                {t('player.passes', {
+                  count: p.ownedCards.length,
+                  list: p.ownedCards.map((c) => passTypeName(t, c.type)).join(', '),
                 })}
               </div>
             )}

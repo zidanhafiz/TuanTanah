@@ -111,7 +111,9 @@
       "hustle": "Hustle",
       "jail_visit": "Jenguk",
       "jail_go": "Penjara!",
-      "parking": "Parkir"
+      "buildable_land": "Tanah",
+      "law_office": "Hukum",
+      "vacation": "Liburan"
     }
   },
   "eventLog": {
@@ -123,6 +125,8 @@
     "hustle": "Hustle",
     "kejadianNasional": "Kejadian Nasional",
     "earn": "Dapat {{amount}}",
+    "cost": "Kehilangan {{amount}}",
+    "passGranted": "Kartu bebas {{pass}}",
     "drawnBy": "Diambil oleh"
   },
   "debt": {
@@ -151,11 +155,21 @@
     "borrow": "Pinjam {{amount}}",
     "cancel": "Batal"
   },
+  "judol": {
+    "title": "🎰 Judol — Judi online",
+    "terms": "Menang 10% → x3–x5 · jackpot 1% → x10 · jika kalah deposit hangus",
+    "deposit": "Deposit",
+    "custom": "Jumlah bebas",
+    "notEnoughCash": "Kas tidak cukup",
+    "enterAmount": "Masukkan jumlah deposit",
+    "play": "Deposit {{amount}}",
+    "cancel": "Batal"
+  },
   "meta": {
     "title": "Aksi meta",
     "remaining": "sisa {{count}}",
     "alreadyUsed": "Sudah dipakai putaran ini",
-    "invest": "💰 Investasi",
+    "judol": "🎰 Judol",
     "work": "💼 Kerja",
     "hustle": "🎴 Hustle",
     "lobby": "🗣️ Lobi",
@@ -164,7 +178,7 @@
     "negotiate": "🤝 Negosiasi",
     "chooseBeforeRolling": "Pilih sebelum melempar — melewati gerakanmu",
     "descriptions": {
-      "invest": "Beli petak properti yang belum dimiliki dari papan — aksimu giliran ini.",
+      "judol": "Pertaruhkan deposit — 10% peluang menang x3–x5, dengan jackpot 1% x10; jika kalah hangus.",
       "work": "Lewati gerakanmu dan terima gajimu. Pilih sebelum melempar dadu.",
       "hustle": "Ambil kartu Hustle — usaha sampingan berisiko dengan hasil acak.",
       "lobby": "Bayar untuk membuat lawan melewati giliran berikutnya.",
@@ -233,6 +247,13 @@
     "house": "Rumah",
     "property": "Properti",
     "investedValue": "Nilai investasi",
+    "business": "Usaha",
+    "dapurMbg": "Dapur MBG",
+    "warkopCafe": "Warkop-Cafe",
+    "bareLand": "Tanah kosong",
+    "buildLandPrompt": "Kembangkan lahan ini — bangun usaha:",
+    "buildDapur": "Bangun Dapur MBG — {{cost}}",
+    "buildWarkop": "Bangun Warkop-Cafe — {{cost}}",
     "rentSchedule": "Sewa & pembangunan",
     "levelCol": "Tingkat",
     "rentCol": "Sewa",
@@ -256,6 +277,35 @@
     "sellBack": "Jual ke bank — {{refund}}",
     "close": "Tutup"
   },
+  "lawOffice": {
+    "title": "⚖️ Kantor Hukum",
+    "intro": "Pilih satu tindakan hukum, atau lewati.",
+    "skip": "Lewati",
+    "back": "← Kembali",
+    "cash": "Uang kamu: {{amount}}",
+    "buy": {
+      "label": "🏠 Beli petak dari jauh",
+      "title": "Beli petak"
+    },
+    "transfer": {
+      "label": "📑 Rebut properti lawan (diskon 30%)",
+      "title": "Rebut properti",
+      "cost": "{{price}} · dari {{owner}}"
+    },
+    "jail": {
+      "label": "🚔 Penjarakan lawan ({{fee}})",
+      "title": "Penjarakan lawan"
+    },
+    "freepass": {
+      "label": "🎟️ Beli kartu bebas ({{price}})",
+      "title": "Beli kartu bebas"
+    },
+    "pass": {
+      "rent_free": "Kartu bebas sewa",
+      "tax_free": "Kartu bebas pajak",
+      "jail_free": "Kartu bebas penjara"
+    }
+  },
   "status": {
     "title": "Status saya",
     "myProperties": "Properti saya",
@@ -272,7 +322,9 @@
     "jail": "🔒 penjara",
     "offline": "offline",
     "loans_one": "🏦 {{count}} pinjaman · {{owed}} terutang · {{perRound}}/putaran",
-    "loans_other": "🏦 {{count}} pinjaman · {{owed}} terutang · {{perRound}}/putaran"
+    "loans_other": "🏦 {{count}} pinjaman · {{owed}} terutang · {{perRound}}/putaran",
+    "passes_one": "🎟️ {{count}} kartu bebas · {{list}}",
+    "passes_other": "🎟️ {{count}} kartu bebas · {{list}}"
   },
   "turnBanner": {
     "yourTurn": "Giliranmu!"
@@ -289,15 +341,17 @@
   "data": {
     "tiles": {
       "4": "Pajak Penghasilan",
+      "9": "Lahan Kosong",
       "10": "Visiting Penjara",
       "16": "Kejadian Nasional",
-      "19": "Parkir Bebas",
+      "19": "Kantor Hukum",
       "20": "Masuk Penjara",
-      "29": "Kejadian Nasional",
+      "24": "Gunung Rinjani",
+      "29": "Lahan Kosong",
       "30": "Pajak Kemewahan",
       "37": "Kejadian Nasional",
-      "38": "Parkir Bebas",
-      "39": "Pajak Hadiah"
+      "38": "BSD City",
+      "39": "Alam Sutera"
     },
     "roles": {
       "pengusaha": {
@@ -373,13 +427,13 @@
         "name": "Mudik Season",
         "effect": "Semua petak transport menghasilkan 2× selama 3 ronde"
       },
-      "viral_medsos": {
-        "name": "Viral di Medsos",
-        "effect": "Satu properti acak menghasilkan 3× selama 3 ronde"
+      "dollar_naik": {
+        "name": "Dollar Naik",
+        "effect": "Setiap pemain kehilangan 10% kasnya"
       },
       "reshuffle_kabinet": {
         "name": "Reshuffle Kabinet",
-        "effect": "Semua efek lobi langsung di-reset"
+        "effect": "Semua efek kartu dan kartu bebas dihapus"
       },
       "inspeksi_pajak": {
         "name": "Inspeksi Pajak",
@@ -411,7 +465,7 @@
       },
       "investasi_asing": {
         "name": "Investasi Asing",
-        "effect": "Semua pemilik jalur properti dapat bonus Rp 1 juta"
+        "effect": "Semua pemilik jalur properti dapat bonus Rp 2 juta"
       },
       "pemilu": {
         "name": "Pemilu",
@@ -424,16 +478,31 @@
       "jual_online": "Jual Online",
       "freelance_design": "Freelance Design",
       "endorse_produk": "Endorse Produk",
-      "ojek_wisata": "Ojek Wisata",
-      "rental_motor_bali": "Rental Motor Bali",
       "jual_pulsa": "Jual Pulsa",
-      "warung_dadakan": "Warung Dadakan",
       "content_creator": "Content Creator",
-      "reseller_thrift": "Reseller Thrift",
       "joki_tugas": "Joki Tugas",
-      "ngamen_online": "Ngamen Online",
       "affiliate_marketing": "Affiliate Marketing",
-      "jualan_snack_viral": "Jualan Snack Viral"
+      "jualan_snack_viral": "Jualan Snack Viral",
+      "profit_kripto": "Profit Kripto",
+      "giveaway_terlucu": "Giveaway Komentar Terlucu",
+      "teman_bayar_utang": "Teman Lama Bayar Utang",
+      "joki_mobile_legend": "Joki Mobile Legend",
+      "ulang_tahun": "Ulang Tahun",
+      "undangan_kondangan": "Undangan Kondangan",
+      "top_up_diamond": "Top Up Diamond",
+      "donate_dramok": "Donate Dramok"
+    },
+    "passes": {
+      "rent_free": "bebas sewa",
+      "tax_free": "bebas pajak",
+      "jail_free": "bebas penjara"
+    },
+    "effects": {
+      "rent_multiplier": "Sewa ×{{multiplier}}",
+      "transport_multiplier": "Transport ×{{multiplier}}",
+      "tier_drop": "Tingkat −{{multiplier}}",
+      "rounds_one": "{{count}} ronde lagi",
+      "rounds_other": "{{count}} ronde lagi"
     }
   }
 }

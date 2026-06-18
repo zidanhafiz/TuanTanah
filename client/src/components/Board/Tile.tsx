@@ -1,13 +1,14 @@
 import {
   REGIONS,
   TRANSPORT_BUY_PRICE,
+  type ActiveEffect,
   type Player,
   type TileDef,
   type TileId,
   type TileState,
 } from '@tuan-tanah/shared'
 import type { TFunction } from 'i18next'
-import { tileName } from '../../i18n/gameData.js'
+import { tileEffectLabel, tileName } from '../../i18n/gameData.js'
 import { compactRupiah } from '../../lib/format.js'
 import type { Side } from './geometry.js'
 import { DevGlyph, TileGlyph, TYPE_COLOR } from './icons.js'
@@ -25,6 +26,7 @@ export function Tile({
   isCurrent,
   selectable,
   flip,
+  effects,
   onSelect,
   t,
 }: {
@@ -35,6 +37,8 @@ export function Tile({
   selectable: boolean
   /** Top-row tiles flip their internal order so the colored band hugs the board center. */
   flip?: boolean
+  /** Active card effects currently targeting this tile (for the impact marker). */
+  effects?: ActiveEffect[]
   onSelect?: (id: TileId) => void
   t: TFunction
 }) {
@@ -43,6 +47,26 @@ export function Tile({
   const hasIcon = def.type !== 'property'
   const price = region ? region.buyPrice : def.type === 'transport' ? TRANSPORT_BUY_PRICE : null
   const name = tileName(t, def.id)
+
+  // Impact marker for any card effect targeting this tile (e.g. Viral di Medsos
+  // rent boost, Banjir Jakarta tier drop). Shows a badge with the full list on hover.
+  const effectLabels = (effects ?? [])
+    .map((e) => tileEffectLabel(t, e))
+    .filter((l): l is string => l !== null)
+  const effectMarker =
+    effectLabels.length > 0 ? (
+      <div
+        className="absolute left-[0.3cqw] top-[0.3cqw] z-20 flex items-center gap-[0.2cqw] rounded border border-ink bg-warning px-[0.3cqw] text-[0.9cqw] font-extrabold leading-none text-ink"
+        title={effectLabels.join(' · ')}
+      >
+        <span>⚡</span>
+        {effectLabels.length === 1 ? (
+          <span>{effectLabels[0]}</span>
+        ) : (
+          <span>{effectLabels.length}</span>
+        )}
+      </div>
+    ) : null
 
   // When flipped, the header band sits on the bottom (band pulled into bottom
   // padding) and the price floats to the top; otherwise the classic top-down
@@ -99,6 +123,7 @@ export function Tile({
         isCurrent ? 'z-10 ring-2 ring-info shadow-brutal-sm' : isPending ? 'z-10 shadow-brutal' : ''
       } ${selectable ? 'cursor-pointer hover:z-10 hover:-translate-x-px hover:-translate-y-px hover:shadow-brutal' : ''}`}
     >
+      {effectMarker}
       {flip && ownerBand}
       <div className="flex h-full flex-col p-[0.6cqw]">
         {flip ? (

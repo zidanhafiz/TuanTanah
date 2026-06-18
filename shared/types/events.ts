@@ -4,7 +4,9 @@
 import type {
   AbilityType,
   GameState,
+  LandBusiness,
   NegotiationDeal,
+  PassType,
   Role,
   RoomSettings,
   RupiahAmount,
@@ -12,7 +14,7 @@ import type {
 } from './game.js'
 
 export type MetaActionType =
-  | 'invest'
+  | 'judol'
   | 'work'
   | 'hustle'
   | 'lobby'
@@ -54,7 +56,20 @@ export interface ClientToServerEvents {
   roll_dice: () => void
   buy_property: (payload: { tileId: TileId }) => void
   upgrade_property: (payload: { tileId: TileId; track?: 'house' | 'property' }) => void
-  meta_action: (payload: { action: MetaActionType; targetId?: string; tileId?: TileId }) => void
+  // Build a business on an owned Lahan Kosong (buildable_land) tile.
+  build_lahan: (payload: { tileId: TileId; business: LandBusiness }) => void
+  // Kantor Hukum (law_office) landing actions — pick one, or skip.
+  law_office_buy: (payload: { tileId: TileId }) => void
+  law_office_transfer: (payload: { tileId: TileId }) => void
+  law_office_jail: (payload: { targetPlayerId: string }) => void
+  law_office_freepass: (payload: { pass: PassType }) => void
+  law_office_skip: () => void
+  meta_action: (payload: {
+    action: MetaActionType
+    targetId?: string
+    tileId?: TileId
+    depositAmount?: RupiahAmount
+  }) => void
   use_ability: (payload: { ability: AbilityType }) => void
   pay_jail: () => void
   take_pinjol: (payload: { amount: RupiahAmount; lenderId?: string }) => void

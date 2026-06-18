@@ -4,8 +4,10 @@ import {
   type AbilityType,
   type FinalStanding,
   type GameState,
+  type LandBusiness,
   type MetaActionType,
   type NegotiationDeal,
+  type PassType,
   type PropertyTrack,
   type Role,
   type RoomSettings,
@@ -110,7 +112,18 @@ interface GameStore {
   upgrade: (tileId: TileId, track?: PropertyTrack) => void
   downgrade: (tileId: TileId) => void
   sell: (tileId: TileId) => void
-  metaAction: (action: MetaActionType, targetId?: string, tileId?: TileId) => void
+  buildLahan: (tileId: TileId, business: LandBusiness) => void
+  lawOfficeBuy: (tileId: TileId) => void
+  lawOfficeTransfer: (tileId: TileId) => void
+  lawOfficeJail: (targetPlayerId: string) => void
+  lawOfficeFreepass: (pass: PassType) => void
+  lawOfficeSkip: () => void
+  metaAction: (
+    action: MetaActionType,
+    targetId?: string,
+    tileId?: TileId,
+    depositAmount?: RupiahAmount,
+  ) => void
   useAbility: (ability: AbilityType) => void
   takePinjol: (amount: RupiahAmount, lenderId?: string) => void
   repayPinjol: (loanId?: string) => void
@@ -272,9 +285,30 @@ export const useGame = create<GameStore>((set, get) => ({
     socket.emit('downgrade_property', { tileId })
   },
   sell: (tileId) => socket.emit('sell_property', { tileId }),
-  metaAction: (action, targetId, tileId) => {
+  buildLahan: (tileId, business) => {
     playSound('click', { volume: 0.5 })
-    socket.emit('meta_action', { action, targetId, tileId })
+    socket.emit('build_lahan', { tileId, business })
+  },
+  lawOfficeBuy: (tileId) => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('law_office_buy', { tileId })
+  },
+  lawOfficeTransfer: (tileId) => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('law_office_transfer', { tileId })
+  },
+  lawOfficeJail: (targetPlayerId) => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('law_office_jail', { targetPlayerId })
+  },
+  lawOfficeFreepass: (pass) => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('law_office_freepass', { pass })
+  },
+  lawOfficeSkip: () => socket.emit('law_office_skip'),
+  metaAction: (action, targetId, tileId, depositAmount) => {
+    playSound('click', { volume: 0.5 })
+    socket.emit('meta_action', { action, targetId, tileId, depositAmount })
   },
   useAbility: (ability) => {
     playSound('click', { volume: 0.5 })

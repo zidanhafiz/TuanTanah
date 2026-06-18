@@ -13,7 +13,8 @@ export interface MetaActionDef {
 // Turn structure step 5 — one optional meta action per turn. Labels are looked
 // up at render time via `meta.<action>` so they localize per player.
 export const META_ACTIONS: MetaActionDef[] = [
-  { action: 'invest', target: 'tile' },
+  // Judol opens a deposit modal (handled in Game.tsx) rather than emitting on pick.
+  { action: 'judol', target: 'none' },
   { action: 'work', target: 'none', needsUnrolled: true },
   { action: 'hustle', target: 'none' },
   { action: 'lobby', target: 'player' },

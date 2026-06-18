@@ -33,7 +33,14 @@ export type TileType =
   | 'hustle'
   | 'jail_visit' // Visiting Penjara
   | 'jail_go' // Masuk Penjara
-  | 'parking' // Parkir Bebas
+  | 'buildable_land' // Lahan Kosong — buy bare land, then build a business on it
+  | 'law_office' // Kantor Hukum — choose a legal power action on landing
+  | 'vacation' // Gunung Rinjani — gathers all players and charges a flat fee
+
+// What a Lahan Kosong (buildable_land) tile has been developed into. Mutually
+// exclusive per tile: Dapur MBG earns flat passive income, Warkop-Cafe charges
+// landing rent. Null/undefined = bare land (bought but not yet built).
+export type LandBusiness = 'dapur_mbg' | 'warkop_cafe'
 
 export type EffectType =
   | 'rent_multiplier'
@@ -55,6 +62,15 @@ export interface PinjolLoan {
   interestPaid: RupiahAmount // running total of interest paid so far (history)
 }
 
+// A free-pass card held in a player's inventory. Auto-consumed when it matches an
+// incoming charge: rent_free waives one rent, tax_free one tax, jail_free one
+// jailing. Persists until used; only Reshuffle Kabinet wipes the inventory.
+export type PassType = 'rent_free' | 'tax_free' | 'jail_free'
+export interface OwnedCard {
+  id: string
+  type: PassType
+}
+
 export interface Player {
   id: string
   name: string
@@ -65,6 +81,8 @@ export interface Player {
   inJail: boolean
   jailTurnsLeft: number
   loans: PinjolLoan[]
+  // Free-pass cards (tax/rent/jail-free) held for later auto-consumption.
+  ownedCards: OwnedCard[]
   isEliminated: boolean
   isRoomMaster: boolean
   isConnected: boolean
@@ -86,6 +104,9 @@ export interface TileState {
   // Kontraktor who developed this tile (built on someone else's land); earns a
   // cut of all rent paid on it. At most one per game (roles are unique).
   builderId: string | null
+  // For buildable_land (Lahan Kosong) tiles only: which business has been built,
+  // or null/undefined for bare owned land. Other tile types leave this unset.
+  landBuild?: LandBusiness | null
 }
 
 // An unpayable charge that paused the game. The debtor must raise cash (sell a
@@ -144,6 +165,10 @@ export interface TurnState {
   pendingBuyTileId: TileId | null
   // Tile upgrades built this turn (cap 1, or 2 for Pengusaha).
   upgradesUsed: number
+  // True while the current player is on a Kantor Hukum tile and must pick one of
+  // its legal actions (buy remotely / force-transfer / force-jail / buy a pass)
+  // or skip. Set on landing, cleared when an action resolves or they skip.
+  pendingLawOffice: boolean
 }
 
 export interface LogEntry {

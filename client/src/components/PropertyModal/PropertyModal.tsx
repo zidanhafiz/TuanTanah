@@ -1,12 +1,15 @@
 import {
   BOARD,
   HOUSE_TIERS,
+  LAHAN_BUILD_COST,
+  LAHAN_LAND_PRICE,
   PROPERTY_TIERS,
   REGION_SET_RENT_MULTIPLIER,
   REGIONS,
   SELL_REFUND_RATE,
   TRANSPORT_BUY_PRICE,
   TRANSPORT_RENT,
+  type LandBusiness,
   type PropertyTrack,
   type RegionDef,
   type RupiahAmount,
@@ -23,6 +26,9 @@ import { formatRupiah, useGame } from '../../store/gameStore.js'
 function tileValue(tile: TileState): RupiahAmount {
   const def = BOARD[tile.id]
   if (!def) return 0
+  if (def.type === 'buildable_land') {
+    return LAHAN_LAND_PRICE + (tile.landBuild ? LAHAN_BUILD_COST : 0)
+  }
   const base =
     def.type === 'transport' ? TRANSPORT_BUY_PRICE : def.region ? REGIONS[def.region].buyPrice : 0
   if (base === 0) return 0
@@ -77,6 +83,7 @@ export function PropertyModal({
   const sell = useGame((s) => s.sell)
   const upgrade = useGame((s) => s.upgrade)
   const downgrade = useGame((s) => s.downgrade)
+  const buildLahan = useGame((s) => s.buildLahan)
   // Mounted per-tile (keyed in Game.tsx), so the confirm step starts fresh each open.
   const [confirming, setConfirming] = useState(false)
 
@@ -87,12 +94,17 @@ export function PropertyModal({
   if (!def || !tile) return null
 
   const ownable = def.type === 'property' || def.type === 'transport'
+  const isLand = def.type === 'buildable_land'
   const owner = tile.ownerId ? state.players.find((p) => p.id === tile.ownerId) : null
   const region = def.region ? REGIONS[def.region] : null
   const refund = Math.round(tileValue(tile) * SELL_REFUND_RATE)
   // Sellable on your turn, or out of turn while you owe a debt (to raise cash).
   const iOweDebt = me ? state.pendingDebts.some((d) => d.debtorId === me.id) : false
-  const canSell = ownable && me !== null && tile.ownerId === me.id && (isMyTurn || iOweDebt)
+  const canSell =
+    (ownable || isLand) && me !== null && tile.ownerId === me.id && (isMyTurn || iOweDebt)
+  // Build a business on owned, undeveloped Lahan Kosong (turn-only).
+  const canBuildLahan =
+    isLand && me !== null && tile.ownerId === me.id && isMyTurn && !tile.landBuild
 
   // Develop a property tile. You build on your own tile; a Kontraktor may also
   // build on someone else's (earning a rent cut). Capped per turn (Pengusaha 2×).
@@ -173,6 +185,35 @@ export function PropertyModal({
                   </Badge>
                 ) : (
                   <span className="text-ink-faint">{tierLabel(tile, t)}</span>
+                )}
+              </Row>
+              <Row label={t('property.investedValue')}>{formatRupiah(tileValue(tile))}</Row>
+            </>
+          )}
+        </Card>
+      ) : isLand ? (
+        <Card flat tone="sunken" className="mt-4 space-y-2 p-3 text-sm">
+          <Row label={t('property.owner')}>
+            {owner ? (
+              <Badge color={owner.color}>
+                {owner.name}
+                {owner.id === me?.id && t('common.youParen')}
+              </Badge>
+            ) : (
+              <span className="text-ink-faint">{t('property.unowned')}</span>
+            )}
+          </Row>
+          {owner && (
+            <>
+              <Row label={t('property.business')}>
+                {tile.landBuild ? (
+                  <Badge tone="accent">
+                    {tile.landBuild === 'dapur_mbg'
+                      ? t('property.dapurMbg')
+                      : t('property.warkopCafe')}
+                  </Badge>
+                ) : (
+                  <span className="text-ink-faint">{t('property.bareLand')}</span>
                 )}
               </Row>
               <Row label={t('property.investedValue')}>{formatRupiah(tileValue(tile))}</Row>
@@ -310,6 +351,32 @@ export function PropertyModal({
         <Card flat tone="sunken" className="mt-4 px-3 py-2 text-center text-xs text-ink-muted">
           {t('property.needFullRegion')}
         </Card>
+      )}
+
+      {canBuildLahan && (
+        <div className="mt-5 space-y-2">
+          <div className="text-xs text-ink-muted">{t('property.buildLandPrompt')}</div>
+          {(
+            [
+              ['dapur_mbg', t('property.buildDapur', { cost: formatRupiah(LAHAN_BUILD_COST) })],
+              ['warkop_cafe', t('property.buildWarkop', { cost: formatRupiah(LAHAN_BUILD_COST) })],
+            ] as [LandBusiness, string][]
+          ).map(([biz, label]) => (
+            <Button
+              key={biz}
+              block
+              variant="info"
+              size="sm"
+              disabled={(me?.cash ?? 0) < LAHAN_BUILD_COST}
+              onClick={() => {
+                buildLahan(tileId, biz)
+                onClose()
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
       )}
 
       {canDowngrade && (

@@ -4,6 +4,7 @@
 import type {
   ActiveEffect,
   GameState,
+  LandBusiness,
   PendingDebt,
   Player,
   PropertyTrack,
@@ -56,6 +57,8 @@ interface OwnOpts {
   track?: PropertyTrack
   tier?: number
   builderId?: string | null
+  /** For buildable_land tiles: the business built on it. */
+  landBuild?: LandBusiness | null
 }
 
 /** Assign ownership (and optional development) to a tile. */
@@ -65,6 +68,7 @@ export function own(state: GameState, tileId: TileId, ownerId: string, opts: Own
   tile.track = opts.track ?? null
   tile.tier = opts.tier ?? 0
   tile.builderId = opts.builderId ?? null
+  tile.landBuild = opts.landBuild ?? null
 }
 
 let effectSeq = 0

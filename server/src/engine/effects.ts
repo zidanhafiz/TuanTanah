@@ -1,6 +1,6 @@
 // Timed effect scheduler (tech doc §10).
 // Effects decay at the end of each full round.
-import type { ActiveEffect, GameState, TileId } from '@tuan-tanah/shared'
+import type { ActiveEffect, GameState, PassType, Player, TileId } from '@tuan-tanah/shared'
 
 /** Decrement roundsRemaining for all effects; drop expired ones. Mutates state. */
 export function tickEffects(state: GameState): void {
@@ -54,6 +54,18 @@ export function hasRentImmunity(state: GameState, payerId: string, tileId: TileI
       e.targetPlayerId === payerId &&
       e.targetTileIds?.includes(tileId),
   )
+}
+
+/**
+ * Consume one matching free-pass card from a player's inventory, if held.
+ * Returns true (and removes the card) when a pass of `type` was available.
+ * Used to auto-waive an incoming rent / tax / jailing.
+ */
+export function consumeOwnedCard(player: Player, type: PassType): boolean {
+  const i = player.ownedCards.findIndex((c) => c.type === type)
+  if (i < 0) return false
+  player.ownedCards.splice(i, 1)
+  return true
 }
 
 /**

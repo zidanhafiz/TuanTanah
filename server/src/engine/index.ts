@@ -11,12 +11,19 @@ import {
   JAIL_EXIT_COST,
   JAIL_TILE_ID,
   KEJADIAN_CARDS,
+  LAHAN_BUILD_COST,
+  LAHAN_LAND_PRICE,
+  LAW_OFFICE_FREEPASS_PRICE,
+  LAW_OFFICE_JAIL_FEE,
+  LAW_OFFICE_TRANSFER_RATE,
   MAX_PLAYERS,
   MIN_PLAYERS,
   PLAYER_COLORS,
   PROPERTY_TIERS,
   REGIONS,
   REGION_SET_RENT_MULTIPLIER,
+  RINJANI_FEE,
+  RINJANI_TILE_ID,
   SELL_REFUND_RATE,
   STARTING_CASH_DEFAULT,
   STARTING_CASH_MAX,
@@ -26,9 +33,12 @@ import {
   TIME_LIMIT_OPTIONS,
   TRANSPORT_BUY_PRICE,
   TRANSPORT_RENT,
+  WARKOP_RENT,
 } from '@tuan-tanah/shared'
 import type {
   GameState,
+  LandBusiness,
+  PassType,
   Player,
   PropertyTrack,
   Role,
@@ -39,9 +49,9 @@ import type {
 import { getTileDef, ownsFullRegion, transportOwnedCount } from './board.js'
 import { drawHustle, drawKejadian } from './cards.js'
 import { charge, settleIfAble, tileValue } from './elimination.js'
-import { applyRentEffects, effectiveTier, hasRentImmunity } from './effects.js'
+import { applyRentEffects, consumeOwnedCard, effectiveTier, hasRentImmunity } from './effects.js'
 import { buyPriceMultiplier, isTaxImmune, salaryFor } from './roles.js'
-import { advanceTurn, startTurn } from './turn.js'
+import { advanceTurn, collectPassiveIncome, startTurn } from './turn.js'
 import { defaultRng, pushLog, shuffle, uid, type Rng } from './util.js'
 
 export class EngineError extends Error {}
@@ -63,6 +73,7 @@ export function createGameState(roomId: string, now: number): GameState {
       track: null,
       tier: 0,
       builderId: null,
+      landBuild: null,
     })),
     turn: {
       hasRolled: false,
@@ -70,6 +81,7 @@ export function createGameState(roomId: string, now: number): GameState {
       rolledDoubles: false,
       pendingBuyTileId: null,
       upgradesUsed: 0,
+      pendingLawOffice: false,
     },
     activeEffects: [],
     kejadianDeck: [],
@@ -106,6 +118,7 @@ export function addPlayer(state: GameState, name: string): Player {
     inJail: false,
     jailTurnsLeft: 0,
     loans: [],
+    ownedCards: [],
     isEliminated: false,
     isRoomMaster: state.players.length === 0,
     isConnected: true,
@@ -216,6 +229,7 @@ export function startGame(state: GameState, playerId: string, rng: Rng = default
     p.inJail = false
     p.jailTurnsLeft = 0
     p.loans = []
+    p.ownedCards = []
     p.isEliminated = false
     p.usedAbility = false
   }
@@ -335,6 +349,9 @@ function movePlayer(
     // (charged at the start of their next turn, off the movement/debt path).
     player.metaActionsUsed = []
     if (player.loans.length > 0) player.owesLapInterest = true
+    // Passive income pays once per lap, before resolving the tile they land on
+    // so the cash is on hand if they owe rent there.
+    collectPassiveIncome(state, player)
   }
   return resolveTile(state, player, rng)
 }
@@ -362,6 +379,10 @@ function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): T
         pushLog(state, `${player.name} skipped ${def.name} (tax-immune)`, player.id)
         return {}
       }
+      if (consumeOwnedCard(player, 'tax_free')) {
+        pushLog(state, `${player.name} used a tax-free pass on ${def.name}`, player.id)
+        return {}
+      }
       const amount = def.taxAmount ?? 0
       charge(state, player, amount, null, 'tax', def.name)
       return {}
@@ -378,18 +399,63 @@ function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): T
       sendToJail(state, player)
       return {}
     }
+    case 'buildable_land': {
+      const tile = state.tiles[player.position]!
+      if (tile.ownerId === null) {
+        state.turn.pendingBuyTileId = player.position
+        pushLog(state, `${player.name} landed on ${def.name} (unowned)`, player.id)
+      } else if (tile.ownerId !== player.id && tile.landBuild === 'warkop_cafe') {
+        const paid = payRent(state, player, tile.ownerId, WARKOP_RENT, player.position)
+        return paid ? { rent: paid } : {}
+      } else {
+        pushLog(state, `${player.name} landed on ${def.name}`, player.id)
+      }
+      return {}
+    }
+    case 'law_office': {
+      // Defer to the player's choice: they pick one legal action (or skip) via a
+      // dedicated event while `pendingLawOffice` is set.
+      state.turn.pendingLawOffice = true
+      pushLog(state, `${player.name} arrived at ${def.name}`, player.id)
+      return {}
+    }
+    case 'vacation': {
+      resolveRinjani(state, player)
+      return {}
+    }
     case 'go':
       pushLog(state, `${player.name} landed on GO`, player.id)
       return {}
     case 'jail_visit':
-    case 'parking':
     default:
       pushLog(state, `${player.name} landed on ${def.name}`, player.id)
       return {}
   }
 }
 
+/**
+ * Gunung Rinjani (vacation tile): every active, non-jailed player is summoned to
+ * the mountain and pays a flat fee to the bank. Teleporting here grants no GO
+ * salary. A player who can't pay raises a pending debt via `charge`.
+ */
+function resolveRinjani(state: GameState, lander: Player): void {
+  pushLog(
+    state,
+    `${lander.name} reached Gunung Rinjani — everyone is summoned to the mountain!`,
+    lander.id,
+  )
+  for (const p of state.players) {
+    if (p.isEliminated || p.inJail) continue
+    p.position = RINJANI_TILE_ID
+    charge(state, p, RINJANI_FEE, null, 'fine', 'Gunung Rinjani vacation fee')
+  }
+}
+
 export function sendToJail(state: GameState, player: Player): void {
+  if (consumeOwnedCard(player, 'jail_free')) {
+    pushLog(state, `${player.name} used a jail-free pass and avoided jail`, player.id)
+    return
+  }
   player.position = JAIL_TILE_ID
   player.inJail = true
   player.jailTurnsLeft = JAIL_DURATION_TURNS
@@ -411,6 +477,11 @@ function payRent(
     return null
   }
   if (amount <= 0) return null
+  // A held rent-free pass waives this rent entirely, same as immunity.
+  if (consumeOwnedCard(payer, 'rent_free')) {
+    pushLog(state, `${payer.name} used a rent-free pass on ${getTileDef(tileId).name}`, payer.id)
+    return null
+  }
 
   // `charge` pays immediately if affordable (and applies the Investor / builder
   // cut), or opens a pending debt the payer must settle before play continues.
@@ -446,18 +517,25 @@ export function computeRent(state: GameState, tileId: TileId): RupiahAmount {
   return Math.round(rent)
 }
 
-/** Purchase a buyable (property/transport) tile for a player. No turn/landing constraint. */
+/** Purchase a buyable (property/transport/land) tile for a player. No turn/landing constraint. */
 export function buyTile(state: GameState, player: Player, tileId: TileId): void {
   const def = getTileDef(tileId)
-  if (def.type !== 'property' && def.type !== 'transport') {
+  if (def.type !== 'property' && def.type !== 'transport' && def.type !== 'buildable_land') {
     throw new EngineError('That tile cannot be bought')
   }
   const tile = state.tiles[tileId]
   if (!tile) throw new EngineError('Invalid tile')
   if (tile.ownerId !== null) throw new EngineError('Tile already owned')
 
-  const basePrice = def.type === 'transport' ? TRANSPORT_BUY_PRICE : REGIONS[def.region!].buyPrice
-  const price = Math.round(basePrice * buyPriceMultiplier(player))
+  // Lahan Kosong is a flat-priced bare plot (no region, no Sales discount); other
+  // buyable tiles use their region/transport price with role discounts applied.
+  let price: RupiahAmount
+  if (def.type === 'buildable_land') {
+    price = LAHAN_LAND_PRICE
+  } else {
+    const basePrice = def.type === 'transport' ? TRANSPORT_BUY_PRICE : REGIONS[def.region!].buyPrice
+    price = Math.round(basePrice * buyPriceMultiplier(player))
+  }
   if (player.cash < price) throw new EngineError('Not enough cash')
 
   player.cash -= price
@@ -466,6 +544,7 @@ export function buyTile(state: GameState, player: Player, tileId: TileId): void 
   tile.track = null
   tile.tier = 0
   tile.builderId = null
+  tile.landBuild = null
   pushLog(state, `${player.name} bought ${def.name} for ${rupiah(price)}`, player.id)
 }
 
@@ -569,6 +648,7 @@ export function sellProperty(state: GameState, playerId: string, tileId: TileId)
   tile.track = null
   tile.tier = 0
   tile.builderId = null
+  tile.landBuild = null
   pushLog(
     state,
     `${player.name} sold ${getTileDef(tileId).name} back to the bank for ${rupiah(refund)}`,
@@ -609,6 +689,134 @@ export function downgradeProperty(state: GameState, playerId: string, tileId: Ti
     `${player.name} downgraded ${def.name} from ${tierDef.name} for ${rupiah(refund)}`,
     player.id,
   )
+}
+
+// ---- Special tile actions (board re-layout, TTG-29) ----
+
+/**
+ * Build one business on an owned Lahan Kosong (buildable_land) tile. Turn-only,
+ * one build per tile (Dapur MBG or Warkop-Cafe, mutually exclusive). Costs a flat
+ * fee to the bank. Does not count against the per-turn property upgrade cap.
+ */
+export function buildLahan(
+  state: GameState,
+  playerId: string,
+  tileId: TileId,
+  business: LandBusiness,
+): void {
+  const player = requireTurn(state, playerId)
+  const def = getTileDef(tileId)
+  if (def.type !== 'buildable_land') throw new EngineError('That tile is not buildable land')
+  if (business !== 'dapur_mbg' && business !== 'warkop_cafe') {
+    throw new EngineError('Invalid business')
+  }
+  const tile = state.tiles[tileId]
+  if (!tile) throw new EngineError('Invalid tile')
+  if (tile.ownerId !== player.id) throw new EngineError("You don't own that land")
+  if (tile.landBuild) throw new EngineError('This land is already developed')
+  if (player.cash < LAHAN_BUILD_COST) throw new EngineError('Not enough cash to build')
+
+  player.cash -= LAHAN_BUILD_COST
+  state.bank += LAHAN_BUILD_COST
+  tile.landBuild = business
+  const label = business === 'dapur_mbg' ? 'Dapur MBG' : 'Warkop-Cafe'
+  pushLog(
+    state,
+    `${player.name} built ${label} on ${def.name} for ${rupiah(LAHAN_BUILD_COST)}`,
+    player.id,
+  )
+}
+
+/** Guard a Kantor Hukum action: must be the current player, standing on the tile. */
+function requireLawOffice(state: GameState, playerId: string): Player {
+  const player = requireTurn(state, playerId)
+  if (!state.turn.pendingLawOffice) throw new EngineError('You are not at the Kantor Hukum')
+  return player
+}
+
+/** Kantor Hukum: buy any unowned buyable tile remotely (normal price). */
+export function lawOfficeBuy(state: GameState, playerId: string, tileId: TileId): void {
+  const player = requireLawOffice(state, playerId)
+  buyTile(state, player, tileId)
+  state.turn.pendingLawOffice = false
+}
+
+/**
+ * Kantor Hukum: force-buy another player's property at a 30% discount (pay
+ * LAW_OFFICE_TRANSFER_RATE of its invested value to the owner). Tier, track and
+ * builder carry over with the tile.
+ */
+export function lawOfficeTransfer(state: GameState, playerId: string, tileId: TileId): void {
+  const player = requireLawOffice(state, playerId)
+  const def = getTileDef(tileId)
+  if (def.type !== 'property' && def.type !== 'transport') {
+    throw new EngineError('Only properties can be force-transferred')
+  }
+  const tile = state.tiles[tileId]
+  if (!tile || tile.ownerId === null) throw new EngineError('That tile is unowned — buy it instead')
+  if (tile.ownerId === player.id) throw new EngineError('You already own that tile')
+  const owner = state.players.find((p) => p.id === tile.ownerId)
+  if (!owner || owner.isEliminated) throw new EngineError('That tile has no active owner')
+
+  const price = Math.round(tileValue(tile) * LAW_OFFICE_TRANSFER_RATE)
+  if (player.cash < price) throw new EngineError('Not enough cash for the transfer')
+  player.cash -= price
+  owner.cash += price
+  tile.ownerId = player.id
+  state.turn.pendingLawOffice = false
+  pushLog(
+    state,
+    `${player.name} force-bought ${def.name} from ${owner.name} for ${rupiah(price)} (30% off)`,
+    player.id,
+  )
+}
+
+/** Kantor Hukum: pay a bribe to the bank to send another player to jail. */
+export function lawOfficeJail(state: GameState, playerId: string, targetPlayerId: string): void {
+  const player = requireLawOffice(state, playerId)
+  if (targetPlayerId === playerId) throw new EngineError('You cannot jail yourself')
+  const target = state.players.find((p) => p.id === targetPlayerId)
+  if (!target || target.isEliminated) throw new EngineError('Invalid target')
+  if (target.inJail) throw new EngineError('That player is already in jail')
+  if (player.cash < LAW_OFFICE_JAIL_FEE) throw new EngineError('Not enough cash for the bribe')
+
+  player.cash -= LAW_OFFICE_JAIL_FEE
+  state.bank += LAW_OFFICE_JAIL_FEE
+  pushLog(
+    state,
+    `${player.name} paid ${rupiah(LAW_OFFICE_JAIL_FEE)} to send ${target.name} to jail`,
+    player.id,
+  )
+  sendToJail(state, target)
+  state.turn.pendingLawOffice = false
+}
+
+/** Kantor Hukum: buy a single free-pass card (rent/tax/jail-free) into inventory. */
+export function lawOfficeFreepass(state: GameState, playerId: string, pass: PassType): void {
+  const player = requireLawOffice(state, playerId)
+  if (pass !== 'rent_free' && pass !== 'tax_free' && pass !== 'jail_free') {
+    throw new EngineError('Invalid pass type')
+  }
+  if (player.cash < LAW_OFFICE_FREEPASS_PRICE) {
+    throw new EngineError('Not enough cash for a free-pass card')
+  }
+  player.cash -= LAW_OFFICE_FREEPASS_PRICE
+  state.bank += LAW_OFFICE_FREEPASS_PRICE
+  player.ownedCards.push({ id: uid(), type: pass })
+  state.turn.pendingLawOffice = false
+  const label = pass.replace('_', '-')
+  pushLog(
+    state,
+    `${player.name} bought a ${label} pass for ${rupiah(LAW_OFFICE_FREEPASS_PRICE)}`,
+    player.id,
+  )
+}
+
+/** Kantor Hukum: decline to act and leave the tile. */
+export function lawOfficeSkip(state: GameState, playerId: string): void {
+  const player = requireLawOffice(state, playerId)
+  state.turn.pendingLawOffice = false
+  pushLog(state, `${player.name} left the Kantor Hukum without acting`, player.id)
 }
 
 /**

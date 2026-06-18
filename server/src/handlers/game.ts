@@ -1,9 +1,15 @@
 import type { GameState } from '@tuan-tanah/shared'
 import { castVote, performMetaAction } from '../engine/actions.js'
 import {
+  buildLahan,
   buyProperty,
   downgradeProperty,
   endTurn,
+  lawOfficeBuy,
+  lawOfficeFreepass,
+  lawOfficeJail,
+  lawOfficeSkip,
+  lawOfficeTransfer,
   payJail,
   proposeDeal,
   repayPinjol,
@@ -67,6 +73,60 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
     }),
   )
 
+  socket.on('build_lahan', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      await mutateRoom(store, roomId, (state) =>
+        buildLahan(state, playerId, payload.tileId, payload.business),
+      )
+      await broadcastState(io, store, roomId)
+    }),
+  )
+
+  socket.on('law_office_buy', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      await mutateRoom(store, roomId, (state) => lawOfficeBuy(state, playerId, payload.tileId))
+      await broadcastState(io, store, roomId)
+    }),
+  )
+
+  socket.on('law_office_transfer', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      // A force-transfer shifts wealth between players, so a wealth win can trigger.
+      await mutateRoom(store, roomId, (state) => lawOfficeTransfer(state, playerId, payload.tileId))
+      await broadcastState(io, store, roomId)
+      await concludeIfWon(io, store, roomId)
+    }),
+  )
+
+  socket.on('law_office_jail', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      await mutateRoom(store, roomId, (state) =>
+        lawOfficeJail(state, playerId, payload.targetPlayerId),
+      )
+      await broadcastState(io, store, roomId)
+    }),
+  )
+
+  socket.on('law_office_freepass', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      await mutateRoom(store, roomId, (state) => lawOfficeFreepass(state, playerId, payload.pass))
+      await broadcastState(io, store, roomId)
+    }),
+  )
+
+  socket.on('law_office_skip', () =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      await mutateRoom(store, roomId, (state) => lawOfficeSkip(state, playerId))
+      await broadcastState(io, store, roomId)
+    }),
+  )
+
   socket.on('pay_jail', () =>
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
@@ -97,6 +157,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
             playerId,
             targetId: payload.targetId,
             tileId: payload.tileId,
+            depositAmount: payload.depositAmount,
           }),
         ),
       )

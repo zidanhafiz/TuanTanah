@@ -111,7 +111,9 @@
       "hustle": "Hustle",
       "jail_visit": "Visiting",
       "jail_go": "Jail!",
-      "parking": "Parking"
+      "buildable_land": "Land",
+      "law_office": "Law Office",
+      "vacation": "Vacation"
     }
   },
   "eventLog": {
@@ -123,6 +125,8 @@
     "hustle": "Hustle",
     "kejadianNasional": "National Event",
     "earn": "Earn {{amount}}",
+    "cost": "Lose {{amount}}",
+    "passGranted": "Free {{pass}} pass",
     "drawnBy": "Drawn by"
   },
   "debt": {
@@ -151,11 +155,21 @@
     "borrow": "Borrow {{amount}}",
     "cancel": "Cancel"
   },
+  "judol": {
+    "title": "🎰 Judol — Online gambling",
+    "terms": "10% win → x3–x5 · 1% jackpot → x10 · lose your deposit otherwise",
+    "deposit": "Deposit",
+    "custom": "Custom amount",
+    "notEnoughCash": "Not enough cash",
+    "enterAmount": "Enter a deposit amount",
+    "play": "Deposit {{amount}}",
+    "cancel": "Cancel"
+  },
   "meta": {
     "title": "Meta actions",
     "remaining": "{{count}} left",
     "alreadyUsed": "Already used this lap",
-    "invest": "💰 Invest",
+    "judol": "🎰 Judol",
     "work": "💼 Work",
     "hustle": "🎴 Hustle",
     "lobby": "🗣️ Lobby",
@@ -164,7 +178,7 @@
     "negotiate": "🤝 Negotiate",
     "chooseBeforeRolling": "Choose before rolling — skips your move",
     "descriptions": {
-      "invest": "Buy an unowned property tile you pick on the board — your action this turn.",
+      "judol": "Gamble a deposit — 10% chance to win x3–x5, with a 1% jackpot x10; lose it otherwise.",
       "work": "Skip your move and collect your salary instead. Choose before rolling.",
       "hustle": "Draw a Hustle card — a risky side gig with a random payoff.",
       "lobby": "Pay to make a rival skip their next turn.",
@@ -233,6 +247,13 @@
     "house": "House",
     "property": "Property",
     "investedValue": "Invested value",
+    "business": "Business",
+    "dapurMbg": "Dapur MBG",
+    "warkopCafe": "Warkop-Cafe",
+    "bareLand": "Empty land",
+    "buildLandPrompt": "Develop this land — build a business:",
+    "buildDapur": "Build Dapur MBG — {{cost}}",
+    "buildWarkop": "Build Warkop-Cafe — {{cost}}",
     "rentSchedule": "Rent & development",
     "levelCol": "Level",
     "rentCol": "Rent",
@@ -256,6 +277,35 @@
     "sellBack": "Sell back to bank — {{refund}}",
     "close": "Close"
   },
+  "lawOffice": {
+    "title": "⚖️ Law Office",
+    "intro": "Choose one legal action, or skip.",
+    "skip": "Skip",
+    "back": "← Back",
+    "cash": "Your cash: {{amount}}",
+    "buy": {
+      "label": "🏠 Buy a tile remotely",
+      "title": "Buy a tile"
+    },
+    "transfer": {
+      "label": "📑 Force-buy a rival's property (30% off)",
+      "title": "Force-buy a property",
+      "cost": "{{price}} · from {{owner}}"
+    },
+    "jail": {
+      "label": "🚔 Send a rival to jail ({{fee}})",
+      "title": "Send to jail"
+    },
+    "freepass": {
+      "label": "🎟️ Buy a free-pass card ({{price}})",
+      "title": "Buy a free-pass card"
+    },
+    "pass": {
+      "rent_free": "Rent-free pass",
+      "tax_free": "Tax-free pass",
+      "jail_free": "Jail-free pass"
+    }
+  },
   "status": {
     "title": "My status",
     "myProperties": "My properties",
@@ -272,7 +322,9 @@
     "jail": "🔒 jail",
     "offline": "offline",
     "loans_one": "🏦 {{count}} loan · {{owed}} owed · {{perRound}}/lap",
-    "loans_other": "🏦 {{count}} loans · {{owed}} owed · {{perRound}}/lap"
+    "loans_other": "🏦 {{count}} loans · {{owed}} owed · {{perRound}}/lap",
+    "passes_one": "🎟️ {{count}} pass · {{list}}",
+    "passes_other": "🎟️ {{count}} passes · {{list}}"
   },
   "turnBanner": {
     "yourTurn": "Your turn!"
@@ -289,15 +341,17 @@
   "data": {
     "tiles": {
       "4": "Income Tax",
+      "9": "Empty Lot",
       "10": "Visiting Jail",
       "16": "National Event",
-      "19": "Free Parking",
+      "19": "Law Office",
       "20": "Go to Jail",
-      "29": "National Event",
+      "24": "Mt. Rinjani",
+      "29": "Empty Lot",
       "30": "Luxury Tax",
       "37": "National Event",
-      "38": "Free Parking",
-      "39": "Gift Tax"
+      "38": "BSD City",
+      "39": "Alam Sutera"
     },
     "roles": {
       "pengusaha": {
@@ -373,13 +427,13 @@
         "name": "Mudik Season",
         "effect": "All transport tiles earn 2× for 3 rounds"
       },
-      "viral_medsos": {
-        "name": "Viral on Social Media",
-        "effect": "One random property earns 3× for 3 rounds"
+      "dollar_naik": {
+        "name": "Dollar Rises",
+        "effect": "Every player loses 10% of their cash"
       },
       "reshuffle_kabinet": {
         "name": "Cabinet Reshuffle",
-        "effect": "All lobby effects immediately reset"
+        "effect": "All card effects and free-pass cards are wiped"
       },
       "inspeksi_pajak": {
         "name": "Tax Inspection",
@@ -411,7 +465,7 @@
       },
       "investasi_asing": {
         "name": "Foreign Investment",
-        "effect": "All property track owners earn Rp 1 juta bonus"
+        "effect": "All property track owners earn Rp 2 juta bonus"
       },
       "pemilu": {
         "name": "Election",
@@ -424,16 +478,31 @@
       "jual_online": "Online Selling",
       "freelance_design": "Freelance Design",
       "endorse_produk": "Product Endorsement",
-      "ojek_wisata": "Tour Ojek",
-      "rental_motor_bali": "Bali Motorbike Rental",
       "jual_pulsa": "Phone Credit Sales",
-      "warung_dadakan": "Pop-up Stall",
       "content_creator": "Content Creator",
-      "reseller_thrift": "Thrift Reseller",
       "joki_tugas": "Assignment Ghostwriting",
-      "ngamen_online": "Online Busking",
       "affiliate_marketing": "Affiliate Marketing",
-      "jualan_snack_viral": "Viral Snack Sales"
+      "jualan_snack_viral": "Viral Snack Sales",
+      "profit_kripto": "Crypto Profit",
+      "giveaway_terlucu": "Funniest Comment Giveaway",
+      "teman_bayar_utang": "Old Friend Repays a Debt",
+      "joki_mobile_legend": "Mobile Legends Boosting",
+      "ulang_tahun": "Birthday",
+      "undangan_kondangan": "Wedding Invitation",
+      "top_up_diamond": "Diamond Top-up",
+      "donate_dramok": "Streamer Donation"
+    },
+    "passes": {
+      "rent_free": "rent-free",
+      "tax_free": "tax-free",
+      "jail_free": "jail-free"
+    },
+    "effects": {
+      "rent_multiplier": "Rent ×{{multiplier}}",
+      "transport_multiplier": "Transport ×{{multiplier}}",
+      "tier_drop": "Tier −{{multiplier}}",
+      "rounds_one": "{{count}} round left",
+      "rounds_other": "{{count}} rounds left"
     }
   }
 }

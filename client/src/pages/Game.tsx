@@ -1,5 +1,6 @@
 import {
   BOARD,
+  LAHAN_LAND_PRICE,
   META_ACTIONS_PER_LAP,
   REGIONS,
   TRANSPORT_BUY_PRICE,
@@ -15,6 +16,8 @@ import { Board } from '../components/Board/Board.js'
 import { DebtPanel } from '../components/DebtPanel/DebtPanel.js'
 import { EventLog } from '../components/EventLog/EventLog.js'
 import { MetaActionBar, type MetaActionDef } from '../components/MetaActionBar/MetaActionBar.js'
+import { JudolModal } from '../components/JudolModal/JudolModal.js'
+import { KantorHukumModal } from '../components/KantorHukumModal/KantorHukumModal.js'
 import { NegotiationModal } from '../components/NegotiationModal/NegotiationModal.js'
 import { PinjolModal } from '../components/PinjolModal/PinjolModal.js'
 import { PlayerPanel } from '../components/PlayerPanel/PlayerPanel.js'
@@ -30,6 +33,7 @@ import { isRollAnimating, useRollAnim } from '../store/rollAnimation.js'
 function basePrice(tileId: TileId): number {
   const def = BOARD[tileId]!
   if (def.type === 'transport') return TRANSPORT_BUY_PRICE
+  if (def.type === 'buildable_land') return LAHAN_LAND_PRICE
   return def.region ? REGIONS[def.region].buyPrice : 0
 }
 
@@ -44,6 +48,7 @@ export function Game() {
   const useAbility = useGame((s) => s.useAbility)
   const payJail = useGame((s) => s.payJail)
   const endTurn = useGame((s) => s.endTurn)
+  const lawOfficeSkip = useGame((s) => s.lawOfficeSkip)
   const finalStandings = useGame((s) => s.finalStandings)
 
   const [pendingMeta, setPendingMeta] = useState<{
@@ -51,6 +56,7 @@ export function Game() {
     target: 'player' | 'tile'
   } | null>(null)
   const [showPinjol, setShowPinjol] = useState(false)
+  const [showJudol, setShowJudol] = useState(false)
   const [selectedTile, setSelectedTile] = useState<TileId | null>(null)
   const [showNegotiate, setShowNegotiate] = useState(false)
   // While the dice/token cinematic is playing, hold back post-roll actions so
@@ -80,6 +86,11 @@ export function Game() {
       : undefined
 
   const handlePickMeta = (def: MetaActionDef) => {
+    if (def.action === 'judol') {
+      setShowJudol(true)
+      setPendingMeta(null)
+      return
+    }
     if (def.target === 'none') {
       metaAction(def.action)
       setPendingMeta(null)
@@ -284,6 +295,9 @@ export function Game() {
       </aside>
 
       <PinjolModal open={showPinjol} onClose={() => setShowPinjol(false)} />
+      <JudolModal open={showJudol} onClose={() => setShowJudol(false)} />
+      <KantorHukumModal open={isMyTurn && turn.pendingLawOffice} onClose={lawOfficeSkip} />
+
       <NegotiationModal open={showNegotiate} onClose={() => setShowNegotiate(false)} />
 
       {selectedTile !== null && (

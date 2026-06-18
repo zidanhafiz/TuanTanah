@@ -1,5 +1,7 @@
 import { PINJOL_INTEREST_RATE, PROPERTY_TIERS, REGIONS } from '@tuan-tanah/shared'
 import { describe, expect, it } from 'vitest'
+import { rollDice } from '../src/engine/index.js'
+import { salaryFor } from '../src/engine/roles.js'
 import { advanceTurn, startTurn } from '../src/engine/turn.js'
 import { addEffect, makeGame, own } from './helpers.js'
 
@@ -44,7 +46,7 @@ describe('advanceTurn', () => {
 })
 
 describe('startTurn upkeep', () => {
-  it('collects passive income then charges pinjol interest when a lap is due', () => {
+  it('charges pinjol interest at turn start when a lap is due (no passive income)', () => {
     const { state, players } = makeGame(2, { cash: 1_000_000 })
     const p = players[0]!
     state.currentPlayerIndex = 0
@@ -61,13 +63,13 @@ describe('startTurn upkeep', () => {
     ]
     p.owesLapInterest = true // interest is per-lap; flag it as due this turn
 
-    const passive = REGIONS.papua.passiveBase * PROPERTY_TIERS[0]!.passiveMult // 100k
     const interest = Math.round(2_000_000 * PINJOL_INTEREST_RATE) // 200k
     startTurn(state)
-    expect(p.cash).toBe(1_000_000 + passive - interest)
+    // Passive income moved to the pass-GO path, so turn start only charges interest.
+    expect(p.cash).toBe(1_000_000 - interest)
   })
 
-  it('does not charge interest at turn start when no lap is due', () => {
+  it('does nothing to cash at turn start when no lap is due', () => {
     const { state, players } = makeGame(2, { cash: 1_000_000 })
     const p = players[0]!
     state.currentPlayerIndex = 0
@@ -84,8 +86,26 @@ describe('startTurn upkeep', () => {
     ]
     p.owesLapInterest = false // hasn't passed GO since last charge
 
-    const passive = REGIONS.papua.passiveBase * PROPERTY_TIERS[0]!.passiveMult // 100k
     startTurn(state)
-    expect(p.cash).toBe(1_000_000 + passive) // passive only, no interest
+    expect(p.cash).toBe(1_000_000) // no interest, no passive
+  })
+
+  it('collects passive income once per lap, on the pass-GO path', () => {
+    const { state, players } = makeGame(2, { cash: 1_000_000 })
+    const p = players[0]!
+    state.currentPlayerIndex = 0
+    own(state, 1, p.id, { track: 'property', tier: 1 })
+    const passive = REGIONS.papua.passiveBase * PROPERTY_TIERS[0]!.passiveMult // 100k
+
+    // Turn start no longer pays passive income.
+    startTurn(state)
+    expect(p.cash).toBe(1_000_000)
+
+    // rng 0.4 → both dice are 3 (sum 6); from tile 39 this wraps past GO and
+    // pays salary + one lap of passive income.
+    p.position = 39
+    const salary = salaryFor(p)
+    rollDice(state, p.id, () => 0.4)
+    expect(p.cash).toBe(1_000_000 + salary + passive)
   })
 })

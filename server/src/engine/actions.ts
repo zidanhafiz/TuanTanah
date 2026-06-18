@@ -2,6 +2,11 @@
 // One optional meta action per turn: invest, work, hustle, lobby, sabotage,
 // korupsi, negotiate. Pure engine logic — throws EngineError on invalid input.
 import {
+  JUDOL_JACKPOT_MULTIPLIER,
+  JUDOL_JACKPOT_RATE,
+  JUDOL_WIN_MULT_MAX,
+  JUDOL_WIN_MULT_MIN,
+  JUDOL_WIN_RATE,
   KORUPSI_FINE,
   KORUPSI_STEAL_AMOUNT,
   KORUPSI_SUCCESS_RATE,
@@ -15,7 +20,7 @@ import type { GameState, MetaActionType, Player } from '@tuan-tanah/shared'
 import { getTileDef } from './board.js'
 import { drawHustle } from './cards.js'
 import { charge } from './elimination.js'
-import { EngineError, buyTile, requireTurn, rupiah, sendToJail } from './index.js'
+import { EngineError, requireTurn, rupiah, sendToJail } from './index.js'
 import { salaryFor } from './roles.js'
 import { defaultRng, pushLog, uid, type Rng } from './util.js'
 
@@ -24,6 +29,7 @@ export interface MetaActionRequest {
   playerId: string
   targetId?: string
   tileId?: number
+  depositAmount?: number
 }
 
 export interface MetaActionResult {
@@ -70,10 +76,32 @@ export function performMetaAction(
   }
 
   switch (req.action) {
-    case 'invest': {
-      // Buy-only for now; upgrading your own tile is deferred to TTG-18.
-      if (req.tileId == null) throw new EngineError('Select a tile to buy')
-      buyTile(state, player, req.tileId)
+    case 'judol': {
+      // Online gambling: deposit cash for a long-shot payout, else lose it.
+      // RNG order is fixed for reproducibility: (1) win check, (2) jackpot
+      // sub-roll, (3) integer multiplier — the last only on a non-jackpot win.
+      const deposit = req.depositAmount
+      if (deposit == null || deposit <= 0) throw new EngineError('Enter a deposit amount')
+      if (deposit > player.cash) throw new EngineError('Not enough cash to deposit')
+      player.cash -= deposit
+      state.bank += deposit
+      if (rng() < JUDOL_WIN_RATE) {
+        if (rng() < JUDOL_JACKPOT_RATE) {
+          const payout = deposit * JUDOL_JACKPOT_MULTIPLIER
+          player.cash += payout
+          state.bank -= payout
+          pushLog(state, `${player.name} hit the Judol JACKPOT (+${rupiah(payout)})`, player.id)
+        } else {
+          const span = JUDOL_WIN_MULT_MAX - JUDOL_WIN_MULT_MIN + 1
+          const mult = JUDOL_WIN_MULT_MIN + Math.floor(rng() * span)
+          const payout = deposit * mult
+          player.cash += payout
+          state.bank -= payout
+          pushLog(state, `${player.name} won Judol x${mult} (+${rupiah(payout)})`, player.id)
+        }
+      } else {
+        pushLog(state, `${player.name} lost ${rupiah(deposit)} on Judol`, player.id)
+      }
       player.metaActionsUsed.push(req.action)
       return {}
     }
