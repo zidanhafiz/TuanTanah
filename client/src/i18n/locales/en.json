@@ -255,8 +255,10 @@
     "buildDapur": "Build Dapur MBG — {{cost}}",
     "buildWarkop": "Build Warkop-Cafe — {{cost}}",
     "rentSchedule": "Rent & development",
+    "landSchedule": "Business tiers",
     "levelCol": "Level",
     "rentCol": "Rent",
+    "passiveCol": "Passive",
     "buildCol": "Build cost",
     "landOnly": "Land only",
     "regionBonus": "Rent is ×{{mult}} when you own all of {{region}}.",
@@ -357,7 +359,7 @@
     "roles": {
       "pengusaha": {
         "name": "Entrepreneur",
-        "ability": "Upgrade 2 tiers per turn"
+        "ability": "Build & upgrade tiles 20% cheaper"
       },
       "politisi": {
         "name": "Politician",
@@ -409,6 +411,24 @@
         "3": "Minimarket",
         "4": "Mall",
         "5": "Conglomerate"
+      }
+    },
+    "landBusiness": {
+      "dapur_mbg": "Dapur MBG",
+      "warkop_cafe": "Warkop-Cafe"
+    },
+    "landTiers": {
+      "dapur_mbg": {
+        "1": "Home Kitchen",
+        "2": "MBG Catering",
+        "3": "Central Kitchen",
+        "4": "National MBG Kitchen"
+      },
+      "warkop_cafe": {
+        "1": "Warkop",
+        "2": "Trendy Coffee",
+        "3": "Cafe",
+        "4": "Coffee Chain"
       }
     },
     "kejadian": {

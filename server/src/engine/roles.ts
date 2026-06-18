@@ -16,6 +16,11 @@ export function buyPriceMultiplier(player: Player): number {
   return player.role === 'sales' ? 0.75 : 1
 }
 
+/** Build/upgrade cost discount multiplier (Pengusaha develops 20% cheaper). */
+export function buildCostMultiplier(player: Player): number {
+  return player.role === 'pengusaha' ? 0.8 : 1
+}
+
 /** Investor's skim on a rent payment between two other players. */
 export function investorCut(amount: RupiahAmount): RupiahAmount {
   return Math.round(amount * INVESTOR_RENT_CUT_RATE)

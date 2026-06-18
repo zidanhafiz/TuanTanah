@@ -1,6 +1,6 @@
 // Turn state machine: start-of-turn upkeep, turn advancement, round ticks.
 import {
-  DAPUR_PASSIVE,
+  landTier,
   PROPERTY_TIERS,
   REGIONS,
   REGION_SET_PASSIVE_MULTIPLIER,
@@ -17,15 +17,27 @@ export function collectPassiveIncome(state: GameState, player: Player): RupiahAm
   for (const tile of state.tiles) {
     if (tile.ownerId !== player.id) continue
     const tier = effectiveTier(state, tile.id, tile.tier)
-    if (tile.track !== 'property' || tier < 1) continue
-    const region = getTileDef(tile.id).region
-    if (!region) continue
-    const def = REGIONS[region]
-    const tierDef = PROPERTY_TIERS[tier - 1]
-    if (!tierDef) continue
-    let passive = def.passiveBase * tierDef.passiveMult
-    if (ownsFullRegion(state, player.id, region)) passive *= REGION_SET_PASSIVE_MULTIPLIER
-    total += passive
+    if (tier < 1) continue
+    const def = getTileDef(tile.id)
+
+    // Property-track tiles: region passive × tier × region-set bonus.
+    if (tile.track === 'property') {
+      const region = def.region
+      if (!region) continue
+      const regionDef = REGIONS[region]
+      const tierDef = PROPERTY_TIERS[tier - 1]
+      if (!tierDef) continue
+      let passive = regionDef.passiveBase * tierDef.passiveMult
+      if (ownsFullRegion(state, player.id, region)) passive *= REGION_SET_PASSIVE_MULTIPLIER
+      total += passive
+      continue
+    }
+
+    // Lahan Kosong businesses: tiered passive (bigger than property), treated like
+    // property income — subject to passive multipliers and revenue-share deals.
+    if (def.type === 'buildable_land' && tile.landBuild) {
+      total += landTier(tile.landBuild, tier)?.passive ?? 0
+    }
   }
   total = applyPassiveMultiplier(total, player.id, state)
   total = Math.round(total)
@@ -39,23 +51,7 @@ export function collectPassiveIncome(state: GameState, player: Player): RupiahAm
     )
     payRevenueShares(state, player, total)
   }
-
-  // Dapur MBG (Lahan Kosong) pays a flat passive, deliberately isolated from all
-  // property multipliers, the region-set bonus, and revenue-share deals.
-  let dapur = 0
-  for (const tile of state.tiles) {
-    if (tile.ownerId === player.id && tile.landBuild === 'dapur_mbg') dapur += DAPUR_PASSIVE
-  }
-  if (dapur > 0) {
-    player.cash += dapur
-    state.bank -= dapur
-    pushLog(
-      state,
-      `${player.name} collected Rp ${dapur.toLocaleString('id-ID')} from Dapur MBG`,
-      player.id,
-    )
-  }
-  return total + dapur
+  return total
 }
 
 /**
@@ -85,7 +81,6 @@ function resetTurnState(state: GameState): void {
     lastDice: null,
     rolledDoubles: false,
     pendingBuyTileId: null,
-    upgradesUsed: 0,
     pendingLawOffice: false,
   }
 }

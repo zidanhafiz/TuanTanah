@@ -255,8 +255,10 @@
     "buildDapur": "Bangun Dapur MBG — {{cost}}",
     "buildWarkop": "Bangun Warkop-Cafe — {{cost}}",
     "rentSchedule": "Sewa & pembangunan",
+    "landSchedule": "Tingkat usaha",
     "levelCol": "Tingkat",
     "rentCol": "Sewa",
+    "passiveCol": "Pasif",
     "buildCol": "Biaya bangun",
     "landOnly": "Tanah saja",
     "regionBonus": "Sewa ×{{mult}} jika kamu memiliki seluruh {{region}}.",
@@ -357,7 +359,7 @@
     "roles": {
       "pengusaha": {
         "name": "Pengusaha",
-        "ability": "Tingkatkan 2 tingkat per giliran"
+        "ability": "Bangun & tingkatkan tile 20% lebih murah"
       },
       "politisi": {
         "name": "Politisi",
@@ -409,6 +411,24 @@
         "3": "Minimarket",
         "4": "Mall",
         "5": "Konglomerat"
+      }
+    },
+    "landBusiness": {
+      "dapur_mbg": "Dapur MBG",
+      "warkop_cafe": "Warkop-Cafe"
+    },
+    "landTiers": {
+      "dapur_mbg": {
+        "1": "Dapur Rumahan",
+        "2": "Katering MBG",
+        "3": "Dapur Sentral",
+        "4": "Dapur MBG Nasional"
+      },
+      "warkop_cafe": {
+        "1": "Warkop",
+        "2": "Kopi Kekinian",
+        "3": "Cafe",
+        "4": "Coffee Chain"
       }
     },
     "kejadian": {

@@ -57,27 +57,27 @@ describe('upgradeProperty', () => {
     const cost = Math.round(PAPUA.buyPrice * PROPERTY_TIERS[0]!.buildCostMult)
     expect(p.cash).toBe(10_000_000 - cost)
     expect(state.tiles[1]!).toMatchObject({ track: 'property', tier: 1 })
-    expect(state.turn.upgradesUsed).toBe(1)
   })
 
-  it('rejects a second build in the same turn for a normal role', () => {
-    const { state, players } = makeGame(2, { cash: 10_000_000 })
-    const p = players[0]!
-    state.currentPlayerIndex = 0
-    own(state, 1, p.id)
-    upgradeProperty(state, p.id, 1, 'property')
-    expect(() => upgradeProperty(state, p.id, 1)).toThrow(EngineError)
-  })
-
-  it('lets a Pengusaha build twice in one turn', () => {
-    const { state, players } = makeGame(2, { cash: 10_000_000, roles: ['pengusaha'] })
+  it('builds as many tiers as cash allows in one turn (no per-turn cap)', () => {
+    const { state, players } = makeGame(2, { cash: 100_000_000 })
     const p = players[0]!
     state.currentPlayerIndex = 0
     own(state, 1, p.id)
     upgradeProperty(state, p.id, 1, 'property')
     upgradeProperty(state, p.id, 1)
-    expect(state.tiles[1]!.tier).toBe(2)
-    expect(state.turn.upgradesUsed).toBe(2)
+    upgradeProperty(state, p.id, 1)
+    expect(state.tiles[1]!.tier).toBe(3)
+  })
+
+  it('charges a Pengusaha 20% less to build', () => {
+    const { state, players } = makeGame(2, { cash: 10_000_000, roles: ['pengusaha'] })
+    const p = players[0]!
+    state.currentPlayerIndex = 0
+    own(state, 1, p.id)
+    upgradeProperty(state, p.id, 1, 'property')
+    const cost = Math.round(PAPUA.buyPrice * PROPERTY_TIERS[0]!.buildCostMult * 0.8)
+    expect(p.cash).toBe(10_000_000 - cost)
   })
 
   it('rejects switching tracks once locked', () => {

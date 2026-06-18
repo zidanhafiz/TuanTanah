@@ -3,9 +3,11 @@ import {
   HOUSE_TIERS,
   HUSTLE_CARDS,
   KEJADIAN_CARDS,
+  LAND_BUSINESS_TIERS,
   PROPERTY_TIERS,
   ROLES,
   type ActiveEffect,
+  type LandBusiness,
   type PassType,
   type PropertyTrack,
   type Role,
@@ -36,6 +38,18 @@ export function tierName(t: TFunction, track: PropertyTrack, tier: number): stri
   const tiers = track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
   return t(`data.tiers.${track}.${tier}`, {
     defaultValue: tiers[tier - 1]?.name ?? `Tier ${tier}`,
+  })
+}
+
+export function landBusinessName(t: TFunction, business: LandBusiness): string {
+  return t(`data.landBusiness.${business}`, {
+    defaultValue: business === 'dapur_mbg' ? 'Dapur MBG' : 'Warkop-Cafe',
+  })
+}
+
+export function landTierName(t: TFunction, business: LandBusiness, tier: number): string {
+  return t(`data.landTiers.${business}.${tier}`, {
+    defaultValue: LAND_BUSINESS_TIERS[business][tier - 1]?.name ?? `Tier ${tier}`,
   })
 }
 

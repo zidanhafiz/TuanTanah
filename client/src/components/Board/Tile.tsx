@@ -11,7 +11,7 @@ import type { TFunction } from 'i18next'
 import { tileName } from '../../i18n/gameData.js'
 import { compactRupiah } from '../../lib/format.js'
 import type { Side } from './geometry.js'
-import { DevGlyph, EffectGlyph, isTileEffect, TileGlyph, TYPE_COLOR } from './icons.js'
+import { DevGlyph, EffectGlyph, isTileEffect, LandGlyph, TileGlyph, TYPE_COLOR } from './icons.js'
 
 /**
  * One board cell. Properties show a colored region header band + name + price;
@@ -153,12 +153,17 @@ export function TilePips({
 }) {
   const tier = tile?.tier ?? 0
   const track = tile?.track ?? null
+  const landBuild = tile?.landBuild ?? null
   const tileEffects = effects.filter(isTileEffect)
   if (!owner && tileEffects.length === 0) return null
   return (
     <div className={`absolute z-20 flex items-center gap-[0.3cqw] ${SIDE_POS[side]}`}>
       {owner &&
-        (tier <= 0 || !track ? (
+        (landBuild && tier >= 1 ? (
+          <span className="flex items-center" title={`${owner.name} · T${tier}`}>
+            <LandGlyph business={landBuild} tier={tier} color={owner.color} />
+          </span>
+        ) : tier <= 0 || !track ? (
           <span
             className="h-[1.4cqw] w-[1.4cqw] rounded-full border border-ink"
             style={{ background: owner.color }}

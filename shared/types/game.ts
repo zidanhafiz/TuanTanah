@@ -163,8 +163,6 @@ export interface TurnState {
   rolledDoubles: boolean
   // An unowned property the current player just landed on and may buy.
   pendingBuyTileId: TileId | null
-  // Tile upgrades built this turn (cap 1, or 2 for Pengusaha).
-  upgradesUsed: number
   // True while the current player is on a Kantor Hukum tile and must pick one of
   // its legal actions (buy remotely / force-transfer / force-jail / buy a pass)
   // or skip. Set on landing, cleared when an action resolves or they skip.

@@ -1,9 +1,17 @@
-import type { ActiveEffect, EffectType, PropertyTrack, TileDef, TileType } from '@tuan-tanah/shared'
+import type {
+  ActiveEffect,
+  EffectType,
+  LandBusiness,
+  PropertyTrack,
+  TileDef,
+  TileType,
+} from '@tuan-tanah/shared'
 import type { TFunction } from 'i18next'
 import { createElement } from 'react'
 import {
   ChevronsLeft,
   Building2,
+  Coffee,
   Coins,
   HelpCircle,
   Hotel,
@@ -21,6 +29,7 @@ import {
   TrendingDown,
   TrendingUp,
   TriangleAlert,
+  UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react'
 import { effectSourceName, tileEffectLabel } from '../../i18n/gameData.js'
@@ -108,6 +117,32 @@ export function DevGlyph({
   return (
     <div className="flex items-center gap-[0.2cqw] rounded-md border border-ink bg-surface px-[0.35cqw] py-[0.2cqw] shadow-brutal-sm">
       {counted && tier > 1 && (
+        <span className="text-[1.6cqw] font-extrabold leading-none text-ink">{tier}×</span>
+      )}
+      {createElement(Icon, {
+        className: 'h-[2.2cqw] w-[2.2cqw]',
+        style: { color },
+        strokeWidth: 2.2,
+        absoluteStrokeWidth: true,
+      })}
+    </div>
+  )
+}
+
+/** Development badge for a built Lahan Kosong business: tier count + business icon. */
+export function LandGlyph({
+  business,
+  tier,
+  color,
+}: {
+  business: LandBusiness
+  tier: number
+  color: string
+}) {
+  const Icon = business === 'dapur_mbg' ? UtensilsCrossed : Coffee
+  return (
+    <div className="flex items-center gap-[0.2cqw] rounded-md border border-ink bg-surface px-[0.35cqw] py-[0.2cqw] shadow-brutal-sm">
+      {tier > 1 && (
         <span className="text-[1.6cqw] font-extrabold leading-none text-ink">{tier}×</span>
       )}
       {createElement(Icon, {

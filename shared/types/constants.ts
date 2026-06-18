@@ -1,7 +1,15 @@
 // Single source of truth for all Tuan Tanah game data, transcribed from
 // docs/GAME_DESIGN.md. Both the server engine and the client import from here.
 
-import type { PassType, Role, RupiahAmount, TileId, TileType, WinCondition } from './game.js'
+import type {
+  LandBusiness,
+  PassType,
+  Role,
+  RupiahAmount,
+  TileId,
+  TileType,
+  WinCondition,
+} from './game.js'
 
 // Convenience helpers for readability.
 const jt = (n: number): RupiahAmount => n * 1_000_000
@@ -256,7 +264,7 @@ export const ROLES: Record<Role, RoleDef> = {
     id: 'pengusaha',
     name: 'Pengusaha',
     salary: jt(3),
-    ability: 'Upgrade 2 tiers per turn',
+    ability: 'Build & upgrade tiles 20% cheaper',
   },
   politisi: { id: 'politisi', name: 'Politisi', salary: jt(4), ability: 'Lobby costs 50% less' },
   freelancer: {
@@ -338,11 +346,44 @@ export const JAIL_DURATION_TURNS = 2
 export const JAIL_EXIT_COST = jt(1)
 
 // ---- Special tiles (board re-layout, TTG-29) ----
-// Lahan Kosong (buildable_land): buy bare land, then build one of two businesses.
+// Lahan Kosong (buildable_land): buy bare land, then build & upgrade a business
+// through 4 tiers. Each business earns both landing rent and per-lap passive,
+// like a property — but the two stay mechanically distinct (Dapur leans passive,
+// Warkop leans rent).
 export const LAHAN_LAND_PRICE: RupiahAmount = jt(1.5)
-export const LAHAN_BUILD_COST: RupiahAmount = jt(2)
-export const DAPUR_PASSIVE: RupiahAmount = jt(0.6) // Dapur MBG flat passive income per lap
-export const WARKOP_RENT: RupiahAmount = jt(1.2) // Warkop-Cafe landing rent
+
+export interface LandTierDef {
+  tier: number
+  name: string
+  buildCost: RupiahAmount // flat cost to upgrade INTO this tier
+  rent: RupiahAmount // landing rent charged to others at this tier
+  passive: RupiahAmount // per-lap passive income at this tier
+}
+
+// Starting balance — all tunable here. Rent ≈ 30% of cumulative investment
+// (land 1.5jt + builds): tier totals 3.5 / 6.5 / 11.5 / 19.5jt.
+export const LAND_BUSINESS_TIERS: Record<LandBusiness, LandTierDef[]> = {
+  dapur_mbg: [
+    // passive-leaning
+    { tier: 1, name: 'Dapur Rumahan', buildCost: jt(2), rent: jt(1), passive: jt(1.5) },
+    { tier: 2, name: 'Katering MBG', buildCost: jt(3), rent: jt(1.5), passive: jt(2.5) },
+    { tier: 3, name: 'Dapur Sentral', buildCost: jt(5), rent: jt(2.5), passive: jt(4) },
+    { tier: 4, name: 'Dapur MBG Nasional', buildCost: jt(8), rent: jt(4), passive: jt(6) },
+  ],
+  warkop_cafe: [
+    // rent-leaning
+    { tier: 1, name: 'Warkop', buildCost: jt(2), rent: jt(1.5), passive: jt(0.8) },
+    { tier: 2, name: 'Kopi Kekinian', buildCost: jt(3), rent: jt(3), passive: jt(1.2) },
+    { tier: 3, name: 'Cafe', buildCost: jt(5), rent: jt(5), passive: jt(2) },
+    { tier: 4, name: 'Coffee Chain', buildCost: jt(8), rent: jt(8), passive: jt(3.5) },
+  ],
+}
+
+export const LAND_MAX_TIER = 4
+
+/** Tier def for a built land tile, or null if not built / out of range. */
+export const landTier = (business: LandBusiness, tier: number): LandTierDef | null =>
+  tier >= 1 && tier <= LAND_MAX_TIER ? (LAND_BUSINESS_TIERS[business][tier - 1] ?? null) : null
 // Kantor Hukum (law_office) landing actions.
 export const LAW_OFFICE_TRANSFER_RATE = 0.7 // force-buy a rival's property at 70% of invested value
 export const LAW_OFFICE_JAIL_FEE: RupiahAmount = jt(2) // bribe (to bank) to force-jail a rival

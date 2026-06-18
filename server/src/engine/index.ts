@@ -11,8 +11,9 @@ import {
   JAIL_EXIT_COST,
   JAIL_TILE_ID,
   KEJADIAN_CARDS,
-  LAHAN_BUILD_COST,
   LAHAN_LAND_PRICE,
+  LAND_MAX_TIER,
+  landTier,
   LAW_OFFICE_FREEPASS_PRICE,
   LAW_OFFICE_JAIL_FEE,
   LAW_OFFICE_TRANSFER_RATE,
@@ -33,7 +34,6 @@ import {
   TIME_LIMIT_OPTIONS,
   TRANSPORT_BUY_PRICE,
   TRANSPORT_RENT,
-  WARKOP_RENT,
 } from '@tuan-tanah/shared'
 import type {
   GameState,
@@ -50,7 +50,7 @@ import { getTileDef, ownsFullRegion, transportOwnedCount } from './board.js'
 import { drawHustle, drawKejadian } from './cards.js'
 import { charge, playerWealth, settleIfAble, tileValue } from './elimination.js'
 import { applyRentEffects, consumeOwnedCard, effectiveTier, hasRentImmunity } from './effects.js'
-import { buyPriceMultiplier, isTaxImmune, salaryFor } from './roles.js'
+import { buildCostMultiplier, buyPriceMultiplier, isTaxImmune, salaryFor } from './roles.js'
 import { advanceTurn, collectPassiveIncome, startTurn } from './turn.js'
 import { defaultRng, pushLog, shuffle, uid, type Rng } from './util.js'
 
@@ -80,7 +80,6 @@ export function createGameState(roomId: string, now: number): GameState {
       lastDice: null,
       rolledDoubles: false,
       pendingBuyTileId: null,
-      upgradesUsed: 0,
       pendingLawOffice: false,
     },
     activeEffects: [],
@@ -432,8 +431,14 @@ function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): T
       if (tile.ownerId === null) {
         state.turn.pendingBuyTileId = player.position
         pushLog(state, `${player.name} landed on ${def.name} (unowned)`, player.id)
-      } else if (tile.ownerId !== player.id && tile.landBuild === 'warkop_cafe') {
-        const paid = payRent(state, player, tile.ownerId, WARKOP_RENT, player.position)
+      } else if (tile.ownerId !== player.id && tile.landBuild && tile.tier >= 1) {
+        const paid = payRent(
+          state,
+          player,
+          tile.ownerId,
+          computeRent(state, player.position),
+          player.position,
+        )
         return paid ? { rent: paid } : {}
       } else {
         pushLog(state, `${player.name} landed on ${def.name}`, player.id)
@@ -529,6 +534,13 @@ export function computeRent(state: GameState, tileId: TileId): RupiahAmount {
     return Math.round(applyRentEffects(base, tileId, state))
   }
 
+  // Lahan Kosong: per-tier landing rent for the built business.
+  if (def.type === 'buildable_land') {
+    if (!tile.landBuild || tile.tier < 1) return 0
+    const base = landTier(tile.landBuild, tile.tier)?.rent ?? 0
+    return Math.round(applyRentEffects(base, tileId, state))
+  }
+
   // Property tile.
   const region = def.region
   if (!region) return 0
@@ -614,11 +626,7 @@ export function upgradeProperty(
     throw new EngineError('You must own the whole region before building here')
   }
 
-  // Per-turn upgrade cap; Pengusaha may build twice.
-  const limit = player.role === 'pengusaha' ? 2 : 1
-  if (state.turn.upgradesUsed >= limit) {
-    throw new EngineError('No upgrades left this turn')
-  }
+  // No per-turn upgrade cap: a player may develop as many tiers as cash allows.
 
   // First build picks + locks the track; later builds must stay on it.
   let activeTrack = tile.track
@@ -635,7 +643,9 @@ export function upgradeProperty(
 
   const nextTier = tile.tier + 1
   const tierDef = tiers[nextTier - 1]!
-  const cost = Math.round(REGIONS[def.region].buyPrice * tierDef.buildCostMult)
+  const cost = Math.round(
+    REGIONS[def.region].buyPrice * tierDef.buildCostMult * buildCostMultiplier(player),
+  )
   if (player.cash < cost) throw new EngineError('Not enough cash to build')
 
   player.cash -= cost
@@ -643,7 +653,6 @@ export function upgradeProperty(
   tile.track = activeTrack
   tile.tier = nextTier
   if (isKontraktorBuild) tile.builderId = player.id
-  state.turn.upgradesUsed += 1
 
   if (isKontraktorBuild) {
     const owner = state.players.find((p) => p.id === tile.ownerId)
@@ -694,13 +703,32 @@ export function sellProperty(state: GameState, playerId: string, tileId: TileId)
 export function downgradeProperty(state: GameState, playerId: string, tileId: TileId): void {
   const player = requireTurn(state, playerId)
   const def = getTileDef(tileId)
-  if (def.type !== 'property' || !def.region) {
-    throw new EngineError('Only property tiles can be downgraded')
-  }
   const tile = state.tiles[tileId]
   if (!tile) throw new EngineError('Invalid tile')
   if (tile.ownerId !== player.id) throw new EngineError("You don't own that tile")
   if (tile.tier < 1) throw new EngineError('Nothing to downgrade')
+
+  // Lahan Kosong: drop one business tier; refund SELL_REFUND_RATE of its build cost.
+  if (def.type === 'buildable_land') {
+    if (!tile.landBuild) throw new EngineError('Nothing to downgrade')
+    const tierDef = landTier(tile.landBuild, tile.tier)
+    if (!tierDef) throw new EngineError('Nothing to downgrade')
+    const refund = Math.round(tierDef.buildCost * SELL_REFUND_RATE)
+    player.cash += refund
+    state.bank -= refund
+    tile.tier -= 1
+    if (tile.tier === 0) tile.landBuild = null
+    pushLog(
+      state,
+      `${player.name} downgraded ${tierDef.name} on ${def.name} for ${rupiah(refund)}`,
+      player.id,
+    )
+    return
+  }
+
+  if (def.type !== 'property' || !def.region) {
+    throw new EngineError('Only property tiles can be downgraded')
+  }
 
   const tiers = tile.track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
   const tierDef = tiers[tile.tier - 1]!
@@ -722,9 +750,10 @@ export function downgradeProperty(state: GameState, playerId: string, tileId: Ti
 // ---- Special tile actions (board re-layout, TTG-29) ----
 
 /**
- * Build one business on an owned Lahan Kosong (buildable_land) tile. Turn-only,
- * one build per tile (Dapur MBG or Warkop-Cafe, mutually exclusive). Costs a flat
- * fee to the bank. Does not count against the per-turn property upgrade cap.
+ * Build or upgrade a business on an owned Lahan Kosong (buildable_land) tile.
+ * Turn-only. The first build (tier 0 → 1) picks the business and locks it; later
+ * calls upgrade one tier at a time up to LAND_MAX_TIER. Each tier costs a flat
+ * fee to the bank. Upgrades are free of the per-turn property upgrade cap.
  */
 export function buildLahan(
   state: GameState,
@@ -741,16 +770,27 @@ export function buildLahan(
   const tile = state.tiles[tileId]
   if (!tile) throw new EngineError('Invalid tile')
   if (tile.ownerId !== player.id) throw new EngineError("You don't own that land")
-  if (tile.landBuild) throw new EngineError('This land is already developed')
-  if (player.cash < LAHAN_BUILD_COST) throw new EngineError('Not enough cash to build')
 
-  player.cash -= LAHAN_BUILD_COST
-  state.bank += LAHAN_BUILD_COST
+  // First build locks the business; later builds must stay on it.
+  if (tile.landBuild && tile.landBuild !== business) {
+    throw new EngineError('This land is already locked to the other business')
+  }
+  if (tile.tier >= LAND_MAX_TIER) throw new EngineError('Already at the top tier')
+
+  const nextTier = tile.tier + 1
+  const tierDef = landTier(business, nextTier)
+  if (!tierDef) throw new EngineError('Invalid tier')
+  const cost = Math.round(tierDef.buildCost * buildCostMultiplier(player))
+  if (player.cash < cost) throw new EngineError('Not enough cash to build')
+
+  player.cash -= cost
+  state.bank += cost
   tile.landBuild = business
-  const label = business === 'dapur_mbg' ? 'Dapur MBG' : 'Warkop-Cafe'
+  tile.tier = nextTier
+  const verb = nextTier === 1 ? 'built' : 'upgraded'
   pushLog(
     state,
-    `${player.name} built ${label} on ${def.name} for ${rupiah(LAHAN_BUILD_COST)}`,
+    `${player.name} ${verb} ${tierDef.name} on ${def.name} for ${rupiah(cost)}`,
     player.id,
   )
 }

@@ -2,8 +2,8 @@
 import {
   HOUSE_TIERS,
   KONTRAKTOR_CUT_RATE,
-  LAHAN_BUILD_COST,
   LAHAN_LAND_PRICE,
+  landTier,
   PROPERTY_TIERS,
   REGIONS,
   TRANSPORT_BUY_PRICE,
@@ -27,9 +27,15 @@ import { pushLog, uid } from './util.js'
 /** Market value of a single owned tile at its current tier. */
 export function tileValue(tile: TileState): RupiahAmount {
   const def = getTileDef(tile.id)
-  // Lahan Kosong: bare land plus any business built on it (no region/tier ladder).
+  // Lahan Kosong: bare land plus the cumulative build cost of its business tiers.
   if (def.type === 'buildable_land') {
-    return LAHAN_LAND_PRICE + (tile.landBuild ? LAHAN_BUILD_COST : 0)
+    let value = LAHAN_LAND_PRICE
+    if (tile.landBuild) {
+      for (let t = 1; t <= tile.tier; t++) {
+        value += landTier(tile.landBuild, t)?.buildCost ?? 0
+      }
+    }
+    return value
   }
   const base =
     def.type === 'transport' ? TRANSPORT_BUY_PRICE : def.region ? REGIONS[def.region].buyPrice : 0

@@ -1,8 +1,10 @@
 import {
   BOARD,
   HOUSE_TIERS,
-  LAHAN_BUILD_COST,
   LAHAN_LAND_PRICE,
+  LAND_BUSINESS_TIERS,
+  LAND_MAX_TIER,
+  landTier,
   PROPERTY_TIERS,
   REGION_SET_RENT_MULTIPLIER,
   REGIONS,
@@ -18,7 +20,14 @@ import {
 } from '@tuan-tanah/shared'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { effectSourceName, tierName, tileEffectLabel, tileName } from '../../i18n/gameData.js'
+import {
+  effectSourceName,
+  landBusinessName,
+  landTierName,
+  tierName,
+  tileEffectLabel,
+  tileName,
+} from '../../i18n/gameData.js'
 import { EffectIcon, isTileEffect } from '../Board/icons.js'
 import { Badge, Button, Card, Modal } from '../ui/index.js'
 import { formatRupiah, useGame } from '../../store/gameStore.js'
@@ -28,7 +37,11 @@ function tileValue(tile: TileState): RupiahAmount {
   const def = BOARD[tile.id]
   if (!def) return 0
   if (def.type === 'buildable_land') {
-    return LAHAN_LAND_PRICE + (tile.landBuild ? LAHAN_BUILD_COST : 0)
+    let value = LAHAN_LAND_PRICE
+    if (tile.landBuild) {
+      for (let t = 1; t <= tile.tier; t++) value += landTier(tile.landBuild, t)?.buildCost ?? 0
+    }
+    return value
   }
   const base =
     def.type === 'transport' ? TRANSPORT_BUY_PRICE : def.region ? REGIONS[def.region].buyPrice : 0
@@ -48,6 +61,7 @@ type TFunc = ReturnType<typeof useTranslation>['t']
 
 function tierLabel(tile: TileState, t: TFunc): string {
   if (tile.tier < 1) return t('property.unbuilt')
+  if (tile.landBuild) return landTierName(t, tile.landBuild, tile.tier)
   if (!tile.track) return t('property.tierFallback', { tier: tile.tier })
   return tierName(t, tile.track, tile.tier)
 }
@@ -57,6 +71,7 @@ function nextTierInfo(
   def: (typeof BOARD)[number],
   track: PropertyTrack,
   currentTier: number,
+  discount: number,
 ): { tier: number; cost: RupiahAmount } | null {
   if (!def.region) return null
   const tiers = track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
@@ -64,7 +79,7 @@ function nextTierInfo(
   if (!tierDef) return null
   return {
     tier: tierDef.tier,
-    cost: Math.round(REGIONS[def.region].buyPrice * tierDef.buildCostMult),
+    cost: Math.round(REGIONS[def.region].buyPrice * tierDef.buildCostMult * discount),
   }
 }
 
@@ -108,17 +123,25 @@ export function PropertyModal({
   const iOweDebt = me ? state.pendingDebts.some((d) => d.debtorId === me.id) : false
   const canSell =
     (ownable || isLand) && me !== null && tile.ownerId === me.id && (isMyTurn || iOweDebt)
-  // Build a business on owned, undeveloped Lahan Kosong (turn-only).
-  const canBuildLahan =
-    isLand && me !== null && tile.ownerId === me.id && isMyTurn && !tile.landBuild
+  // Lahan Kosong: pick + build the first tier on bare owned land (turn-only).
+  const ownsLand = isLand && me !== null && tile.ownerId === me.id
+  const canBuildLahan = ownsLand && isMyTurn && !tile.landBuild
+  // Pengusaha builds & upgrades 20% cheaper (mirrors the engine's buildCostMultiplier).
+  const buildDiscount = me?.role === 'pengusaha' ? 0.8 : 1
+  // Upgrade an already-built business one tier (no per-turn cap — free upgrades).
+  const landNextTier = tile.landBuild && tile.tier < LAND_MAX_TIER ? tile.tier + 1 : null
+  const landNextCost =
+    tile.landBuild && landNextTier
+      ? Math.round((landTier(tile.landBuild, landNextTier)?.buildCost ?? 0) * buildDiscount)
+      : 0
+  const canUpgradeLand = ownsLand && isMyTurn && landNextTier !== null
 
   // Develop a property tile. You build on your own tile; a Kontraktor may also
-  // build on someone else's (earning a rent cut). Capped per turn (Pengusaha 2×).
+  // build on someone else's (earning a rent cut). No per-turn cap — build as many
+  // tiers as cash allows.
   const isProperty = def.type === 'property' && !!def.region
   const ownsTile = me !== null && tile.ownerId === me.id
   const canKontraktorBuild = me?.role === 'kontraktor' && tile.ownerId !== null && !ownsTile
-  const upgradeLimit = me?.role === 'pengusaha' ? 2 : 1
-  const upgradesLeft = state.turn.upgradesUsed < upgradeLimit
   const atMaxTier = tile.track
     ? tile.tier >= (tile.track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS).length
     : false
@@ -129,17 +152,23 @@ export function PropertyModal({
     tile.ownerId != null &&
     !REGIONS[def.region].tileIds.every((tid) => state.tiles[tid]?.ownerId === tile.ownerId)
   const canBuildHere = isProperty && (ownsTile || canKontraktorBuild)
-  const canUpgrade = canBuildHere && isMyTurn && upgradesLeft && !atMaxTier && !needFullRegion
+  const canUpgrade = canBuildHere && isMyTurn && !atMaxTier && !needFullRegion
 
   // Downgrade one tier on your own tile for a partial refund of that tier's build cost.
   const currentTierMult =
     tile.tier >= 1 && tile.track
       ? ((tile.track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS)[tile.tier - 1]?.buildCostMult ?? 0)
       : 0
-  const downgradeRefund = def.region
-    ? Math.round(REGIONS[def.region].buyPrice * currentTierMult * SELL_REFUND_RATE)
-    : 0
-  const canDowngrade = isProperty && isMyTurn && ownsTile && tile.tier >= 1
+  const landCurrentBuildCost =
+    isLand && tile.landBuild && tile.tier >= 1
+      ? (landTier(tile.landBuild, tile.tier)?.buildCost ?? 0)
+      : 0
+  const downgradeRefund = isLand
+    ? Math.round(landCurrentBuildCost * SELL_REFUND_RATE)
+    : def.region
+      ? Math.round(REGIONS[def.region].buyPrice * currentTierMult * SELL_REFUND_RATE)
+      : 0
+  const canDowngrade = (isProperty || isLand) && isMyTurn && ownsTile && tile.tier >= 1
 
   const handleSell = () => {
     sell(tileId)
@@ -213,15 +242,16 @@ export function PropertyModal({
             <>
               <Row label={t('property.business')}>
                 {tile.landBuild ? (
-                  <Badge tone="accent">
-                    {tile.landBuild === 'dapur_mbg'
-                      ? t('property.dapurMbg')
-                      : t('property.warkopCafe')}
-                  </Badge>
+                  <Badge tone="accent">{landBusinessName(t, tile.landBuild)}</Badge>
                 ) : (
                   <span className="text-ink-faint">{t('property.bareLand')}</span>
                 )}
               </Row>
+              {tile.landBuild && (
+                <Row label={t('property.level')}>
+                  <Badge tone="accent">{tierLabel(tile, t)}</Badge>
+                </Row>
+              )}
               <Row label={t('property.investedValue')}>{formatRupiah(tileValue(tile))}</Row>
             </>
           )}
@@ -235,19 +265,29 @@ export function PropertyModal({
           <div className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-muted">
             {t('property.rentSchedule')}
           </div>
-          <Card flat tone="sunken" className="max-h-80 overflow-y-auto p-1">
-            <table className="w-full border-collapse text-sm">
+          <Card flat tone="sunken" className="max-h-80 overflow-auto p-1">
+            <table className="w-full min-w-[26rem] border-collapse text-sm">
               <thead>
                 <tr className="text-[11px] font-bold uppercase tracking-wide text-ink-faint">
-                  <th className="px-2 py-1.5 text-left">{t('property.levelCol')}</th>
-                  <th className="px-2 py-1.5 text-right">{t('property.rentCol')}</th>
-                  <th className="px-2 py-1.5 text-right">{t('property.buildCol')}</th>
+                  <th className="whitespace-nowrap px-2 py-1.5 text-left">
+                    {t('property.levelCol')}
+                  </th>
+                  <th className="whitespace-nowrap px-2 py-1.5 text-right">
+                    {t('property.rentCol')}
+                  </th>
+                  <th className="whitespace-nowrap px-2 py-1.5 text-right">
+                    {t('property.passiveCol')}
+                  </th>
+                  <th className="whitespace-nowrap px-2 py-1.5 text-right">
+                    {t('property.buildCol')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 <ScheduleRow
                   name={t('property.landOnly')}
                   rent={formatRupiah(region.rentBase)}
+                  passive="—"
                   cost="—"
                   current={tile.tier === 0}
                 />
@@ -270,17 +310,80 @@ export function PropertyModal({
         </div>
       )}
 
+      {isLand && (
+        <div className="mt-4">
+          <div className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-muted">
+            {t('property.landSchedule')}
+          </div>
+          {(tile.landBuild ? [tile.landBuild] : (['dapur_mbg', 'warkop_cafe'] as const)).map(
+            (business) => (
+              <Card key={business} flat tone="sunken" className="mb-2 overflow-x-auto p-1">
+                <div className="px-2 pb-1 pt-1.5 text-[11px] font-bold uppercase tracking-wide text-ink-muted">
+                  {landBusinessName(t, business)}
+                </div>
+                <table className="w-full min-w-[26rem] border-collapse text-sm">
+                  <thead>
+                    <tr className="text-[11px] font-bold uppercase tracking-wide text-ink-faint">
+                      <th className="whitespace-nowrap px-2 py-1.5 text-left">
+                        {t('property.levelCol')}
+                      </th>
+                      <th className="whitespace-nowrap px-2 py-1.5 text-right">
+                        {t('property.rentCol')}
+                      </th>
+                      <th className="whitespace-nowrap px-2 py-1.5 text-right">
+                        {t('property.passiveCol')}
+                      </th>
+                      <th className="whitespace-nowrap px-2 py-1.5 text-right">
+                        {t('property.buildCol')}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {LAND_BUSINESS_TIERS[business].map((tierDef) => {
+                      const current = tile.landBuild === business && tile.tier === tierDef.tier
+                      return (
+                        <tr
+                          key={tierDef.tier}
+                          className={current ? 'font-bold text-ink' : 'text-ink-muted'}
+                        >
+                          <td className="whitespace-nowrap px-2 py-1.5">
+                            {landTierName(t, business, tierDef.tier)}
+                          </td>
+                          <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
+                            {formatRupiah(tierDef.rent)}
+                          </td>
+                          <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
+                            {formatRupiah(tierDef.passive)}
+                          </td>
+                          <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">
+                            {formatRupiah(tierDef.buildCost)}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </Card>
+            ),
+          )}
+        </div>
+      )}
+
       {def.type === 'transport' && (
         <div className="mt-4">
           <div className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-muted">
             {t('property.rentSchedule')}
           </div>
-          <Card flat tone="sunken" className="p-1">
-            <table className="w-full border-collapse text-sm">
+          <Card flat tone="sunken" className="overflow-x-auto p-1">
+            <table className="w-full min-w-[20rem] border-collapse text-sm">
               <thead>
                 <tr className="text-[11px] font-bold uppercase tracking-wide text-ink-faint">
-                  <th className="px-2 py-1.5 text-left">{t('property.transportsOwned')}</th>
-                  <th className="px-2 py-1.5 text-right">{t('property.rentCol')}</th>
+                  <th className="whitespace-nowrap px-2 py-1.5 text-left">
+                    {t('property.transportsOwned')}
+                  </th>
+                  <th className="whitespace-nowrap px-2 py-1.5 text-right">
+                    {t('property.rentCol')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -335,7 +438,7 @@ export function PropertyModal({
                 {canKontraktorBuild ? t('property.buildRentCut') : t('property.chooseTrack')}
               </div>
               {(['house', 'property'] as const).map((track) => {
-                const info = nextTierInfo(def, track, 0)
+                const info = nextTierInfo(def, track, 0, buildDiscount)
                 if (!info) return null
                 const tooPoor = (me?.cash ?? 0) < info.cost
                 return (
@@ -363,7 +466,7 @@ export function PropertyModal({
           ) : (
             tile.track &&
             (() => {
-              const info = nextTierInfo(def, tile.track, tile.tier)
+              const info = nextTierInfo(def, tile.track, tile.tier, buildDiscount)
               if (!info) return null
               const tooPoor = (me?.cash ?? 0) < info.cost
               const track = tile.track
@@ -389,27 +492,41 @@ export function PropertyModal({
       {canBuildLahan && (
         <div className="mt-5 space-y-2">
           <div className="text-xs text-ink-muted">{t('property.buildLandPrompt')}</div>
-          {(
-            [
-              ['dapur_mbg', t('property.buildDapur', { cost: formatRupiah(LAHAN_BUILD_COST) })],
-              ['warkop_cafe', t('property.buildWarkop', { cost: formatRupiah(LAHAN_BUILD_COST) })],
-            ] as [LandBusiness, string][]
-          ).map(([biz, label]) => (
-            <Button
-              key={biz}
-              block
-              variant="info"
-              size="sm"
-              disabled={(me?.cash ?? 0) < LAHAN_BUILD_COST}
-              onClick={() => {
-                buildLahan(tileId, biz)
-                onClose()
-              }}
-            >
-              {label}
-            </Button>
-          ))}
+          {(['dapur_mbg', 'warkop_cafe'] as LandBusiness[]).map((biz) => {
+            const cost = Math.round((landTier(biz, 1)?.buildCost ?? 0) * buildDiscount)
+            const key = biz === 'dapur_mbg' ? 'property.buildDapur' : 'property.buildWarkop'
+            return (
+              <Button
+                key={biz}
+                block
+                variant="info"
+                size="sm"
+                disabled={(me?.cash ?? 0) < cost}
+                onClick={() => {
+                  buildLahan(tileId, biz)
+                  onClose()
+                }}
+              >
+                {t(key, { cost: formatRupiah(cost) })}
+              </Button>
+            )
+          })}
         </div>
+      )}
+
+      {canUpgradeLand && tile.landBuild && landNextTier !== null && (
+        <Button
+          block
+          variant="info"
+          className="mt-5"
+          disabled={(me?.cash ?? 0) < landNextCost}
+          onClick={() => buildLahan(tileId, tile.landBuild!)}
+        >
+          {t('property.upgradeTo', {
+            name: landTierName(t, tile.landBuild, landNextTier),
+            cost: formatRupiah(landNextCost),
+          })}
+        </Button>
       )}
 
       {canDowngrade && (
@@ -470,7 +587,7 @@ function TrackSection({
     <>
       <tr>
         <td
-          colSpan={3}
+          colSpan={4}
           className="px-2 pb-0.5 pt-2.5 text-[11px] font-bold uppercase tracking-wide text-ink-faint"
         >
           {track === 'house' ? t('property.house') : t('property.property')}
@@ -481,6 +598,14 @@ function TrackSection({
           key={td.tier}
           name={tierName(t, track, td.tier)}
           rent={formatRupiah(Math.round(region.rentBase * td.rentMult))}
+          // Only the property track earns passive income; the house track shows "—".
+          passive={
+            track === 'property'
+              ? formatRupiah(
+                  Math.round(region.passiveBase * (PROPERTY_TIERS[td.tier - 1]?.passiveMult ?? 0)),
+                )
+              : '—'
+          }
           cost={formatRupiah(Math.round(region.buyPrice * td.buildCostMult))}
           current={currentTrack === track && currentTier === td.tier}
         />
@@ -489,23 +614,28 @@ function TrackSection({
   )
 }
 
-/** One row of the development schedule: level name, rent earned, build cost. */
+/** One row of the development schedule: level name, rent earned, passive income, build cost. */
 function ScheduleRow({
   name,
   rent,
+  passive,
   cost,
   current,
 }: {
   name: string
   rent: string
+  passive: string
   cost: string
   current?: boolean
 }) {
   return (
     <tr className={current ? 'bg-accent-soft font-semibold text-ink' : 'text-ink-muted'}>
-      <td className="px-2 py-1.5">{name}</td>
-      <td className="px-2 py-1.5 text-right font-semibold tabular-nums text-ink">{rent}</td>
-      <td className="px-2 py-1.5 text-right tabular-nums">{cost}</td>
+      <td className="whitespace-nowrap px-2 py-1.5">{name}</td>
+      <td className="whitespace-nowrap px-2 py-1.5 text-right font-semibold tabular-nums text-ink">
+        {rent}
+      </td>
+      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">{passive}</td>
+      <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums">{cost}</td>
     </tr>
   )
 }
