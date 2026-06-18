@@ -140,6 +140,25 @@ export function registerLobbyHandlers(io: TTServer, socket: TTSocket, store: Gam
     }),
   )
 
+  socket.on('surrender', () =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      // Give up while the game is live: forfeit (eliminate) so the rest can keep
+      // playing, but — unlike leave_room — keep the session and seat token so the
+      // surrendered player stays connected and watches as a spectator.
+      const forfeited = await mutateRoom(store, roomId, (state) => {
+        if (state.phase !== 'playing') return false
+        forfeit(state, playerId)
+        return true
+      })
+      await broadcastState(io, store, roomId)
+      if (forfeited) {
+        io.to(roomId).emit('player_eliminated', { playerId })
+        await concludeIfWon(io, store, roomId)
+      }
+    }),
+  )
+
   socket.on('disconnect', () => {
     void guard(socket, async () => {
       const session = getSessionSafe(socket)

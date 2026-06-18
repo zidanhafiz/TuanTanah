@@ -39,7 +39,9 @@
     "copyPrompt": "Copy this room link:",
     "leave": "Leave",
     "leaveTitle": "Leave game?",
-    "confirmLeave": "Leave"
+    "confirmLeave": "Leave",
+    "surrenderTitle": "Surrender?",
+    "confirmSurrender": "Surrender"
   },
   "lobby": {
     "loading": "Loading lobby…",
@@ -74,6 +76,8 @@
     "winner": "Winner",
     "leaveGame": "Leave game",
     "leaveConfirm": "Leave the game? You'll forfeit your properties and can't rejoin.",
+    "surrender": "Surrender",
+    "surrenderConfirm": "Surrender and spectate? You'll be eliminated and forfeit your properties, but you can stay and watch the rest of the game.",
     "payBail": "Pay bail (Rp 1 million)",
     "rollForDoubles": "Roll for doubles",
     "rollDice": "Roll dice",

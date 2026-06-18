@@ -131,6 +131,7 @@ interface GameStore {
   init: () => void
   join: (playerName: string, roomId?: string, onJoined?: (roomId: string) => void) => void
   leave: () => void
+  surrender: () => void
   pickRole: (role: Role | null) => void
   updateSettings: (settings: Partial<RoomSettings>) => void
   startGame: () => void
@@ -322,6 +323,12 @@ export const useGame = create<GameStore>((set, get) => ({
     clearStoredSession()
     resetRollAnim()
     set({ roomId: null, playerId: null, state: null, finalStandings: null, rejoining: false })
+  },
+
+  surrender: () => {
+    // Give up but stay in the room — the server eliminates us while keeping our
+    // session, so we keep receiving state and watch the rest of the game.
+    getActiveSocket().emit('surrender')
   },
 
   // `click` gives instant local feedback on button-driven actions; the louder,

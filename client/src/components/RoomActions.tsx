@@ -82,3 +82,48 @@ export function LeaveButton({
     </>
   )
 }
+
+/**
+ * Surrenders an in-progress game: the player is eliminated (forfeits their
+ * properties) but stays in the room to spectate. Unlike {@link LeaveButton} it
+ * doesn't navigate away — the player keeps watching the rest of the game.
+ */
+export function SurrenderButton({ className }: { className?: string }) {
+  const { t } = useTranslation()
+  const surrender = useGame((s) => s.surrender)
+  const [confirming, setConfirming] = useState(false)
+
+  const doSurrender = () => {
+    surrender()
+    setConfirming(false)
+  }
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setConfirming(true)}
+        className={`text-xs ${className ?? ''}`}
+      >
+        {t('game.surrender')}
+      </Button>
+      <Modal
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        title={t('roomActions.surrenderTitle')}
+        size="sm"
+      >
+        <p className="text-sm text-ink">{t('game.surrenderConfirm')}</p>
+        <div className="mt-5 flex gap-2">
+          <Button variant="ghost" size="sm" block onClick={() => setConfirming(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button variant="danger" size="sm" block onClick={doSurrender}>
+            {t('roomActions.confirmSurrender')}
+          </Button>
+        </div>
+      </Modal>
+    </>
+  )
+}

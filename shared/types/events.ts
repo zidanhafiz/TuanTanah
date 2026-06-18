@@ -45,6 +45,10 @@ export interface ClientToServerEvents {
   // Deliberate exit: leave the lobby (removed) or forfeit an in-progress game
   // (eliminated). Distinct from a socket disconnect, which keeps the seat.
   leave_room: () => void
+  // Give up an in-progress game: the player is eliminated (forfeits like
+  // leave_room) but keeps their seat/session so they stay connected and can
+  // watch the rest of the game as a spectator.
+  surrender: () => void
   // Read-only resync: re-send the caller the canonical state. Used when a tab
   // returns from the background (where rAF/timers froze and the UI may have
   // drifted) without a socket disconnect to trigger an auto-rejoin.

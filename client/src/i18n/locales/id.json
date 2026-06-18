@@ -39,7 +39,9 @@
     "copyPrompt": "Salin tautan ruangan ini:",
     "leave": "Keluar",
     "leaveTitle": "Keluar permainan?",
-    "confirmLeave": "Keluar"
+    "confirmLeave": "Keluar",
+    "surrenderTitle": "Menyerah?",
+    "confirmSurrender": "Menyerah"
   },
   "lobby": {
     "loading": "Memuat lobi…",
@@ -74,6 +76,8 @@
     "winner": "Pemenang",
     "leaveGame": "Keluar permainan",
     "leaveConfirm": "Keluar dari permainan? Kamu akan kehilangan propertimu dan tidak bisa bergabung lagi.",
+    "surrender": "Menyerah",
+    "surrenderConfirm": "Menyerah dan menjadi penonton? Kamu akan tersingkir dan kehilangan propertimu, tapi tetap bisa menonton sisa permainan.",
     "payBail": "Bayar jaminan (Rp 1 juta)",
     "rollForDoubles": "Lempar untuk dadu kembar",
     "rollDice": "Lempar dadu",

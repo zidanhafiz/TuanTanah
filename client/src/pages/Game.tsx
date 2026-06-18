@@ -23,7 +23,7 @@ import { PinjolModal } from '../components/PinjolModal/PinjolModal.js'
 import { PlayerPanel } from '../components/PlayerPanel/PlayerPanel.js'
 import { PlayerStatus } from '../components/PlayerStatus/PlayerStatus.js'
 import { PropertyModal } from '../components/PropertyModal/PropertyModal.js'
-import { LeaveButton } from '../components/RoomActions.js'
+import { LeaveButton, SurrenderButton } from '../components/RoomActions.js'
 import { SoundToggle } from '../components/SoundToggle.js'
 import { Badge, Button, Card, Tooltip } from '../components/ui/index.js'
 import { useMediaQuery } from '../hooks/useMediaQuery.js'
@@ -234,11 +234,14 @@ export function Game() {
               <SoundToggle className="h-6 w-6 text-xs" />
             </div>
           </div>
-          <div className="mt-2 flex justify-end">
+          <div className="mt-2 flex flex-col items-end gap-1.5">
             {phase === 'ended' ? (
               <LeaveButton label={t('common.backHome')} />
             ) : (
-              <LeaveButton confirm={t('game.leaveConfirm')} label={t('game.leaveGame')} />
+              <>
+                <LeaveButton confirm={t('game.leaveConfirm')} label={t('game.leaveGame')} />
+                {me && !me.isEliminated && <SurrenderButton />}
+              </>
             )}
           </div>
 
