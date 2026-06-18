@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useGame } from '../store/gameStore.js'
@@ -36,10 +36,13 @@ export function ShareLinkButton({ code, className }: { code: string; className?:
 export function LeaveButton({
   confirm,
   label,
+  icon,
   className,
 }: {
   confirm?: string
   label?: string
+  /** When set, the icon always shows and the label collapses to icon-only on mobile. */
+  icon?: ReactNode
   className?: string
 }) {
   const { t } = useTranslation()
@@ -56,10 +59,18 @@ export function LeaveButton({
     else doLeave()
   }
 
+  const text = label ?? t('roomActions.leave')
   return (
     <>
-      <Button variant="danger" size="sm" onClick={onClick} className={`text-xs ${className ?? ''}`}>
-        {label ?? t('roomActions.leave')}
+      <Button
+        variant="danger"
+        size="sm"
+        onClick={onClick}
+        aria-label={icon ? text : undefined}
+        className={`text-xs ${className ?? ''}`}
+      >
+        {icon}
+        <span className={icon ? 'hidden md:inline' : undefined}>{text}</span>
       </Button>
       {confirm && (
         <Modal
@@ -88,7 +99,14 @@ export function LeaveButton({
  * properties) but stays in the room to spectate. Unlike {@link LeaveButton} it
  * doesn't navigate away — the player keeps watching the rest of the game.
  */
-export function SurrenderButton({ className }: { className?: string }) {
+export function SurrenderButton({
+  icon,
+  className,
+}: {
+  /** When set, the icon always shows and the label collapses to icon-only on mobile. */
+  icon?: ReactNode
+  className?: string
+}) {
   const { t } = useTranslation()
   const surrender = useGame((s) => s.surrender)
   const [confirming, setConfirming] = useState(false)
@@ -104,9 +122,11 @@ export function SurrenderButton({ className }: { className?: string }) {
         variant="ghost"
         size="sm"
         onClick={() => setConfirming(true)}
+        aria-label={icon ? t('game.surrender') : undefined}
         className={`text-xs ${className ?? ''}`}
       >
-        {t('game.surrender')}
+        {icon}
+        <span className={icon ? 'hidden md:inline' : undefined}>{t('game.surrender')}</span>
       </Button>
       <Modal
         open={confirming}

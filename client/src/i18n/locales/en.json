@@ -125,6 +125,11 @@
     "empty": "No events yet.",
     "roundPrefix": "R{{round}} · "
   },
+  "sidebar": {
+    "tabActions": "Actions",
+    "tabStatus": "Status",
+    "tabLog": "Log"
+  },
   "card": {
     "hustle": "Hustle",
     "kejadianNasional": "National Event",

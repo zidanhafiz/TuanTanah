@@ -125,6 +125,11 @@
     "empty": "Belum ada kejadian.",
     "roundPrefix": "R{{round}} · "
   },
+  "sidebar": {
+    "tabActions": "Aksi",
+    "tabStatus": "Status",
+    "tabLog": "Log"
+  },
   "card": {
     "hustle": "Hustle",
     "kejadianNasional": "Kejadian Nasional",
