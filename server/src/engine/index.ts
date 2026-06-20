@@ -49,7 +49,13 @@ import type {
 import { getTileDef, ownsFullRegion, transportOwnedCount } from './board.js'
 import { drawHustle, drawKejadian } from './cards.js'
 import { charge, playerWealth, settleIfAble, tileValue } from './elimination.js'
-import { applyRentEffects, consumeOwnedCard, effectiveTier, hasRentImmunity } from './effects.js'
+import {
+  applyRentEffects,
+  consumeOwnedCard,
+  effectiveTier,
+  hasRentImmunity,
+  tickLapEffects,
+} from './effects.js'
 import { buildCostMultiplier, buyPriceMultiplier, isTaxImmune, salaryFor } from './roles.js'
 import { advanceTurn, collectPassiveIncome, startTurn } from './turn.js'
 import { defaultRng, pushLog, shuffle, uid, type Rng } from './util.js'
@@ -378,6 +384,9 @@ function movePlayer(
     // Passive income pays once per lap, before resolving the tile they land on
     // so the cash is on hand if they owe rent there.
     collectPassiveIncome(state, player)
+    // Decay lap-based deal effects anchored to this player. After passive income
+    // so a revenue-share still pays out for this lap before it expires.
+    tickLapEffects(state, player.id)
   }
   return resolveTile(state, player, rng)
 }
@@ -550,6 +559,10 @@ export function computeRent(state: GameState, tileId: TileId): RupiahAmount {
   if (tier >= 1) {
     if (tile.track === 'house') mult = HOUSE_TIERS[tier - 1]?.rentMult ?? 1
     else if (tile.track === 'property') mult = PROPERTY_TIERS[tier - 1]?.rentMult ?? 1
+  } else {
+    // Bare, unbuilt land: some regions discount the landing rent (e.g. premium
+    // regions, so undeveloped land isn't punishing). Defaults to full rentBase.
+    mult = REGIONS[region].landRentMult ?? 1
   }
   let rent = base * mult
   if (ownsFullRegion(state, tile.ownerId, region)) rent *= REGION_SET_RENT_MULTIPLIER
@@ -697,11 +710,12 @@ export function sellProperty(state: GameState, playerId: string, tileId: TileId)
 
 /**
  * Downgrade an owned tile one tier, refunding SELL_REFUND_RATE of the current
- * tier's build cost. Turn-only. Dropping to tier 0 unlocks the track (ownership
- * of the bare land is kept). Mutates state; throws EngineError on invalid input.
+ * tier's build cost. Allowed on your turn, or out of turn while you owe a debt
+ * (to raise cash). Dropping to tier 0 unlocks the track (ownership of the bare
+ * land is kept). Mutates state; throws EngineError on invalid input.
  */
 export function downgradeProperty(state: GameState, playerId: string, tileId: TileId): void {
-  const player = requireTurn(state, playerId)
+  const player = requireDebtorOrTurn(state, playerId)
   const def = getTileDef(tileId)
   const tile = state.tiles[tileId]
   if (!tile) throw new EngineError('Invalid tile')
@@ -723,6 +737,8 @@ export function downgradeProperty(state: GameState, playerId: string, tileId: Ti
       `${player.name} downgraded ${tierDef.name} on ${def.name} for ${rupiah(refund)}`,
       player.id,
     )
+    // If this covered a pending debt, settle it (and advance off an eliminated turn).
+    settleIfAble(state, playerId)
     return
   }
 
@@ -745,6 +761,8 @@ export function downgradeProperty(state: GameState, playerId: string, tileId: Ti
     `${player.name} downgraded ${def.name} from ${tierDef.name} for ${rupiah(refund)}`,
     player.id,
   )
+  // If this covered a pending debt, settle it (and advance off an eliminated turn).
+  settleIfAble(state, playerId)
 }
 
 // ---- Special tile actions (board re-layout, TTG-29) ----

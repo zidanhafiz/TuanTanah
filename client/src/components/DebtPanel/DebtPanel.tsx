@@ -6,8 +6,9 @@ import { Button, Card } from '../ui/index.js'
 
 /**
  * Shown in place of the turn controls when the current player owes an unpayable
- * charge. The debt settles automatically once they raise enough cash (selling a
- * property via the board, or taking a pinjol); "give up" declares bankruptcy.
+ * charge. The debt settles automatically once they raise enough cash (selling or
+ * downgrading a property via the board, or taking a pinjol); "give up" declares
+ * bankruptcy.
  */
 export function DebtPanel({ debt, onTakePinjol }: { debt: PendingDebt; onTakePinjol: () => void }) {
   const { t } = useTranslation()

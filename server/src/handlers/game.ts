@@ -284,8 +284,12 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
   socket.on('downgrade_property', (payload) =>
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
-      await mutateRoom(store, roomId, (state) => downgradeProperty(state, playerId, payload.tileId))
+      const { eliminated } = await mutateRoom(store, roomId, (state) =>
+        runWithEliminations(state, () => downgradeProperty(state, playerId, payload.tileId)),
+      )
       await broadcastState(io, store, roomId)
+      emitEliminated(io, roomId, eliminated)
+      await concludeIfWon(io, store, roomId)
     }),
   )
 

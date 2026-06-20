@@ -8,7 +8,7 @@ import {
   upgradeProperty,
 } from '../src/engine/index.js'
 import { tileValue } from '../src/engine/elimination.js'
-import { makeGame, own } from './helpers.js'
+import { addDebt, makeGame, own } from './helpers.js'
 
 const PAPUA = REGIONS.papua
 
@@ -170,5 +170,26 @@ describe('downgradeProperty', () => {
     state.currentPlayerIndex = 0
     own(state, 1, p.id)
     expect(() => downgradeProperty(state, p.id, 1)).toThrow(EngineError)
+  })
+
+  it('rejects downgrading out of turn when not in debt', () => {
+    const { state, players } = makeGame(2, { cash: 0 })
+    const p = players[0]!
+    state.currentPlayerIndex = 1
+    own(state, 1, p.id, { track: 'property', tier: 2 })
+    expect(() => downgradeProperty(state, p.id, 1)).toThrow(EngineError)
+  })
+
+  it('lets an indebted player downgrade out of turn and settles the debt', () => {
+    const { state, players } = makeGame(2, { cash: 0 })
+    const p = players[0]!
+    state.currentPlayerIndex = 1 // not their turn
+    own(state, 1, p.id, { track: 'property', tier: 2 })
+    const refund = Math.round(PAPUA.buyPrice * PROPERTY_TIERS[1]!.buildCostMult * SELL_REFUND_RATE)
+    addDebt(state, { debtorId: p.id, amount: 300_000, creditorId: null, type: 'rent' })
+    downgradeProperty(state, p.id, 1)
+    expect(state.pendingDebts).toHaveLength(0)
+    expect(p.cash).toBe(refund - 300_000)
+    expect(state.tiles[1]!).toMatchObject({ ownerId: p.id, track: 'property', tier: 1 })
   })
 })

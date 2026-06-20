@@ -54,6 +54,10 @@ export interface RegionDef {
   buyPrice: RupiahAmount
   rentBase: RupiahAmount // "House Rent Base"
   passiveBase: RupiahAmount // "Property Passive Base"
+  // Rent for a bare (tier-0, unbuilt) tile as a fraction of rentBase. Defaults
+  // to 1 (full rentBase) when unset; the premium regions discount it so landing
+  // on undeveloped premium land isn't punishing.
+  landRentMult?: number
   tileIds: TileId[]
 }
 
@@ -62,54 +66,54 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     id: 'papua',
     name: 'Papua',
     color: '#8B5A2B', // brown
-    buyPrice: rb(600),
-    rentBase: rb(140),
-    passiveBase: rb(100),
+    buyPrice: jt(1),
+    rentBase: rb(400),
+    passiveBase: rb(290),
     tileIds: [1, 2, 3],
   },
   kalimantan: {
     id: 'kalimantan',
     name: 'Kalimantan',
     color: '#14532D', // dark green
-    buyPrice: jt(1),
-    rentBase: rb(245),
-    passiveBase: rb(175),
+    buyPrice: jt(1.6),
+    rentBase: rb(660),
+    passiveBase: rb(470),
     tileIds: [6, 7, 8],
   },
   medan: {
     id: 'medan',
     name: 'Medan',
     color: '#CA8A04', // yellow
-    buyPrice: jt(1.5),
-    rentBase: rb(350),
-    passiveBase: rb(250),
+    buyPrice: jt(2.2),
+    rentBase: rb(920),
+    passiveBase: rb(650),
     tileIds: [11, 12, 13],
   },
   yogyakarta: {
     id: 'yogyakarta',
     name: 'Yogyakarta',
     color: '#7DD3FC', // light blue
-    buyPrice: jt(2),
-    rentBase: rb(490),
-    passiveBase: rb(350),
+    buyPrice: jt(2.8),
+    rentBase: jt(1.2),
+    passiveBase: rb(850),
     tileIds: [15, 17, 18],
   },
   lombok: {
     id: 'lombok',
     name: 'Lombok',
     color: '#F472B6', // pink
-    buyPrice: jt(2.5),
-    rentBase: rb(630),
-    passiveBase: rb(450),
+    buyPrice: jt(3.4),
+    rentBase: jt(1.45),
+    passiveBase: jt(1),
     tileIds: [21, 22, 23],
   },
   surabaya: {
     id: 'surabaya',
     name: 'Surabaya',
     color: '#DC2626', // red
-    buyPrice: jt(3.5),
-    rentBase: rb(840),
-    passiveBase: rb(600),
+    buyPrice: jt(4),
+    rentBase: jt(1.75),
+    passiveBase: jt(1.25),
     tileIds: [25, 26, 27],
   },
   bali: {
@@ -119,6 +123,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     buyPrice: jt(4.5),
     rentBase: jt(1.4),
     passiveBase: jt(1),
+    landRentMult: 0.6,
     tileIds: [31, 32],
   },
   jakarta: {
@@ -128,6 +133,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     buyPrice: jt(6),
     rentBase: jt(2.8),
     passiveBase: jt(2),
+    landRentMult: 0.6,
     tileIds: [35, 36],
   },
   tangerang: {
@@ -137,6 +143,7 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     buyPrice: jt(8),
     rentBase: jt(4),
     passiveBase: jt(3),
+    landRentMult: 0.6,
     tileIds: [38, 39],
   },
 }
@@ -336,6 +343,8 @@ export const PINJOL_AMOUNTS: RupiahAmount[] = [jt(2), jt(5), jt(10)]
 export const PINJOL_INTEREST_RATE = 0.1 // 10% per lap (charged when the borrower passes GO)
 export const PINJOL_MAX_LOANS = 3
 export const PINJOL_BORROW_LIMIT_MULTIPLE = 3 // ≤ 3× total property value
+// Ceiling on the per-lap rate a player can set on a negotiated peer loan (player_loan deal).
+export const PLAYER_LOAN_MAX_RATE = 0.5 // 50% per lap
 
 // ---- Selling ----
 /** Fraction of a tile's invested value (buy price + build costs) refunded when sold back to the bank. */

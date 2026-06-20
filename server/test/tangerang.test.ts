@@ -18,9 +18,11 @@ describe('Tangerang region', () => {
   it('charges land rent and doubles it on a full set', () => {
     const { state, players } = makeGame(2, { cash: 1_000_000_000 })
     const owner = players[1]!
+    // Bare premium land is discounted by landRentMult before the set bonus.
+    const land = TANGERANG.rentBase * (TANGERANG.landRentMult ?? 1)
     own(state, 38, owner.id)
-    expect(computeRent(state, 38)).toBe(TANGERANG.rentBase)
+    expect(computeRent(state, 38)).toBe(Math.round(land))
     own(state, 39, owner.id)
-    expect(computeRent(state, 38)).toBe(TANGERANG.rentBase * REGION_SET_RENT_MULTIPLIER)
+    expect(computeRent(state, 38)).toBe(Math.round(land * REGION_SET_RENT_MULTIPLIER))
   })
 })

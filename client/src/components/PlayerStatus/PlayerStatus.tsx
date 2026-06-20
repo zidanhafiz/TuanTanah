@@ -35,6 +35,40 @@ export function PlayerStatus({
       ? (state.players.find((p) => p.id === lenderId)?.name ?? t('status.bank'))
       : t('status.bank')
 
+  const nameOf = (id?: string) =>
+    state.players.find((p) => p.id === id)?.name ?? t('negotiation.someone')
+
+  // Active negotiation effects this player is party to (immunity / revenue share).
+  const myDeals = state.activeEffects.filter(
+    (e) =>
+      (e.type === 'rent_immunity' && (e.targetPlayerId === me.id || e.ownerId === me.id)) ||
+      (e.type === 'revenue_share' &&
+        (e.targetPlayerId === me.id || e.beneficiaryPlayerId === me.id)),
+  )
+  // Loans where I'm the lender (money owed to me).
+  const owedToMe = state.players.flatMap((p) =>
+    p.loans.filter((l) => l.lenderId === me.id).map((loan) => ({ loan, borrower: p })),
+  )
+  // Pending deals I sent or received, awaiting a response.
+  const myPending = state.pendingDeals.filter(
+    (d) => d.fromPlayerId === me.id || d.toPlayerId === me.id,
+  )
+
+  const describeEffect = (e: (typeof myDeals)[number]): string => {
+    if (e.type === 'rent_immunity') {
+      const laps = e.lapsRemaining ?? 0
+      return e.targetPlayerId === me.id
+        ? t('status.immuneSelf', { name: nameOf(e.ownerId), laps })
+        : t('status.immuneGranted', { name: nameOf(e.targetPlayerId), laps })
+    }
+    // revenue_share
+    const percent = Math.round((e.multiplier ?? 0) * 100)
+    const laps = e.lapsRemaining ?? 0
+    return e.targetPlayerId === me.id
+      ? t('status.shareOut', { name: nameOf(e.beneficiaryPlayerId), percent, laps })
+      : t('status.shareIn', { name: nameOf(e.targetPlayerId), percent, laps })
+  }
+
   const body = (
     <>
       <div className="flex items-center justify-between">
@@ -116,6 +150,72 @@ export function PlayerStatus({
           >
             {t('status.payOffAll', { amount: formatRupiah(totalOwed) })}
           </Button>
+        </div>
+      )}
+
+      {/* Loans owed to me (I'm the lender) */}
+      {owedToMe.length > 0 && (
+        <div>
+          <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-ink-faint">
+            {t('status.owedToMe')}
+          </div>
+          <ul className="space-y-1">
+            {owedToMe.map(({ loan, borrower }) => (
+              <li
+                key={loan.id}
+                className="rounded-lg border-2 border-ink bg-surface-sunken px-2 py-1.5 text-[11px]"
+              >
+                <div className="font-semibold text-ink">{formatRupiah(loan.amount)}</div>
+                <div className="text-ink-muted">
+                  {t('status.owedMeta', {
+                    name: borrower.name,
+                    perLap: formatRupiah(loan.interestPerLap),
+                  })}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Active negotiations (immunity / revenue share) */}
+      {myDeals.length > 0 && (
+        <div>
+          <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-ink-faint">
+            {t('status.activeDeals')}
+          </div>
+          <ul className="space-y-1">
+            {myDeals.map((e) => (
+              <li
+                key={e.id}
+                className="rounded-lg border-2 border-ink bg-surface-sunken px-2 py-1.5 text-[11px] text-ink"
+              >
+                {describeEffect(e)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Pending deals I sent or received */}
+      {myPending.length > 0 && (
+        <div>
+          <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-ink-faint">
+            {t('status.pendingDeals')}
+          </div>
+          <ul className="space-y-1">
+            {myPending.map((d) => (
+              <li
+                key={d.id}
+                className="rounded-lg border-2 border-ink bg-surface-sunken px-2 py-1.5 text-[11px] text-ink"
+              >
+                {t(d.fromPlayerId === me.id ? 'status.dealSent' : 'status.dealReceived', {
+                  type: t(`negotiation.dealTypes.${d.type}`),
+                  name: nameOf(d.fromPlayerId === me.id ? d.toPlayerId : d.fromPlayerId),
+                })}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </>

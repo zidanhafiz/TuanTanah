@@ -3,6 +3,7 @@ import {
   type GameState,
   type NegotiationDeal,
   type NegotiationDealType,
+  PLAYER_LOAN_MAX_RATE,
   type TileId,
 } from '@tuan-tanah/shared'
 import { useState } from 'react'
@@ -16,9 +17,12 @@ const DEAL_TYPES: NegotiationDealType[] = [
   'cash_for_property',
   'rent_immunity',
   'revenue_share',
+  'player_loan',
+  'cash_gift',
 ]
 
 const JUTA = 1_000_000
+const MAX_RATE_PCT = Math.round(PLAYER_LOAN_MAX_RATE * 100)
 
 function ownedTiles(state: GameState, playerId: string): { id: TileId; name: string }[] {
   return state.tiles
@@ -41,9 +45,12 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
   const [offerTileId, setOfferTileId] = useState<number | ''>('')
   const [requestTileId, setRequestTileId] = useState<number | ''>('')
   const [cashJuta, setCashJuta] = useState<number>(5)
-  const [rounds, setRounds] = useState<number>(3)
+  const [laps, setLaps] = useState<number>(3)
   const [sharePercent, setSharePercent] = useState<number>(20)
   const [shareFrom, setShareFrom] = useState<'proposer' | 'target'>('proposer')
+  const [immuneFor, setImmuneFor] = useState<'proposer' | 'target'>('proposer')
+  const [cashFrom, setCashFrom] = useState<'proposer' | 'target'>('proposer')
+  const [interestPct, setInterestPct] = useState<number>(10)
 
   if (!open || !state || !me) return null
 
@@ -52,20 +59,51 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
   const targetTiles = targetId ? ownedTiles(state, targetId) : []
 
   const needsOffer = type === 'property_swap'
-  const needsRequest = type !== 'revenue_share'
-  const needsCash = type === 'cash_for_property' || type === 'rent_immunity'
-  const needsRounds = type === 'rent_immunity' || type === 'revenue_share'
+  const needsRequest = type === 'property_swap' || type === 'cash_for_property'
+  const needsImmunity = type === 'rent_immunity'
+  const needsLaps = type === 'rent_immunity' || type === 'revenue_share'
   const needsShare = type === 'revenue_share'
+  const needsCash =
+    type === 'cash_for_property' ||
+    type === 'rent_immunity' ||
+    type === 'player_loan' ||
+    type === 'cash_gift' ||
+    type === 'property_swap'
+  // Cash is required (> 0) for these; optional (0 = free) for swap top-up and immunity fee.
+  const cashRequired =
+    type === 'cash_for_property' || type === 'player_loan' || type === 'cash_gift'
+  const needsCashDir = type === 'property_swap' || type === 'player_loan' || type === 'cash_gift'
+  const needsInterest = type === 'player_loan'
+
+  const cashLabel =
+    type === 'rent_immunity'
+      ? t('negotiation.immunityFee')
+      : type === 'player_loan'
+        ? t('negotiation.loanAmount')
+        : type === 'cash_gift'
+          ? t('negotiation.giftAmount')
+          : type === 'property_swap'
+            ? t('negotiation.cashTopup')
+            : t('negotiation.yourOffer')
+
+  const cashDirLabels: [string, string] =
+    type === 'player_loan'
+      ? [t('negotiation.youLend'), t('negotiation.theyLend')]
+      : type === 'cash_gift'
+        ? [t('negotiation.youGive'), t('negotiation.theyGive')]
+        : [t('negotiation.youAddCash'), t('negotiation.theyAddCash')]
 
   const canPropose =
     targetId !== '' &&
     (!needsOffer || offerTileId !== '') &&
     (!needsRequest || requestTileId !== '') &&
-    (!needsCash || cashJuta > 0) &&
-    (!needsRounds || rounds >= 1) &&
-    (!needsShare || (sharePercent > 0 && sharePercent <= 100))
+    (!cashRequired || cashJuta > 0) &&
+    (!needsLaps || laps >= 1) &&
+    (!needsShare || (sharePercent > 0 && sharePercent <= 100)) &&
+    (!needsInterest || (interestPct >= 0 && interestPct <= MAX_RATE_PCT))
 
   const submit = () => {
+    const cashAmount = Math.round(cashJuta * JUTA)
     const deal: NegotiationDeal = {
       id: '', // assigned server-side
       type,
@@ -74,9 +112,15 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
       status: 'pending',
       ...(needsOffer ? { offerTileId: offerTileId as TileId } : {}),
       ...(needsRequest ? { requestTileId: requestTileId as TileId } : {}),
-      ...(needsCash ? { cashAmount: Math.round(cashJuta * JUTA) } : {}),
-      ...(needsRounds ? { rounds } : {}),
-      ...(needsShare ? { sharePercent, shareFrom } : {}),
+      // property_swap: only include a top-up when there's actually cash.
+      ...(type === 'property_swap' && cashJuta > 0 ? { cashAmount, cashFrom } : {}),
+      ...(type === 'cash_for_property' ? { cashAmount } : {}),
+      // rent_immunity: direction + laps; fee may be 0 (free gift). Covers all the
+      // other player's properties.
+      ...(needsImmunity ? { immuneFor, cashAmount, laps } : {}),
+      ...(needsShare ? { sharePercent, shareFrom, laps } : {}),
+      ...(type === 'player_loan' ? { cashAmount, cashFrom, interestRate: interestPct / 100 } : {}),
+      ...(type === 'cash_gift' ? { cashAmount, cashFrom } : {}),
     }
     proposeDeal(deal)
     onClose()
@@ -136,14 +180,10 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
         </>
       )}
 
-      {/* Their tile */}
+      {/* Their tile (swap / cash-for-property) */}
       {needsRequest && (
         <>
-          <div className={labelClass}>
-            {type === 'rent_immunity'
-              ? t('negotiation.theirTileImmunity')
-              : t('negotiation.theirTileWant')}
-          </div>
+          <div className={labelClass}>{t('negotiation.theirTileWant')}</div>
           <select
             value={requestTileId}
             onChange={(e) => setRequestTileId(e.target.value === '' ? '' : Number(e.target.value))}
@@ -162,17 +202,75 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
         </>
       )}
 
-      {/* Cash */}
+      {/* Rent immunity: who is immune (covers all of the other player's properties) */}
+      {needsImmunity && (
+        <>
+          <div className={labelClass}>{t('negotiation.whoIsImmune')}</div>
+          <div className="mt-1 grid grid-cols-2 gap-2">
+            <Button
+              size="sm"
+              variant={immuneFor === 'proposer' ? 'info' : 'secondary'}
+              onClick={() => setImmuneFor('proposer')}
+            >
+              {t('negotiation.immuneMe')}
+            </Button>
+            <Button
+              size="sm"
+              variant={immuneFor === 'target' ? 'info' : 'secondary'}
+              onClick={() => setImmuneFor('target')}
+            >
+              {t('negotiation.immuneThem')}
+            </Button>
+          </div>
+        </>
+      )}
+
+      {/* Cash amount */}
       {needsCash && (
         <>
-          <div className={labelClass}>
-            {type === 'rent_immunity' ? t('negotiation.priceYouPay') : t('negotiation.yourOffer')}
-          </div>
+          <div className={labelClass}>{cashLabel}</div>
           <input
             type="number"
-            min={1}
+            min={cashRequired ? 1 : 0}
             value={cashJuta}
             onChange={(e) => setCashJuta(Number(e.target.value))}
+            className={`mt-1 ${inputClass}`}
+          />
+        </>
+      )}
+
+      {/* Who pays the cash (swap top-up / loan lender / gift giver) */}
+      {needsCashDir && (
+        <>
+          <div className="mt-1 grid grid-cols-2 gap-2">
+            <Button
+              size="sm"
+              variant={cashFrom === 'proposer' ? 'info' : 'secondary'}
+              onClick={() => setCashFrom('proposer')}
+            >
+              {cashDirLabels[0]}
+            </Button>
+            <Button
+              size="sm"
+              variant={cashFrom === 'target' ? 'info' : 'secondary'}
+              onClick={() => setCashFrom('target')}
+            >
+              {cashDirLabels[1]}
+            </Button>
+          </div>
+        </>
+      )}
+
+      {/* Player loan: interest rate */}
+      {needsInterest && (
+        <>
+          <div className={labelClass}>{t('negotiation.interestRate')}</div>
+          <input
+            type="number"
+            min={0}
+            max={MAX_RATE_PCT}
+            value={interestPct}
+            onChange={(e) => setInterestPct(Number(e.target.value))}
             className={`mt-1 ${inputClass}`}
           />
         </>
@@ -210,15 +308,15 @@ export function NegotiationModal({ open, onClose }: { open: boolean; onClose: ()
         </>
       )}
 
-      {/* Rounds */}
-      {needsRounds && (
+      {/* Laps duration */}
+      {needsLaps && (
         <>
-          <div className={labelClass}>{t('negotiation.duration')}</div>
+          <div className={labelClass}>{t('negotiation.durationLaps')}</div>
           <input
             type="number"
             min={1}
-            value={rounds}
-            onChange={(e) => setRounds(Number(e.target.value))}
+            value={laps}
+            onChange={(e) => setLaps(Number(e.target.value))}
             className={`mt-1 ${inputClass}`}
           />
         </>

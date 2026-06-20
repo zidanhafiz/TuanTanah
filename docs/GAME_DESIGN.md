@@ -81,16 +81,18 @@ Richest = total cash + all property values at current tier
 
 | Region     | Color      | Buy Price   | House Rent Base | Property Passive Base |
 | ---------- | ---------- | ----------- | --------------- | --------------------- |
-| Papua      | Brown      | Rp 600rb    | Rp 140rb        | Rp 100rb              |
-| Kalimantan | Dark Green | Rp 1 juta   | Rp 245rb        | Rp 175rb              |
-| Medan      | Yellow     | Rp 1.5 juta | Rp 350rb        | Rp 250rb              |
-| Yogyakarta | Light Blue | Rp 2 juta   | Rp 490rb        | Rp 350rb              |
-| Lombok     | Pink       | Rp 2.5 juta | Rp 630rb        | Rp 450rb              |
-| Surabaya   | Red        | Rp 3.5 juta | Rp 840rb        | Rp 600rb              |
+| Papua      | Brown      | Rp 1 juta   | Rp 400rb        | Rp 290rb              |
+| Kalimantan | Dark Green | Rp 1.6 juta | Rp 660rb        | Rp 470rb              |
+| Medan      | Yellow     | Rp 2.2 juta | Rp 920rb        | Rp 650rb              |
+| Yogyakarta | Light Blue | Rp 2.8 juta | Rp 1.2 juta     | Rp 850rb              |
+| Lombok     | Pink       | Rp 3.4 juta | Rp 1.45 juta    | Rp 1 juta             |
+| Surabaya   | Red        | Rp 4 juta   | Rp 1.75 juta    | Rp 1.25 juta          |
 | Bali       | Orange     | Rp 4.5 juta | Rp 1.4 juta     | Rp 1 juta             |
 | Jakarta    | Dark Grey  | Rp 6 juta   | Rp 2.8 juta     | Rp 2 juta             |
 
 Region bonus when full set owned: **rent ×2, passive ×2**
+
+Bare-land rent (a tile owned but with no house/property built) is normally the full House Rent Base. On the premium regions **Bali, Jakarta & Tangerang** it is discounted to **60% of base** (`landRentMult` 0.6), so landing on undeveloped premium land isn't punishing. The discount applies only at tier 0; once a building is added, rent scales by tier as usual. The full-set ×2 bonus applies on top of the discounted land rent.
 
 ---
 

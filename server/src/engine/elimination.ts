@@ -361,7 +361,7 @@ export function resolveDebt(state: GameState, playerId: string, giveUp: boolean)
     eliminate(state, player)
   } else {
     throw new EngineError(
-      `You still owe ${rupiah(debt.amount - player.cash)} — sell property or take a pinjol`,
+      `You still owe ${rupiah(debt.amount - player.cash)} — sell or downgrade property, or take a pinjol`,
     )
   }
   finalizeDebtState(state)

@@ -50,16 +50,19 @@ export type EffectType =
   | 'passive_halved'
   | 'lobby_block'
   | 'turn_skip'
-  | 'rent_immunity' // a deal: targetPlayerId pays no rent on targetTileIds
-  | 'revenue_share' // a deal: targetPlayerId shares `multiplier` of passive income with beneficiaryPlayerId
+  | 'rent_immunity' // a deal: targetPlayerId pays no rent on any tile owned by ownerId (lap-based)
+  | 'revenue_share' // a deal: targetPlayerId shares `multiplier` of passive income with beneficiaryPlayerId (lap-based)
 
 export interface PinjolLoan {
   id: string
   amount: RupiahAmount // 2jt / 5jt / 10jt
   interestPerLap: RupiahAmount // charged each time the borrower passes GO (a lap)
-  lenderId: string | null // null = bank, playerId = Rentenir
+  lenderId: string | null // null = bank, playerId = Rentenir or a negotiated peer lender
   roundBorrowed: number
   interestPaid: RupiahAmount // running total of interest paid so far (history)
+  // Per-lap rate; undefined = the pinjol default (PINJOL_INTEREST_RATE). A negotiated
+  // player loan (player_loan deal) carries the proposer-set rate here.
+  interestRate?: number
 }
 
 // A free-pass card held in a player's inventory. Auto-consumed when it matches an
@@ -128,8 +131,17 @@ export interface ActiveEffect {
   targetTileIds?: TileId[]
   targetPlayerId?: string
   beneficiaryPlayerId?: string // revenue_share recipient
+  // rent_immunity deal: the immune player (targetPlayerId) pays no rent on any tile
+  // owned by this player.
+  ownerId?: string
   multiplier?: number
+  // Round-based decay (cards/abilities). Lap-based effects set this to 0 and use
+  // lapsRemaining instead; tickEffects skips any effect that has lapsRemaining set.
   roundsRemaining: number
+  // Lap-based decay (rent_immunity, revenue_share deals): decremented when the
+  // anchor player passes GO. Undefined for round-based effects.
+  lapsRemaining?: number
+  lapAnchorPlayerId?: string // whose passing-GO decrements lapsRemaining
   sourceCard: string
 }
 
@@ -216,6 +228,8 @@ export type NegotiationDealType =
   | 'cash_for_property'
   | 'rent_immunity'
   | 'revenue_share'
+  | 'player_loan' // pinjam uang: a peer loan; lender fronts cash, repaid via the pinjol flow
+  | 'cash_gift' // kasih / minta uang: a one-off free cash transfer
 
 export interface NegotiationDeal {
   id: string
@@ -226,6 +240,15 @@ export interface NegotiationDeal {
   offerTileId?: TileId
   requestTileId?: TileId
   cashAmount?: RupiahAmount
+  // Who pays `cashAmount`: the property_swap top-up payer / rent_immunity fee payer
+  // / cash_gift giver / player_loan lender (who fronts the principal).
+  cashFrom?: 'proposer' | 'target'
+  // rent_immunity: who becomes immune; the other party is the owner whose tiles are covered.
+  immuneFor?: 'proposer' | 'target'
+  // rent_immunity + revenue_share: duration counted in laps (anchor player passing GO).
+  laps?: number
+  // player_loan: per-lap interest rate the proposer sets (e.g. 0.1 = 10%).
+  interestRate?: number
   rounds?: number
   sharePercent?: number
   // revenue_share only: whose passive income is shared with the other party.

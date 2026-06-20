@@ -107,7 +107,9 @@ export function chargeInterest(state: GameState, player: Player): RupiahAmount {
   if (player.loans.length === 0) return 0
   let total = 0
   for (const loan of player.loans) {
-    const interest = Math.round(loan.amount * PINJOL_INTEREST_RATE)
+    // Negotiated peer loans carry their own rate; bank/Rentenir loans use the default.
+    const rate = loan.interestRate ?? PINJOL_INTEREST_RATE
+    const interest = Math.round(loan.amount * rate)
     loan.interestPerLap = interest
     total += interest
   }

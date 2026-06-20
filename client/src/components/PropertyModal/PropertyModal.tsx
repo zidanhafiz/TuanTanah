@@ -155,6 +155,7 @@ export function PropertyModal({
   const canUpgrade = canBuildHere && isMyTurn && !atMaxTier && !needFullRegion
 
   // Downgrade one tier on your own tile for a partial refund of that tier's build cost.
+  // Allowed on your turn, or out of turn while you owe a debt (to raise cash).
   const currentTierMult =
     tile.tier >= 1 && tile.track
       ? ((tile.track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS)[tile.tier - 1]?.buildCostMult ?? 0)
@@ -168,7 +169,7 @@ export function PropertyModal({
     : def.region
       ? Math.round(REGIONS[def.region].buyPrice * currentTierMult * SELL_REFUND_RATE)
       : 0
-  const canDowngrade = (isProperty || isLand) && isMyTurn && ownsTile && tile.tier >= 1
+  const canDowngrade = (isProperty || isLand) && (isMyTurn || iOweDebt) && ownsTile && tile.tier >= 1
 
   const handleSell = () => {
     sell(tileId)
@@ -286,7 +287,7 @@ export function PropertyModal({
               <tbody>
                 <ScheduleRow
                   name={t('property.landOnly')}
-                  rent={formatRupiah(region.rentBase)}
+                  rent={formatRupiah(Math.round(region.rentBase * (region.landRentMult ?? 1)))}
                   passive="—"
                   cost="—"
                   current={tile.tier === 0}

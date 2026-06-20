@@ -62,14 +62,14 @@ describe('canTakeLoan', () => {
   it('rejects amounts above the 3× property-value borrow limit', () => {
     const { state, players } = makeGame(2)
     const p = players[0]!
-    own(state, 1, p.id) // papua buyPrice 600k => limit 1.8jt
-    expect(canTakeLoan(state, p, 2_000_000)).toBe(false)
+    own(state, 1, p.id) // papua buyPrice 1jt => limit 3jt; 5jt loan exceeds it
+    expect(canTakeLoan(state, p, 5_000_000)).toBe(false)
   })
 
   it('allows a loan within the borrow limit', () => {
     const { state, players } = makeGame(2)
     const p = players[0]!
-    own(state, 35, p.id) // jakarta buyPrice 10jt => limit 30jt
+    own(state, 35, p.id) // jakarta buyPrice 6jt => limit 18jt; 10jt loan fits
     expect(canTakeLoan(state, p, 10_000_000)).toBe(true)
   })
 
