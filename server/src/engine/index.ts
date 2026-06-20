@@ -419,7 +419,8 @@ function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): T
         return {}
       }
       const percent = def.taxPercent ?? 0
-      const amount = Math.round((playerWealth(state, player) * percent) / 100)
+      const base = def.taxBasis === 'cash' ? player.cash : playerWealth(state, player)
+      const amount = Math.round((base * percent) / 100)
       charge(state, player, amount, null, 'tax', def.name)
       return {}
     }
