@@ -317,6 +317,7 @@
     "title": "⚖️ Law Office",
     "intro": "Choose one legal action, or skip.",
     "skip": "Skip",
+    "reopen": "⚖️ Open Law Office",
     "back": "← Back",
     "cash": "Your cash: {{amount}}",
     "buy": {

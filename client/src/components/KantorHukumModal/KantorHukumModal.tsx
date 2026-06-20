@@ -56,7 +56,15 @@ interface Choice {
  * rival, or buy a free-pass card) or skips. Visibility is driven by the server's
  * `turn.pendingLawOffice`; resolving any action clears it and unmounts the modal.
  */
-export function KantorHukumModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function KantorHukumModal({
+  open,
+  onClose,
+  onSkip,
+}: {
+  open: boolean
+  onClose: () => void
+  onSkip: () => void
+}) {
   const { t } = useTranslation()
   const state = useGame((s) => s.state)
   const me = useGame((s) => s.me)()
@@ -69,6 +77,13 @@ export function KantorHukumModal({ open, onClose }: { open: boolean; onClose: ()
   if (!open || !state || !me) return null
   const cash = me.cash
   const back = () => setMode('menu')
+  // Closing (X / backdrop) only hides the modal locally — the opportunity is
+  // kept, so reset to the top menu for the next reopen. Skipping is a separate,
+  // explicit action that relinquishes the opportunity on the server.
+  const handleClose = () => {
+    setMode('menu')
+    onClose()
+  }
 
   const titles: Record<Mode, string> = {
     menu: t('lawOffice.title'),
@@ -133,7 +148,7 @@ export function KantorHukumModal({ open, onClose }: { open: boolean; onClose: ()
   }))
 
   return (
-    <Modal open={open} onClose={onClose} title={titles[mode]} size="sm">
+    <Modal open={open} onClose={handleClose} title={titles[mode]} size="sm">
       {mode === 'menu' ? (
         <div className="space-y-2">
           <div className="text-xs text-ink-muted">{t('lawOffice.intro')}</div>
@@ -149,7 +164,7 @@ export function KantorHukumModal({ open, onClose }: { open: boolean; onClose: ()
           <Button block onClick={() => setMode('freepass')}>
             {t('lawOffice.freepass.label', { price: formatRupiah(LAW_OFFICE_FREEPASS_PRICE) })}
           </Button>
-          <Button block variant="ghost" size="sm" onClick={onClose}>
+          <Button block variant="ghost" size="sm" onClick={onSkip}>
             {t('lawOffice.skip')}
           </Button>
           <Card flat tone="sunken" className="mt-2 p-2 text-xs text-ink-muted">

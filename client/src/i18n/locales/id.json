@@ -317,6 +317,7 @@
     "title": "⚖️ Kantor Hukum",
     "intro": "Pilih satu tindakan hukum, atau lewati.",
     "skip": "Lewati",
+    "reopen": "⚖️ Buka Kantor Hukum",
     "back": "← Kembali",
     "cash": "Uang kamu: {{amount}}",
     "buy": {

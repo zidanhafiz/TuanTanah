@@ -25,10 +25,20 @@ describe('computeRent — property track', () => {
     expect(computeRent(state, 1)).toBe(PAPUA.rentBase)
   })
 
-  it('applies the property-track tier multiplier', () => {
+  it('charges the flat tier-1 rent price for property tiers 1–4', () => {
     const { state, players } = makeGame(2)
-    own(state, 1, players[0]!.id, { track: 'property', tier: 3 })
-    const expected = PAPUA.rentBase * PROPERTY_TIERS[2]!.rentMult // tier 3 => ×2
+    // Tiers 2–4 all collapse to the tier-1 (Warung) rent price.
+    for (const tier of [1, 2, 3, 4]) {
+      own(state, 1, players[0]!.id, { track: 'property', tier })
+      const expected = PAPUA.rentBase * PROPERTY_TIERS[0]!.rentMult // ×0.5
+      expect(computeRent(state, 1)).toBe(expected)
+    }
+  })
+
+  it('charges the tier-2 rent price at property max tier', () => {
+    const { state, players } = makeGame(2)
+    own(state, 1, players[0]!.id, { track: 'property', tier: PROPERTY_TIERS.length })
+    const expected = PAPUA.rentBase * PROPERTY_TIERS[1]!.rentMult // tier 5 => tier-2 price (×1)
     expect(computeRent(state, 1)).toBe(expected)
   })
 

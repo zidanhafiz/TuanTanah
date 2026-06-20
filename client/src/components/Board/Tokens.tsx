@@ -1,4 +1,10 @@
-import { JAIL_GO_TILE_ID, JAIL_TILE_ID, type GameState, type Player } from '@tuan-tanah/shared'
+import {
+  JAIL_GO_TILE_ID,
+  JAIL_TILE_ID,
+  RINJANI_TILE_ID,
+  type GameState,
+  type Player,
+} from '@tuan-tanah/shared'
 import { motion, useAnimationControls } from 'framer-motion'
 import { useEffect, useRef } from 'react'
 import { onResync } from '../../lib/resync.js'
@@ -26,6 +32,10 @@ export function TokenLayer({ state }: { state: GameState }) {
     state.turn.hasRolled && state.turn.lastDice
       ? state.turn.lastDice[0] + state.turn.lastDice[1]
       : -1
+  // Gunung Rinjani summon: the roller landed on the mountain and every active
+  // player is teleported there in the same broadcast. Non-roller tokens hold
+  // until the lander has walked in (see PlayerToken) so they're pulled in after.
+  const rinjaniSummon = state.turn.hasRolled && current?.position === RINJANI_TILE_ID
 
   return (
     <div className="pointer-events-none absolute inset-[3px] z-panel">
@@ -39,6 +49,7 @@ export function TokenLayer({ state }: { state: GameState }) {
             expectedSteps={expectedSteps}
             isRoller={current?.id === p.id}
             isMe={myId === p.id}
+            rinjaniSummon={rinjaniSummon}
           />
         ),
       )}
@@ -53,6 +64,7 @@ function PlayerToken({
   expectedSteps,
   isRoller,
   isMe,
+  rinjaniSummon,
 }: {
   player: Player
   seatIndex: number
@@ -60,6 +72,7 @@ function PlayerToken({
   expectedSteps: number
   isRoller: boolean
   isMe: boolean
+  rinjaniSummon: boolean
 }) {
   const move = useAnimationControls()
   const bob = useAnimationControls()
@@ -101,6 +114,11 @@ function PlayerToken({
     // Commit prevPos only once we actually start animating, so the held effect
     // re-runs (phase is in the dep list) and still sees from→to once it advances.
     if (isRoller && (phase === 'dice' || phase === 'settle')) return
+    // Gunung Rinjani: hold every summoned non-roller token until the lander has
+    // finished walking in (cinematic `done`), so they're pulled to the mountain
+    // after the current player arrives rather than during the dice/walk.
+    const waitForLander = !isRoller && rinjaniSummon && to === RINJANI_TILE_ID
+    if (waitForLander && phase !== 'done') return
     prevPos.current = to
     prevInJail.current = player.inJail
 

@@ -558,7 +558,12 @@ export function computeRent(state: GameState, tileId: TileId): RupiahAmount {
   let mult = 1
   if (tier >= 1) {
     if (tile.track === 'house') mult = HOUSE_TIERS[tier - 1]?.rentMult ?? 1
-    else if (tile.track === 'property') mult = PROPERTY_TIERS[tier - 1]?.rentMult ?? 1
+    else if (tile.track === 'property') {
+      // Property rent is flat: tier-1 price for tiers 1–4, tier-2 price at max tier.
+      // Property value comes from passive income (see collectPassiveIncome), not rent.
+      const rentIdx = tier >= PROPERTY_TIERS.length ? 1 : 0
+      mult = PROPERTY_TIERS[rentIdx]?.rentMult ?? 1
+    }
   } else {
     // Bare, unbuilt land: some regions discount the landing rent (e.g. premium
     // regions, so undeveloped land isn't punishing). Defaults to full rentBase.

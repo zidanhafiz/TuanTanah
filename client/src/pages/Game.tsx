@@ -59,6 +59,10 @@ export function Game() {
   const [showJudol, setShowJudol] = useState(false)
   const [selectedTile, setSelectedTile] = useState<TileId | null>(null)
   const [showNegotiate, setShowNegotiate] = useState(false)
+  // Whether the player has closed the Kantor Hukum modal without acting. Closing
+  // only hides it locally (the opportunity stays live on the server) so they can
+  // reopen it for as long as they're on the tile; only an explicit Skip forfeits.
+  const [lawOfficeDismissed, setLawOfficeDismissed] = useState(false)
   // Sidebar tab selection. Phones get an extra "Actions" tab (their turn
   // controls live in the sidebar, not on the board); tablet/desktop don't.
   const [sidebarTab, setSidebarTab] = useState<'actions' | 'status' | 'log'>('actions')
@@ -75,6 +79,11 @@ export function Game() {
   useEffect(() => {
     if (!isMyTurn || metaActionsLeft <= 0) setPendingMeta(null)
   }, [isMyTurn, metaActionsLeft])
+  // Reset the Kantor Hukum dismissal when the opportunity ends, so the modal
+  // opens fresh the next time the player lands on the tile.
+  useEffect(() => {
+    if (!state?.turn.pendingLawOffice) setLawOfficeDismissed(false)
+  }, [state?.turn.pendingLawOffice])
 
   if (!state) return null
 
@@ -138,6 +147,11 @@ export function Game() {
             name: tileName(t, pending),
             price: formatRupiah(basePrice(pending)),
           })}
+        </Button>
+      )}
+      {turn.pendingLawOffice && !rolling && lawOfficeDismissed && (
+        <Button block onClick={() => setLawOfficeDismissed(false)}>
+          {t('lawOffice.reopen')}
         </Button>
       )}
       {turn.hasRolled && !rolling && (
@@ -334,7 +348,11 @@ export function Game() {
 
       <PinjolModal open={showPinjol} onClose={() => setShowPinjol(false)} />
       <JudolModal open={showJudol} onClose={() => setShowJudol(false)} />
-      <KantorHukumModal open={isMyTurn && turn.pendingLawOffice} onClose={lawOfficeSkip} />
+      <KantorHukumModal
+        open={isMyTurn && turn.pendingLawOffice && !rolling && !lawOfficeDismissed}
+        onClose={() => setLawOfficeDismissed(true)}
+        onSkip={lawOfficeSkip}
+      />
 
       <NegotiationModal open={showNegotiate} onClose={() => setShowNegotiate(false)} />
 

@@ -169,7 +169,8 @@ export function PropertyModal({
     : def.region
       ? Math.round(REGIONS[def.region].buyPrice * currentTierMult * SELL_REFUND_RATE)
       : 0
-  const canDowngrade = (isProperty || isLand) && (isMyTurn || iOweDebt) && ownsTile && tile.tier >= 1
+  const canDowngrade =
+    (isProperty || isLand) && (isMyTurn || iOweDebt) && ownsTile && tile.tier >= 1
 
   const handleSell = () => {
     sell(tileId)
@@ -584,6 +585,12 @@ function TrackSection({
   t: TFunc
 }) {
   const tiers = track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
+  // Property landing rent is flat (mirrors server computeRent): tier-1 price for
+  // tiers 1–4, tier-2 price at max tier. House rent uses each tier's own mult.
+  const rentMultFor = (td: (typeof tiers)[number]) =>
+    track === 'property'
+      ? (PROPERTY_TIERS[td.tier >= PROPERTY_TIERS.length ? 1 : 0]?.rentMult ?? td.rentMult)
+      : td.rentMult
   return (
     <>
       <tr>
@@ -598,7 +605,7 @@ function TrackSection({
         <ScheduleRow
           key={td.tier}
           name={tierName(t, track, td.tier)}
-          rent={formatRupiah(Math.round(region.rentBase * td.rentMult))}
+          rent={formatRupiah(Math.round(region.rentBase * rentMultFor(td)))}
           // Only the property track earns passive income; the house track shows "—".
           passive={
             track === 'property'
