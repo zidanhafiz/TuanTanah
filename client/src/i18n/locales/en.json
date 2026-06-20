@@ -73,6 +73,10 @@
   "game": {
     "room": "Room {{code}}",
     "round": "Round {{round}}",
+    "elapsed": "{{time}} elapsed",
+    "afkMine": "Make a move or your turn will be skipped",
+    "afkOther": "{{name}} is taking their turn",
+    "afkSeconds": "{{seconds}}s",
     "winner": "Winner",
     "leaveGame": "Leave game",
     "leaveConfirm": "Leave the game? You'll forfeit your properties and can't rejoin.",
@@ -368,6 +372,7 @@
     "players": "Players",
     "jail": "🔒 jail",
     "offline": "offline",
+    "afk": "⏱️ AFK ×{{count}}",
     "loans_one": "🏦 {{count}} loan · {{owed}} owed · {{perRound}}/lap",
     "loans_other": "🏦 {{count}} loans · {{owed}} owed · {{perRound}}/lap",
     "passes_one": "🎟️ {{count}} pass · {{list}}",

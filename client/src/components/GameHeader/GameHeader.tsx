@@ -1,6 +1,7 @@
 import { Flag, House, LogOut } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useGame } from '../../store/gameStore.js'
+import { GameTimer } from '../GameTimer/GameTimer.js'
 import { LeaveButton, SurrenderButton } from '../RoomActions.js'
 import { SoundToggle } from '../SoundToggle.js'
 
@@ -29,6 +30,7 @@ export function GameHeader() {
         <div className="flex items-center gap-2 text-xs text-ink-muted">
           <span className="font-bold text-ink">{t('game.room', { code: state.roomId })}</span>
           <span>{t('game.round', { round: state.round })}</span>
+          <GameTimer />
         </div>
       </div>
       <div className="flex items-center gap-2">

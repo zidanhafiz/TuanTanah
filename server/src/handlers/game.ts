@@ -25,7 +25,8 @@ import {
 import { isDev } from '../env.js'
 import { mutateRoom } from '../rooms.js'
 import type { GameStore } from '../store.js'
-import { broadcastState, guard, requireSession, type TTServer, type TTSocket } from './common.js'
+import { broadcastAndArm } from './afk.js'
+import { guard, requireSession, type TTServer, type TTSocket } from './common.js'
 import { concludeIfWon } from './gameOver.js'
 
 /**
@@ -53,7 +54,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       const { value: result, eliminated } = await mutateRoom(store, roomId, (state) =>
         runWithEliminations(state, () => rollDice(state, playerId)),
       )
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
       emitEliminated(io, roomId, eliminated)
       if (result.card) {
         io.to(roomId).emit('card_drawn', {
@@ -76,7 +77,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       const { value: result, eliminated } = await mutateRoom(store, roomId, (state) =>
         runWithEliminations(state, () => devTeleport(state, playerId, payload.tileId)),
       )
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
       emitEliminated(io, roomId, eliminated)
       if (result.card) {
         io.to(roomId).emit('card_drawn', {
@@ -94,7 +95,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
       await mutateRoom(store, roomId, (state) => buyProperty(state, playerId, payload.tileId))
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
     }),
   )
 
@@ -104,7 +105,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       await mutateRoom(store, roomId, (state) =>
         buildLahan(state, playerId, payload.tileId, payload.business),
       )
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
     }),
   )
 
@@ -112,7 +113,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
       await mutateRoom(store, roomId, (state) => lawOfficeBuy(state, playerId, payload.tileId))
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
     }),
   )
 
@@ -121,7 +122,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       const { roomId, playerId } = requireSession(socket)
       // A force-transfer shifts wealth between players, so a wealth win can trigger.
       await mutateRoom(store, roomId, (state) => lawOfficeTransfer(state, playerId, payload.tileId))
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
       await concludeIfWon(io, store, roomId)
     }),
   )
@@ -132,7 +133,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       await mutateRoom(store, roomId, (state) =>
         lawOfficeJail(state, playerId, payload.targetPlayerId),
       )
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
     }),
   )
 
@@ -140,7 +141,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
       await mutateRoom(store, roomId, (state) => lawOfficeFreepass(state, playerId, payload.pass))
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
     }),
   )
 
@@ -148,7 +149,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
       await mutateRoom(store, roomId, (state) => lawOfficeSkip(state, playerId))
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
     }),
   )
 
@@ -156,7 +157,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
       await mutateRoom(store, roomId, (state) => payJail(state, playerId))
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
     }),
   )
 
@@ -166,7 +167,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       const { eliminated } = await mutateRoom(store, roomId, (state) =>
         runWithEliminations(state, () => endTurn(state, playerId)),
       )
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
       emitEliminated(io, roomId, eliminated)
       await concludeIfWon(io, store, roomId)
     }),
@@ -186,7 +187,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
           }),
         ),
       )
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
       emitEliminated(io, roomId, eliminated)
       if (result.card) {
         io.to(roomId).emit('card_drawn', { type: 'hustle', card: result.card.cardId, playerId })
@@ -199,7 +200,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
       await mutateRoom(store, roomId, (state) => castVote(state, playerId, payload.targetId))
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
     }),
   )
 
@@ -207,7 +208,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
       await mutateRoom(store, roomId, (state) => useAbility(state, playerId, payload.ability))
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
     }),
   )
 
@@ -219,7 +220,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
           takeLoan(state, playerId, payload.amount, payload.lenderId),
         ),
       )
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
       emitEliminated(io, roomId, eliminated)
       await concludeIfWon(io, store, roomId)
     }),
@@ -231,7 +232,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       const { eliminated } = await mutateRoom(store, roomId, (state) =>
         runWithEliminations(state, () => sellProperty(state, playerId, payload.tileId)),
       )
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
       emitEliminated(io, roomId, eliminated)
       await concludeIfWon(io, store, roomId)
     }),
@@ -243,7 +244,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       const { eliminated } = await mutateRoom(store, roomId, (state) =>
         runWithEliminations(state, () => resolveDebt(state, playerId, payload.giveUp)),
       )
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
       emitEliminated(io, roomId, eliminated)
       await concludeIfWon(io, store, roomId)
     }),
@@ -255,7 +256,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       const deal = await mutateRoom(store, roomId, (state) =>
         proposeDeal(state, playerId, payload.deal),
       )
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
       io.to(roomId).emit('deal_proposed', { deal })
     }),
   )
@@ -266,7 +267,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       await mutateRoom(store, roomId, (state) =>
         respondToDeal(state, playerId, payload.dealId, payload.accept),
       )
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
       await concludeIfWon(io, store, roomId)
     }),
   )
@@ -277,7 +278,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       await mutateRoom(store, roomId, (state) =>
         upgradeProperty(state, playerId, payload.tileId, payload.track),
       )
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
     }),
   )
 
@@ -287,7 +288,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       const { eliminated } = await mutateRoom(store, roomId, (state) =>
         runWithEliminations(state, () => downgradeProperty(state, playerId, payload.tileId)),
       )
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
       emitEliminated(io, roomId, eliminated)
       await concludeIfWon(io, store, roomId)
     }),
@@ -297,7 +298,7 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
       await mutateRoom(store, roomId, (state) => repayPinjol(state, playerId, payload.loanId))
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
     }),
   )
 }

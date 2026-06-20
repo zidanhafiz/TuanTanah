@@ -1,5 +1,7 @@
 // Bankruptcy cascade + win-condition checks.
 import {
+  AFK_FINE_STEP,
+  AFK_MAX_STRIKES,
   HOUSE_TIERS,
   KONTRAKTOR_CUT_RATE,
   LAHAN_LAND_PRICE,
@@ -328,6 +330,33 @@ export function forfeit(state: GameState, playerId: string): void {
   pushLog(state, `🏳️ ${player.name} left the game`, playerId)
   const current = state.players[state.currentPlayerIndex]
   if (current?.id === playerId && state.pendingDebts.length === 0) advanceTurn(state)
+}
+
+/**
+ * Handle the current player going AFK (their turn ran out the inactivity clock).
+ * Counts a consecutive AFK strike, then either fines + skips them, or — once they
+ * exceed AFK_MAX_STRIKES — kicks them via the forfeit/elimination path. The fine
+ * is capped at the player's cash on hand so an absent player never opens a pending
+ * debt (which would re-pause the game). The timing lives in the handler layer;
+ * this stays pure/testable. Mutates state.
+ */
+export function applyAfkTimeout(state: GameState, playerId: string): void {
+  const player = state.players.find((p) => p.id === playerId)
+  if (!player || player.isEliminated) return
+  player.afkStrikes += 1
+
+  if (player.afkStrikes > AFK_MAX_STRIKES) {
+    pushLog(state, `⏱️ ${player.name} was kicked for repeated inactivity`, playerId)
+    forfeit(state, playerId)
+    return
+  }
+
+  const fine = player.afkStrikes * AFK_FINE_STEP
+  const taken = Math.min(player.cash, fine)
+  player.cash -= taken
+  state.bank += taken
+  pushLog(state, `⏱️ ${player.name} was AFK — turn skipped and fined ${rupiah(taken)}`, playerId)
+  advanceTurn(state)
 }
 
 /** After raising cash (sell/pinjol), settle the player's debt if they can now afford it. */

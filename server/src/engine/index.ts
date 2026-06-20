@@ -87,6 +87,7 @@ export function createGameState(roomId: string, now: number): GameState {
       rolledDoubles: false,
       pendingBuyTileId: null,
       pendingLawOffice: false,
+      deadline: null,
     },
     activeEffects: [],
     kejadianDeck: [],
@@ -130,6 +131,7 @@ export function addPlayer(state: GameState, name: string): Player {
     usedAbility: false,
     metaActionsUsed: [],
     owesLapInterest: false,
+    afkStrikes: 0,
   }
   state.players.push(player)
   pushLog(state, `${player.name} joined the room`, player.id)
@@ -299,6 +301,8 @@ type TileOutcome = { card?: { type: 'kejadian' | 'hustle'; card: string }; rent?
 export function rollDice(state: GameState, playerId: string, rng: Rng = defaultRng): RollResult {
   const player = requireTurn(state, playerId)
   if (state.turn.hasRolled) throw new EngineError('Already rolled this turn')
+  // Rolling proves the player is present: clear any consecutive AFK strikes.
+  player.afkStrikes = 0
 
   const d1 = Math.floor(rng() * 6) + 1
   const d2 = Math.floor(rng() * 6) + 1
@@ -960,6 +964,7 @@ export { useAbility } from './abilities.js'
 export { takeLoan } from './pinjol.js'
 export { proposeDeal, respondToDeal } from './negotiation.js'
 export {
+  applyAfkTimeout,
   finalStandings,
   forfeit,
   playerWealth,

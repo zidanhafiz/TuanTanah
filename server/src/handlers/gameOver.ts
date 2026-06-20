@@ -6,6 +6,7 @@ import { finalStandings, resolveGameOver } from '../engine/index.js'
 import { mutateRoom } from '../rooms.js'
 import type { GameStore } from '../store.js'
 import { persistGameResult } from '../supabase.js'
+import { clearAfkTimer } from './afk.js'
 import { broadcastState, type TTServer } from './common.js'
 
 // Per-room time-limit timers. Cleared when the game ends or is rescheduled.
@@ -28,6 +29,7 @@ export async function concludeIfWon(io: TTServer, store: GameStore, roomId: stri
   const ended = await mutateRoom(store, roomId, (state) => resolveGameOver(state, now))
   if (!ended) return
   clearRoomTimer(roomId)
+  clearAfkTimer(roomId)
   await broadcastState(io, store, roomId)
   const state = await store.get(roomId)
   if (!state || !state.winner) return

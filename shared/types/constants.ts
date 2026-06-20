@@ -34,6 +34,17 @@ export const TARGET_WEALTH_MAX = jt(500) // Rp 500 juta
 export const TARGET_WEALTH_DEFAULT = jt(100) // matches createGameState default
 export const TARGET_WEALTH_STEP = jt(10)
 
+// ---- AFK auto-skip ----
+// Inactivity allowed per turn before the active player is auto-skipped. The
+// countdown resets whenever the active player acts (the broadcast re-arms it).
+export const AFK_TIMEOUT_MS = 60_000
+// Per consecutive AFK turn the player is fined this × their strike count
+// (1st AFK → Rp 1jt, 2nd → Rp 2jt, 3rd → Rp 3jt). Capped at their cash on hand,
+// never opening a debt.
+export const AFK_FINE_STEP: RupiahAmount = jt(1)
+// Strikes 1..AFK_MAX_STRIKES are fined; the next AFK turn kicks the player.
+export const AFK_MAX_STRIKES = 3
+
 // ---- Regions ----
 
 export type RegionId =

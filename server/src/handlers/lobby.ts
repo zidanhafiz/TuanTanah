@@ -11,6 +11,7 @@ import {
 import { createRoom, mutateRoom } from '../rooms.js'
 import { clearSession, setSession } from '../sessions.js'
 import type { GameStore } from '../store.js'
+import { broadcastAndArm } from './afk.js'
 import {
   broadcastState,
   guard,
@@ -112,8 +113,9 @@ export function registerLobbyHandlers(io: TTServer, socket: TTSocket, store: Gam
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
       await mutateRoom(store, roomId, (state) => startGame(state, playerId))
-      await broadcastState(io, store, roomId)
       await scheduleTimeLimit(io, store, roomId)
+      // Arm the AFK clock for the first turn (also broadcasts the fresh deadline).
+      await broadcastAndArm(io, store, roomId)
     }),
   )
 
@@ -132,7 +134,7 @@ export function registerLobbyHandlers(io: TTServer, socket: TTSocket, store: Gam
       })
       clearSession(socket.id)
       await socket.leave(roomId)
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
       if (wasPlaying) {
         io.to(roomId).emit('player_eliminated', { playerId })
         await concludeIfWon(io, store, roomId)
@@ -151,7 +153,7 @@ export function registerLobbyHandlers(io: TTServer, socket: TTSocket, store: Gam
         forfeit(state, playerId)
         return true
       })
-      await broadcastState(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
       if (forfeited) {
         io.to(roomId).emit('player_eliminated', { playerId })
         await concludeIfWon(io, store, roomId)

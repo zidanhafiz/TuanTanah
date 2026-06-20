@@ -73,6 +73,10 @@
   "game": {
     "room": "Ruangan {{code}}",
     "round": "Ronde {{round}}",
+    "elapsed": "{{time}} berlalu",
+    "afkMine": "Lakukan aksi atau giliranmu akan dilewati",
+    "afkOther": "{{name}} sedang mengambil giliran",
+    "afkSeconds": "{{seconds}}d",
     "winner": "Pemenang",
     "leaveGame": "Keluar permainan",
     "leaveConfirm": "Keluar dari permainan? Kamu akan kehilangan propertimu dan tidak bisa bergabung lagi.",
@@ -368,6 +372,7 @@
     "players": "Pemain",
     "jail": "🔒 penjara",
     "offline": "offline",
+    "afk": "⏱️ AFK ×{{count}}",
     "loans_one": "🏦 {{count}} pinjaman · {{owed}} terutang · {{perRound}}/putaran",
     "loans_other": "🏦 {{count}} pinjaman · {{owed}} terutang · {{perRound}}/putaran",
     "passes_one": "🎟️ {{count}} kartu bebas · {{list}}",

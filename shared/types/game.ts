@@ -97,6 +97,10 @@ export interface Player {
   // Set when the player passes GO; pinjol interest is then charged once at the
   // start of their next turn (keeps interest off the movement/debt path).
   owesLapInterest: boolean
+  // Consecutive AFK turns (turns auto-skipped for inactivity). Incremented each
+  // auto-skip, reset to 0 when the player acts (see rollDice). Drives the
+  // escalating AFK fine and the eventual kick.
+  afkStrikes: number
 }
 
 export interface TileState {
@@ -179,6 +183,11 @@ export interface TurnState {
   // its legal actions (buy remotely / force-transfer / force-jail / buy a pass)
   // or skip. Set on landing, cleared when an action resolves or they skip.
   pendingLawOffice: boolean
+  // Epoch ms when the current player's turn auto-skips for inactivity, or null
+  // when no AFK timer is armed (lobby/ended, or the game is paused on a debt or
+  // vote). Set by the server's AFK timer layer, not the engine; the client
+  // renders the countdown from it.
+  deadline: number | null
 }
 
 export interface LogEntry {

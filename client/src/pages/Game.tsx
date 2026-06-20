@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { roleName, tileName } from '../i18n/gameData.js'
 import { AbilityBar } from '../components/AbilityBar/AbilityBar.js'
+import { AfkCountdown } from '../components/AfkCountdown/AfkCountdown.js'
 import { Board } from '../components/Board/Board.js'
 import { DebtPanel } from '../components/DebtPanel/DebtPanel.js'
 import { EventLog } from '../components/EventLog/EventLog.js'
@@ -156,7 +157,7 @@ export function Game() {
       )}
       {turn.hasRolled && !rolling && (
         <Button variant="secondary" size="sm" block onClick={endTurn}>
-          {pending !== null ? t('game.skipEndTurn') : t('game.endTurn')}
+          {t('game.endTurn')}
         </Button>
       )}
       {metaActionsLeft > 0 && !rolling && me && (
@@ -301,6 +302,8 @@ export function Game() {
 
         {/* Sidebar */}
         <aside className="flex w-full flex-col gap-4 lg:w-80">
+          <AfkCountdown />
+
           {pauseBanner}
 
           {targetHint}
