@@ -6,6 +6,7 @@ import {
   TRANSPORT_BUY_PRICE,
   type FinalStanding,
   type MetaActionType,
+  type NegotiationDealType,
   type TileId,
 } from '@tuan-tanah/shared'
 import { useEffect, useState } from 'react'
@@ -59,7 +60,13 @@ export function Game() {
   const [showPinjol, setShowPinjol] = useState(false)
   const [showJudol, setShowJudol] = useState(false)
   const [selectedTile, setSelectedTile] = useState<TileId | null>(null)
-  const [showNegotiate, setShowNegotiate] = useState(false)
+  // Negotiation modal: null = closed; an object = open, optionally prefilled
+  // (target player and/or a requested tile) from a player-row or owned-tile click.
+  const [negotiate, setNegotiate] = useState<{
+    targetId?: string
+    type?: NegotiationDealType
+    requestTileId?: TileId
+  } | null>(null)
   // Whether the player has closed the Kantor Hukum modal without acting. Closing
   // only hides it locally (the opportunity stays live on the server) so they can
   // reopen it for as long as they're on the tile; only an explicit Skip forfeits.
@@ -125,6 +132,16 @@ export function Game() {
   // Clicking a tile (when not selecting a meta-action target) opens its property modal.
   const handleTileClick =
     pendingMeta?.target === 'tile' ? handleSelectTile : (tileId: TileId) => setSelectedTile(tileId)
+  const openNegotiate = (prefill: NonNullable<typeof negotiate> = {}) => setNegotiate(prefill)
+  // From the property modal's buy/swap buttons: close it and open a prefilled deal.
+  const handleTileNegotiate = (intent: {
+    type: NegotiationDealType
+    tileId: TileId
+    ownerId: string
+  }) => {
+    setSelectedTile(null)
+    openNegotiate({ targetId: intent.ownerId, type: intent.type, requestTileId: intent.tileId })
+  }
 
   // Active player's per-turn controls — only while play isn't paused for a
   // debt or game-over. Rendered identically whether on the board or in the
@@ -215,7 +232,7 @@ export function Game() {
     phase === 'playing' && !myDebt && !debtor && Boolean(me && !me.isEliminated) && !rolling
   const negotiateButton = canNegotiate ? (
     <Tooltip content={t('game.negotiateDesc')} className="w-full">
-      <Button variant="secondary" size="sm" block onClick={() => setShowNegotiate(true)}>
+      <Button variant="secondary" size="sm" block onClick={() => openNegotiate()}>
         {t('game.negotiate')}
       </Button>
     </Tooltip>
@@ -340,7 +357,13 @@ export function Game() {
               <PlayerPanel
                 state={state}
                 myId={me?.id ?? null}
-                onSelect={pendingMeta?.target === 'player' ? handleSelectPlayer : undefined}
+                onSelect={
+                  pendingMeta?.target === 'player'
+                    ? handleSelectPlayer
+                    : canNegotiate
+                      ? (id) => openNegotiate({ targetId: id })
+                      : undefined
+                }
               />
             </>
           )}
@@ -362,7 +385,14 @@ export function Game() {
         onSkip={lawOfficeSkip}
       />
 
-      <NegotiationModal open={showNegotiate} onClose={() => setShowNegotiate(false)} />
+      {negotiate && (
+        <NegotiationModal
+          key={`${negotiate.targetId ?? ''}-${negotiate.type ?? ''}-${negotiate.requestTileId ?? ''}`}
+          open
+          prefill={negotiate}
+          onClose={() => setNegotiate(null)}
+        />
+      )}
 
       {selectedTile !== null && (
         <PropertyModal
@@ -370,6 +400,7 @@ export function Game() {
           tileId={selectedTile}
           open={selectedTile !== null}
           onClose={() => setSelectedTile(null)}
+          onNegotiate={canNegotiate ? handleTileNegotiate : undefined}
         />
       )}
 

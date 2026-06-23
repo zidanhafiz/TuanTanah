@@ -251,6 +251,8 @@
     "durationLaps": "Duration (laps)",
     "sendProposal": "Send proposal",
     "cancel": "Cancel",
+    "preview": "Preview — what {{name}} sees",
+    "cashEquals": "= {{amount}}",
     "proposes": "🤝 {{name}} proposes",
     "reject": "Reject",
     "accept": "Accept",
@@ -317,6 +319,8 @@
     "sellConfirm": "Sell {{name}} back to the bank for {{refund}}?",
     "confirmSell": "Confirm sell",
     "sellBack": "Sell back to bank — {{refund}}",
+    "offerBuy": "Offer to buy",
+    "proposeSwap": "Propose a swap",
     "close": "Close"
   },
   "lawOffice": {

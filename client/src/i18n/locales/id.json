@@ -251,6 +251,8 @@
     "durationLaps": "Durasi (putaran)",
     "sendProposal": "Kirim usulan",
     "cancel": "Batal",
+    "preview": "Pratinjau — yang dilihat {{name}}",
+    "cashEquals": "= {{amount}}",
     "proposes": "🤝 {{name}} mengajukan",
     "reject": "Tolak",
     "accept": "Terima",
@@ -317,6 +319,8 @@
     "sellConfirm": "Jual {{name}} kembali ke bank seharga {{refund}}?",
     "confirmSell": "Konfirmasi jual",
     "sellBack": "Jual ke bank — {{refund}}",
+    "offerBuy": "Tawar untuk beli",
+    "proposeSwap": "Ajukan tukar",
     "close": "Tutup"
   },
   "lawOffice": {

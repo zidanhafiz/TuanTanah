@@ -87,10 +87,17 @@ export function PropertyModal({
   tileId,
   open,
   onClose,
+  onNegotiate,
 }: {
   tileId: TileId | null
   open: boolean
   onClose: () => void
+  /** Start a deal for this tile with its owner. Provided only when negotiation is allowed. */
+  onNegotiate?: (intent: {
+    type: 'cash_for_property' | 'property_swap'
+    tileId: TileId
+    ownerId: string
+  }) => void
 }) {
   const { t } = useTranslation()
   const state = useGame((s) => s.state)
@@ -562,6 +569,28 @@ export function PropertyModal({
             {t('property.sellBack', { refund: formatRupiah(refund) })}
           </Button>
         ))}
+
+      {/* Owned by someone else: jump into a deal (buy or swap) with the owner. */}
+      {(ownable || isLand) && owner && owner.id !== me?.id && onNegotiate && (
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <Button
+            block
+            variant="success"
+            size="sm"
+            onClick={() => onNegotiate({ type: 'cash_for_property', tileId, ownerId: owner.id })}
+          >
+            {t('property.offerBuy')}
+          </Button>
+          <Button
+            block
+            variant="info"
+            size="sm"
+            onClick={() => onNegotiate({ type: 'property_swap', tileId, ownerId: owner.id })}
+          >
+            {t('property.proposeSwap')}
+          </Button>
+        </div>
+      )}
 
       <Button block variant="ghost" size="sm" className="mt-2" onClick={onClose}>
         {t('property.close')}
