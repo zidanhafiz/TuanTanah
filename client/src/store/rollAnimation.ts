@@ -86,7 +86,9 @@ export function noteIncomingState(next: GameState): void {
   const cp = next.players[next.currentPlayerIndex]
   const dice = next.turn.lastDice
   const pos = cp?.position ?? null
-  const sig = `${next.round}:${next.currentPlayerIndex}:${dice?.join('-') ?? 'x'}:${next.turn.hasRolled}`
+  // doublesCount disambiguates a bonus doubles re-roll that yields the same dice
+  // as the prior roll (e.g. 3+3 then 3+3), so the cinematic still replays.
+  const sig = `${next.round}:${next.currentPlayerIndex}:${dice?.join('-') ?? 'x'}:${next.turn.hasRolled}:${next.turn.doublesCount}`
 
   const from = prevPos
   const firstSeen = prevSig === null

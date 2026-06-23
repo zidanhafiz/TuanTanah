@@ -85,6 +85,7 @@
     "payBail": "Bayar jaminan (Rp 1 juta)",
     "rollForDoubles": "Lempar untuk dadu kembar",
     "rollDice": "Lempar dadu",
+    "rollAgain": "Lempar lagi (dadu kembar!)",
     "buy": "Beli {{name}} — {{price}}",
     "skipEndTurn": "Lewati & akhiri giliran",
     "endTurn": "Akhiri giliran",
@@ -140,6 +141,7 @@
     "earn": "Dapat {{amount}}",
     "cost": "Kehilangan {{amount}}",
     "passGranted": "Kartu bebas {{pass}}",
+    "advance": "Maju — tanpa lempar dadu!",
     "drawnBy": "Diambil oleh"
   },
   "debt": {
@@ -560,7 +562,9 @@
       "ulang_tahun": "Ulang Tahun",
       "undangan_kondangan": "Undangan Kondangan",
       "top_up_diamond": "Top Up Diamond",
-      "donate_dramok": "Donate Dramok"
+      "donate_dramok": "Donate Dramok",
+      "advance_go": "Pulang Kampung",
+      "advance_law_office": "Panggilan Pengadilan"
     },
     "passes": {
       "rent_free": "bebas sewa",

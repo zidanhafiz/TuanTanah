@@ -223,6 +223,7 @@ export const BOARD_SIZE = BOARD.length // 40
 export const GO_TILE_ID = 0
 export const JAIL_TILE_ID = 10 // where you sit while in jail (Visiting Penjara)
 export const JAIL_GO_TILE_ID = BOARD.find((t) => t.type === 'jail_go')!.id // go-to-jail corner (Masuk Penjara)
+export const LAW_OFFICE_TILE_ID = BOARD.find((t) => t.type === 'law_office')!.id // Kantor Hukum
 
 export const TRANSPORT_TILE_IDS: TileId[] = BOARD.filter((t) => t.type === 'transport').map(
   (t) => t.id,
@@ -481,12 +482,14 @@ export const KEJADIAN_CARDS: KejadianCard[] = [
   { id: 'pemilu', name: 'Pemilu', effect: 'All players vote — most voted player skips next turn' },
 ]
 
-// Hustle cards come in three kinds: `earn` adds cash, `cost` deducts cash, and
-// `pass` grants a free-pass card to the drawer's inventory.
+// Hustle cards come in four kinds: `earn` adds cash, `cost` deducts cash, `pass`
+// grants a free-pass card to the drawer's inventory, and `move` advances the
+// drawer (no dice) to a target tile, resolving it like a landing.
 export type HustleCard =
   | { id: string; name: string; kind: 'earn'; amount: RupiahAmount }
   | { id: string; name: string; kind: 'cost'; amount: RupiahAmount }
   | { id: string; name: string; kind: 'pass'; pass: PassType }
+  | { id: string; name: string; kind: 'move'; target: TileId }
 export const HUSTLE_CARDS: HustleCard[] = [
   { id: 'gofood_driver', name: 'GoFood Driver', kind: 'earn', amount: rb(500) },
   { id: 'dropshipper', name: 'Dropshipper', kind: 'earn', amount: jt(1) },
@@ -507,6 +510,14 @@ export const HUSTLE_CARDS: HustleCard[] = [
   { id: 'undangan_kondangan', name: 'Undangan Kondangan', kind: 'cost', amount: rb(500) },
   { id: 'top_up_diamond', name: 'Top Up Diamond', kind: 'cost', amount: rb(600) },
   { id: 'donate_dramok', name: 'Donate Dramok', kind: 'cost', amount: rb(400) },
+  // Advance cards (TTG-xx): move the drawer to a tile with no dice roll.
+  { id: 'advance_go', name: 'Pulang Kampung', kind: 'move', target: GO_TILE_ID }, // → GO (0), pays salary
+  {
+    id: 'advance_law_office',
+    name: 'Panggilan Pengadilan',
+    kind: 'move',
+    target: LAW_OFFICE_TILE_ID,
+  }, // → Kantor Hukum (19)
 ]
 
 // ---- Meta action costs ----

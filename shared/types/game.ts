@@ -177,6 +177,10 @@ export interface TurnState {
   hasRolled: boolean
   lastDice: [number, number] | null
   rolledDoubles: boolean
+  // Consecutive doubles rolled this turn. A non-jail double earns an extra roll;
+  // the third consecutive double sends the player straight to jail. Resets each
+  // turn (jail-escape doubles do not count toward it).
+  doublesCount: number
   // An unowned property the current player just landed on and may buy.
   pendingBuyTileId: TileId | null
   // True while the current player is on a Kantor Hukum tile and must pick one of

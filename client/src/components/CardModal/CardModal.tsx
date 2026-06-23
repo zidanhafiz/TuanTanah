@@ -15,6 +15,7 @@ function hustleDetail(t: TFunction, id: string): string {
   if (!card) return ''
   if (card.kind === 'cost') return t('card.cost', { amount: formatRupiah(card.amount) })
   if (card.kind === 'pass') return t('card.passGranted', { pass: passTypeName(t, card.pass) })
+  if (card.kind === 'move') return t('card.advance')
   return t('card.earn', { amount: formatRupiah(card.amount) })
 }
 

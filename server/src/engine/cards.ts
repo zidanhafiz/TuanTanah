@@ -23,7 +23,11 @@ import {
   TRANSPORT_TILE_IDS,
 } from '@tuan-tanah/shared'
 import type { ActiveEffect, GameState, Player, RegionId } from '@tuan-tanah/shared'
+import { getTileDef } from './board.js'
 import { charge } from './elimination.js'
+// Runtime-only import (called from drawHustle, never at module-eval time), so the
+// index.ts ↔ cards.ts cycle is safe.
+import { advanceToTile } from './index.js'
 import { isTaxImmune } from './roles.js'
 import { defaultRng, pushLog, uid, type Rng } from './util.js'
 
@@ -58,6 +62,7 @@ function regionBonusEffect(cardId: string, regions: RegionId[], multiplier: numb
 export function drawHustle(
   state: GameState,
   player: Player,
+  rng: Rng = defaultRng,
 ): { cardId: string; name: string } | null {
   const id = drawFrom(state.hustleDeck)
   if (!id) return null
@@ -85,6 +90,18 @@ export function drawHustle(
         `${player.name} hustled "${card.name}" — gained a ${card.pass} pass`,
         player.id,
       )
+      break
+    }
+    case 'move': {
+      pushLog(
+        state,
+        `${player.name} hustled "${card.name}" — advancing to ${getTileDef(card.target).name}`,
+        player.id,
+      )
+      // Moves the player (no dice) to the target tile, collecting pass-GO salary +
+      // passive income if the trip wraps and resolving the destination (e.g. GO,
+      // or Kantor Hukum which opens the law-office menu).
+      advanceToTile(state, player, card.target, rng)
       break
     }
   }

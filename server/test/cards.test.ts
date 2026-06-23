@@ -2,11 +2,14 @@ import {
   BANJIR_DURATION_ROUNDS,
   BANJIR_TIER_DROP,
   DOLLAR_NAIK_CASH_RATE,
+  GO_TILE_ID,
   INVESTASI_ASING_BONUS,
+  LAW_OFFICE_TILE_ID,
   REGIONS,
 } from '@tuan-tanah/shared'
 import { describe, expect, it } from 'vitest'
 import { drawHustle, drawKejadian } from '../src/engine/cards.js'
+import { salaryFor } from '../src/engine/roles.js'
 import { addEffect, makeGame, own } from './helpers.js'
 
 describe('drawHustle', () => {
@@ -39,6 +42,38 @@ describe('drawHustle', () => {
     expect(p.cash).toBe(0) // no cash change
     expect(p.ownedCards).toHaveLength(1)
     expect(p.ownedCards[0]!.type).toBe('jail_free')
+  })
+
+  it('the advance-to-GO card moves the player to GO and pays pass-GO salary', () => {
+    const { state, players } = makeGame(2, { cash: 0, roles: ['ojol_driver', null] })
+    const p = players[0]!
+    p.position = 35 // mid-board: advancing to GO wraps and passes GO
+    state.hustleDeck = ['advance_go']
+    const salary = salaryFor(p)
+    expect(salary).toBeGreaterThan(0)
+    drawHustle(state, p)
+    expect(p.position).toBe(GO_TILE_ID)
+    expect(p.cash).toBe(salary) // no properties → only salary, no passive income
+  })
+
+  it('the advance-to-GO card pays salary even when the player is already on GO', () => {
+    const { state, players } = makeGame(2, { cash: 0, roles: ['ojol_driver', null] })
+    const p = players[0]!
+    p.position = GO_TILE_ID // a full lap back to GO still collects salary
+    state.hustleDeck = ['advance_go']
+    drawHustle(state, p)
+    expect(p.position).toBe(GO_TILE_ID)
+    expect(p.cash).toBe(salaryFor(p))
+  })
+
+  it('the advance-to-Law-Office card moves the player to Kantor Hukum and opens its menu', () => {
+    const { state, players } = makeGame(2, { cash: 0 })
+    const p = players[0]!
+    p.position = 5 // forward to tile 19, no wrap → no salary
+    state.hustleDeck = ['advance_law_office']
+    drawHustle(state, p)
+    expect(p.position).toBe(LAW_OFFICE_TILE_ID)
+    expect(state.turn.pendingLawOffice).toBe(true)
   })
 })
 

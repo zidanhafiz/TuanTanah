@@ -86,6 +86,7 @@ function resetTurnState(state: GameState): void {
     hasRolled: false,
     lastDice: null,
     rolledDoubles: false,
+    doublesCount: 0,
     pendingBuyTileId: null,
     pendingLawOffice: false,
     deadline: null,

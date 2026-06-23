@@ -85,6 +85,7 @@ export function createGameState(roomId: string, now: number): GameState {
       hasRolled: false,
       lastDice: null,
       rolledDoubles: false,
+      doublesCount: 0,
       pendingBuyTileId: null,
       pendingLawOffice: false,
       deadline: null,
@@ -300,10 +301,16 @@ type TileOutcome = { card?: { type: 'kejadian' | 'hustle'; card: string }; rent?
 
 export function rollDice(state: GameState, playerId: string, rng: Rng = defaultRng): RollResult {
   const player = requireTurn(state, playerId)
-  if (state.turn.hasRolled) throw new EngineError('Already rolled this turn')
+  // A second roll this turn is allowed only when the previous roll was a
+  // move-granting double. Jail-escape and three-doubles both clear rolledDoubles,
+  // so they fall through to this guard and reject a re-roll.
+  if (state.turn.hasRolled && !state.turn.rolledDoubles) {
+    throw new EngineError('Already rolled this turn')
+  }
   // Rolling proves the player is present: clear any consecutive AFK strikes.
   player.afkStrikes = 0
 
+  const wasInJail = player.inJail
   const d1 = Math.floor(rng() * 6) + 1
   const d2 = Math.floor(rng() * 6) + 1
   const doubles = d1 === d2
@@ -316,10 +323,13 @@ export function rollDice(state: GameState, playerId: string, rng: Rng = defaultR
     player.id,
   )
 
-  if (player.inJail) {
+  if (wasInJail) {
     if (doubles) {
       player.inJail = false
       player.jailTurnsLeft = 0
+      // Escaping jail via doubles does NOT grant an extra roll, so clear the flag
+      // and leave doublesCount untouched. They still move on the escaping roll.
+      state.turn.rolledDoubles = false
       pushLog(state, `${player.name} rolled doubles and escaped jail`, player.id)
     } else {
       player.jailTurnsLeft -= 1
@@ -333,6 +343,15 @@ export function rollDice(state: GameState, playerId: string, rng: Rng = defaultR
           player.id,
         )
       }
+      return { dice: [d1, d2] }
+    }
+  } else if (doubles) {
+    state.turn.doublesCount += 1
+    if (state.turn.doublesCount >= 3) {
+      // Three doubles in a row: straight to jail without moving, and no re-roll.
+      state.turn.rolledDoubles = false
+      pushLog(state, `${player.name} rolled three doubles in a row — straight to jail!`, player.id)
+      sendToJail(state, player)
       return { dice: [d1, d2] }
     }
   }
@@ -395,6 +414,23 @@ function movePlayer(
   return resolveTile(state, player, rng)
 }
 
+/**
+ * Move `player` FORWARD to `targetTileId` with no dice roll, resolving the
+ * destination exactly as a landing would — including pass-GO salary + passive
+ * income if the trip wraps the board. A target equal to the current position
+ * travels a full lap (so "advance to GO while on GO" still pays salary). Used by
+ * the `move`-kind hustle cards (advance to GO / Kantor Hukum).
+ */
+export function advanceToTile(
+  state: GameState,
+  player: Player,
+  targetTileId: TileId,
+  rng: Rng = defaultRng,
+): TileOutcome {
+  const steps = (targetTileId - player.position + BOARD_SIZE) % BOARD_SIZE || BOARD_SIZE
+  return movePlayer(state, player, steps, rng)
+}
+
 function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): TileOutcome {
   const def = getTileDef(player.position)
   switch (def.type) {
@@ -429,7 +465,7 @@ function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): T
       return {}
     }
     case 'hustle': {
-      const drawn = drawHustle(state, player)
+      const drawn = drawHustle(state, player, rng)
       return drawn ? { card: { type: 'hustle', card: drawn.cardId } } : {}
     }
     case 'event': {

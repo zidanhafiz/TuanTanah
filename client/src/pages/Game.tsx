@@ -137,9 +137,14 @@ export function Game() {
           {t('game.payBail')}
         </Button>
       )}
-      {!turn.hasRolled && (
+      {(!turn.hasRolled || turn.rolledDoubles) && (
         <Button block onClick={roll} disabled={rolling}>
-          🎲 {me?.inJail ? t('game.rollForDoubles') : t('game.rollDice')}
+          🎲{' '}
+          {me?.inJail
+            ? t('game.rollForDoubles')
+            : turn.rolledDoubles
+              ? t('game.rollAgain')
+              : t('game.rollDice')}
         </Button>
       )}
       {turn.hasRolled && !rolling && pending !== null && (

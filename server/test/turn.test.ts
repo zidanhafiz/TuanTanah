@@ -1,9 +1,13 @@
-import { PINJOL_INTEREST_RATE, PROPERTY_TIERS, REGIONS } from '@tuan-tanah/shared'
+import { JAIL_TILE_ID, PINJOL_INTEREST_RATE, PROPERTY_TIERS, REGIONS } from '@tuan-tanah/shared'
 import { describe, expect, it } from 'vitest'
 import { rollDice } from '../src/engine/index.js'
 import { salaryFor } from '../src/engine/roles.js'
 import { advanceTurn, startTurn } from '../src/engine/turn.js'
-import { addEffect, makeGame, own } from './helpers.js'
+import { addEffect, makeGame, own, seqRng } from './helpers.js'
+
+// rng 0.4 → both dice 3 (doubles, sum 6); seqRng([0.2, 0.7]) → dice 2 + 5 (not doubles).
+const DOUBLE = () => 0.4
+const NOT_DOUBLE = () => seqRng([0.2, 0.7])
 
 describe('advanceTurn', () => {
   it('moves to the next player without ticking the round', () => {
@@ -107,5 +111,61 @@ describe('startTurn upkeep', () => {
     const salary = salaryFor(p)
     rollDice(state, p.id, () => 0.4)
     expect(p.cash).toBe(1_000_000 + salary + passive)
+  })
+})
+
+describe('rollDice doubles', () => {
+  it('grants an extra roll after a non-jail double', () => {
+    const { state, players } = makeGame(2)
+    state.currentPlayerIndex = 0
+    const p = players[0]!
+    rollDice(state, p.id, DOUBLE) // 3 + 3 → move to 6
+    expect(state.turn.rolledDoubles).toBe(true)
+    expect(state.turn.doublesCount).toBe(1)
+    expect(p.position).toBe(6)
+    // A second roll is allowed (the bonus roll); a non-double ends the chain.
+    expect(() => rollDice(state, p.id, NOT_DOUBLE())).not.toThrow()
+    expect(state.turn.rolledDoubles).toBe(false)
+  })
+
+  it('rejects a third roll after two doubles and a non-double', () => {
+    const { state, players } = makeGame(2)
+    state.currentPlayerIndex = 0
+    const p = players[0]!
+    rollDice(state, p.id, DOUBLE) // double #1
+    rollDice(state, p.id, DOUBLE) // double #2
+    expect(state.turn.doublesCount).toBe(2)
+    rollDice(state, p.id, NOT_DOUBLE()) // non-double — chain ends
+    expect(() => rollDice(state, p.id, DOUBLE)).toThrow('Already rolled this turn')
+  })
+
+  it('sends the player straight to jail on the third consecutive double (no move)', () => {
+    const { state, players } = makeGame(2)
+    state.currentPlayerIndex = 0
+    const p = players[0]!
+    rollDice(state, p.id, DOUBLE) // → 6
+    rollDice(state, p.id, DOUBLE) // → 12
+    const posBeforeThird = p.position
+    rollDice(state, p.id, DOUBLE) // third double → jail
+    expect(p.inJail).toBe(true)
+    expect(p.position).toBe(JAIL_TILE_ID)
+    expect(p.position).not.toBe(posBeforeThird + 6) // did not advance on the third roll
+    expect(state.turn.rolledDoubles).toBe(false)
+    expect(() => rollDice(state, p.id, DOUBLE)).toThrow('Already rolled this turn')
+  })
+
+  it('escaping jail via doubles moves but grants no extra roll', () => {
+    const { state, players } = makeGame(2)
+    state.currentPlayerIndex = 0
+    const p = players[0]!
+    p.inJail = true
+    p.jailTurnsLeft = 2
+    p.position = JAIL_TILE_ID
+    rollDice(state, p.id, DOUBLE) // doubles → escape and move 6 from tile 10
+    expect(p.inJail).toBe(false)
+    expect(p.position).toBe(16)
+    expect(state.turn.rolledDoubles).toBe(false)
+    expect(state.turn.doublesCount).toBe(0) // a jail-escape double does not count
+    expect(() => rollDice(state, p.id, DOUBLE)).toThrow('Already rolled this turn')
   })
 })
