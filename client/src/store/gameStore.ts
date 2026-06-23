@@ -145,6 +145,7 @@ interface GameStore {
   lawOfficeTransfer: (tileId: TileId) => void
   lawOfficeJail: (targetPlayerId: string) => void
   lawOfficeFreepass: (pass: PassType) => void
+  lawOfficePriceUpgrade: (tileId: TileId, multiplier: number) => void
   lawOfficeSkip: () => void
   metaAction: (
     action: MetaActionType,
@@ -372,6 +373,10 @@ export const useGame = create<GameStore>((set, get) => ({
   lawOfficeFreepass: (pass) => {
     playSound('click', { volume: 0.5 })
     getActiveSocket().emit('law_office_freepass', { pass })
+  },
+  lawOfficePriceUpgrade: (tileId, multiplier) => {
+    playSound('click', { volume: 0.5 })
+    getActiveSocket().emit('law_office_upgrade_price', { tileId, multiplier })
   },
   lawOfficeSkip: () => getActiveSocket().emit('law_office_skip'),
   metaAction: (action, targetId, tileId, depositAmount) => {

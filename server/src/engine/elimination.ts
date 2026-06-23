@@ -37,7 +37,7 @@ export function tileValue(tile: TileState): RupiahAmount {
         value += landTier(tile.landBuild, t)?.buildCost ?? 0
       }
     }
-    return value
+    return Math.round(value * tile.priceMultiplier)
   }
   const base =
     def.type === 'transport' ? TRANSPORT_BUY_PRICE : def.region ? REGIONS[def.region].buyPrice : 0
@@ -51,7 +51,7 @@ export function tileValue(tile: TileState): RupiahAmount {
       if (tierDef) value += base * tierDef.buildCostMult
     }
   }
-  return value
+  return Math.round(value * tile.priceMultiplier)
 }
 
 /** Total wealth = cash + value of all owned property at current tier. */
@@ -308,6 +308,7 @@ export function eliminate(state: GameState, player: Player): void {
     tile.tier = 0
     tile.builderId = null
     tile.landBuild = null
+    tile.priceMultiplier = 1
   }
   if (player.cash > 0) state.bank += player.cash
   player.cash = 0

@@ -288,6 +288,7 @@
     "house": "House",
     "property": "Property",
     "investedValue": "Invested value",
+    "priceBoost": "Price boost",
     "business": "Business",
     "dapurMbg": "Dapur MBG",
     "warkopCafe": "Warkop-Cafe",
@@ -346,6 +347,15 @@
     "freepass": {
       "label": "🎟️ Buy a free-pass card ({{price}})",
       "title": "Buy a free-pass card"
+    },
+    "upgrade": {
+      "label": "📈 Upgrade a tile's price (×2–5)",
+      "title": "Upgrade tile price",
+      "desc": "Permanently multiply {{tile}}'s price. Boosts its rent, passive income, and resale value. Cost = its value × the multiplier.",
+      "tileSub": "{{value}} · ×{{mult}}",
+      "newMult": "New multiplier",
+      "cost": "Cost",
+      "confirm": "Upgrade"
     },
     "pass": {
       "rent_free": "Rent-free pass",

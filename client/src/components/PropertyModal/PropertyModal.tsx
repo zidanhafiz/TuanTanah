@@ -32,7 +32,8 @@ import { EffectIcon, isTileEffect } from '../Board/icons.js'
 import { Badge, Button, Card, Modal } from '../ui/index.js'
 import { formatRupiah, useGame } from '../../store/gameStore.js'
 
-/** Invested value of a tile (base buy price + cumulative build cost). Mirrors the engine's tileValue. */
+/** Invested value of a tile (base buy price + cumulative build cost, scaled by the
+ * Kantor Hukum price multiplier). Mirrors the engine's tileValue. */
 function tileValue(tile: TileState): RupiahAmount {
   const def = BOARD[tile.id]
   if (!def) return 0
@@ -41,7 +42,7 @@ function tileValue(tile: TileState): RupiahAmount {
     if (tile.landBuild) {
       for (let t = 1; t <= tile.tier; t++) value += landTier(tile.landBuild, t)?.buildCost ?? 0
     }
-    return value
+    return Math.round(value * tile.priceMultiplier)
   }
   const base =
     def.type === 'transport' ? TRANSPORT_BUY_PRICE : def.region ? REGIONS[def.region].buyPrice : 0
@@ -54,7 +55,7 @@ function tileValue(tile: TileState): RupiahAmount {
       if (tierDef) value += base * tierDef.buildCostMult
     }
   }
-  return value
+  return Math.round(value * tile.priceMultiplier)
 }
 
 type TFunc = ReturnType<typeof useTranslation>['t']
@@ -72,6 +73,7 @@ function nextTierInfo(
   track: PropertyTrack,
   currentTier: number,
   discount: number,
+  priceMult: number,
 ): { tier: number; cost: RupiahAmount } | null {
   if (!def.region) return null
   const tiers = track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
@@ -79,7 +81,7 @@ function nextTierInfo(
   if (!tierDef) return null
   return {
     tier: tierDef.tier,
-    cost: Math.round(REGIONS[def.region].buyPrice * tierDef.buildCostMult * discount),
+    cost: Math.round(REGIONS[def.region].buyPrice * tierDef.buildCostMult * discount * priceMult),
   }
 }
 
@@ -139,7 +141,11 @@ export function PropertyModal({
   const landNextTier = tile.landBuild && tile.tier < LAND_MAX_TIER ? tile.tier + 1 : null
   const landNextCost =
     tile.landBuild && landNextTier
-      ? Math.round((landTier(tile.landBuild, landNextTier)?.buildCost ?? 0) * buildDiscount)
+      ? Math.round(
+          (landTier(tile.landBuild, landNextTier)?.buildCost ?? 0) *
+            buildDiscount *
+            tile.priceMultiplier,
+        )
       : 0
   const canUpgradeLand = ownsLand && isMyTurn && landNextTier !== null
 
@@ -172,9 +178,11 @@ export function PropertyModal({
       ? (landTier(tile.landBuild, tile.tier)?.buildCost ?? 0)
       : 0
   const downgradeRefund = isLand
-    ? Math.round(landCurrentBuildCost * SELL_REFUND_RATE)
+    ? Math.round(landCurrentBuildCost * SELL_REFUND_RATE * tile.priceMultiplier)
     : def.region
-      ? Math.round(REGIONS[def.region].buyPrice * currentTierMult * SELL_REFUND_RATE)
+      ? Math.round(
+          REGIONS[def.region].buyPrice * currentTierMult * SELL_REFUND_RATE * tile.priceMultiplier,
+        )
       : 0
   const canDowngrade =
     (isProperty || isLand) && (isMyTurn || iOweDebt) && ownsTile && tile.tier >= 1
@@ -232,6 +240,11 @@ export function PropertyModal({
                 )}
               </Row>
               <Row label={t('property.investedValue')}>{formatRupiah(tileValue(tile))}</Row>
+              {tile.priceMultiplier > 1 && (
+                <Row label={t('property.priceBoost')}>
+                  <Badge tone="accent">×{tile.priceMultiplier}</Badge>
+                </Row>
+              )}
             </>
           )}
         </Card>
@@ -262,6 +275,11 @@ export function PropertyModal({
                 </Row>
               )}
               <Row label={t('property.investedValue')}>{formatRupiah(tileValue(tile))}</Row>
+              {tile.priceMultiplier > 1 && (
+                <Row label={t('property.priceBoost')}>
+                  <Badge tone="accent">×{tile.priceMultiplier}</Badge>
+                </Row>
+              )}
             </>
           )}
         </Card>
@@ -295,7 +313,9 @@ export function PropertyModal({
               <tbody>
                 <ScheduleRow
                   name={t('property.landOnly')}
-                  rent={formatRupiah(Math.round(region.rentBase * (region.landRentMult ?? 1)))}
+                  rent={formatRupiah(
+                    Math.round(region.rentBase * (region.landRentMult ?? 1) * tile.priceMultiplier),
+                  )}
                   passive="—"
                   cost="—"
                   current={tile.tier === 0}
@@ -307,6 +327,7 @@ export function PropertyModal({
                     track={track}
                     currentTrack={tile.track}
                     currentTier={tile.tier}
+                    priceMult={tile.priceMultiplier}
                     t={t}
                   />
                 ))}
@@ -447,7 +468,7 @@ export function PropertyModal({
                 {canKontraktorBuild ? t('property.buildRentCut') : t('property.chooseTrack')}
               </div>
               {(['house', 'property'] as const).map((track) => {
-                const info = nextTierInfo(def, track, 0, buildDiscount)
+                const info = nextTierInfo(def, track, 0, buildDiscount, tile.priceMultiplier)
                 if (!info) return null
                 const tooPoor = (me?.cash ?? 0) < info.cost
                 return (
@@ -475,7 +496,13 @@ export function PropertyModal({
           ) : (
             tile.track &&
             (() => {
-              const info = nextTierInfo(def, tile.track, tile.tier, buildDiscount)
+              const info = nextTierInfo(
+                def,
+                tile.track,
+                tile.tier,
+                buildDiscount,
+                tile.priceMultiplier,
+              )
               if (!info) return null
               const tooPoor = (me?.cash ?? 0) < info.cost
               const track = tile.track
@@ -502,7 +529,9 @@ export function PropertyModal({
         <div className="mt-5 space-y-2">
           <div className="text-xs text-ink-muted">{t('property.buildLandPrompt')}</div>
           {(['dapur_mbg', 'warkop_cafe'] as LandBusiness[]).map((biz) => {
-            const cost = Math.round((landTier(biz, 1)?.buildCost ?? 0) * buildDiscount)
+            const cost = Math.round(
+              (landTier(biz, 1)?.buildCost ?? 0) * buildDiscount * tile.priceMultiplier,
+            )
             const key = biz === 'dapur_mbg' ? 'property.buildDapur' : 'property.buildWarkop'
             return (
               <Button
@@ -605,12 +634,14 @@ function TrackSection({
   track,
   currentTrack,
   currentTier,
+  priceMult,
   t,
 }: {
   region: RegionDef
   track: PropertyTrack
   currentTrack: PropertyTrack | null
   currentTier: number
+  priceMult: number
   t: TFunc
 }) {
   const tiers = track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
@@ -634,16 +665,20 @@ function TrackSection({
         <ScheduleRow
           key={td.tier}
           name={tierName(t, track, td.tier)}
-          rent={formatRupiah(Math.round(region.rentBase * rentMultFor(td)))}
+          rent={formatRupiah(Math.round(region.rentBase * rentMultFor(td) * priceMult))}
           // Only the property track earns passive income; the house track shows "—".
           passive={
             track === 'property'
               ? formatRupiah(
-                  Math.round(region.passiveBase * (PROPERTY_TIERS[td.tier - 1]?.passiveMult ?? 0)),
+                  Math.round(
+                    region.passiveBase *
+                      (PROPERTY_TIERS[td.tier - 1]?.passiveMult ?? 0) *
+                      priceMult,
+                  ),
                 )
               : '—'
           }
-          cost={formatRupiah(Math.round(region.buyPrice * td.buildCostMult))}
+          cost={formatRupiah(Math.round(region.buyPrice * td.buildCostMult * priceMult))}
           current={currentTrack === track && currentTier === td.tier}
         />
       ))}

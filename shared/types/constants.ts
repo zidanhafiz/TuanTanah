@@ -410,6 +410,9 @@ export const landTier = (business: LandBusiness, tier: number): LandTierDef | nu
 export const LAW_OFFICE_TRANSFER_RATE = 0.7 // force-buy a rival's property at 70% of invested value
 export const LAW_OFFICE_JAIL_FEE: RupiahAmount = jt(2) // bribe (to bank) to force-jail a rival
 export const LAW_OFFICE_FREEPASS_PRICE: RupiahAmount = jt(3) // buy one free-pass card
+// Upgrade an owned tile's price by a ×2–×5 multiplier (cost = tileValue × multiplier).
+export const LAW_OFFICE_PRICE_MULT_MIN = 2
+export const LAW_OFFICE_PRICE_MULT_MAX = 5
 // Gunung Rinjani (vacation): gathers all active players to the tile; each pays this fee.
 export const RINJANI_FEE: RupiahAmount = jt(1)
 export const RINJANI_TILE_ID: TileId = 24

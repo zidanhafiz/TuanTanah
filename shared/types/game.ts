@@ -114,6 +114,9 @@ export interface TileState {
   // For buildable_land (Lahan Kosong) tiles only: which business has been built,
   // or null/undefined for bare owned land. Other tile types leave this unset.
   landBuild?: LandBusiness | null
+  // Kantor Hukum price boost; multiplies rent, passive income, and market value.
+  // 1 = unboosted. Stacks multiplicatively, persists until ownership resets.
+  priceMultiplier: number
 }
 
 // An unpayable charge that paused the game. The debtor must raise cash (sell a

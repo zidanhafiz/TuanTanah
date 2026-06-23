@@ -288,6 +288,7 @@
     "house": "Rumah",
     "property": "Properti",
     "investedValue": "Nilai investasi",
+    "priceBoost": "Lipatan harga",
     "business": "Usaha",
     "dapurMbg": "Dapur MBG",
     "warkopCafe": "Warkop-Cafe",
@@ -346,6 +347,15 @@
     "freepass": {
       "label": "🎟️ Beli kartu bebas ({{price}})",
       "title": "Beli kartu bebas"
+    },
+    "upgrade": {
+      "label": "📈 Naikkan harga petak (×2–5)",
+      "title": "Naikkan harga petak",
+      "desc": "Lipat-gandakan harga {{tile}} secara permanen. Menambah sewa, pendapatan pasif, dan nilai jualnya. Biaya = nilai petak × pengganda.",
+      "tileSub": "{{value}} · ×{{mult}}",
+      "newMult": "Pengganda baru",
+      "cost": "Biaya",
+      "confirm": "Naikkan"
     },
     "pass": {
       "rent_free": "Kartu bebas sewa",

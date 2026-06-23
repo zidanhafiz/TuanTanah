@@ -4,10 +4,13 @@ import {
   LAHAN_LAND_PRICE,
   LAW_OFFICE_FREEPASS_PRICE,
   LAW_OFFICE_JAIL_FEE,
+  LAW_OFFICE_PRICE_MULT_MAX,
+  LAW_OFFICE_PRICE_MULT_MIN,
   LAW_OFFICE_TRANSFER_RATE,
   PROPERTY_TIERS,
   REGIONS,
   TRANSPORT_BUY_PRICE,
+  landTier,
   type PassType,
   type TileId,
   type TileState,
@@ -18,12 +21,23 @@ import { tileName } from '../../i18n/gameData.js'
 import { Button, Card, Modal } from '../ui/index.js'
 import { formatRupiah, useGame } from '../../store/gameStore.js'
 
-type Mode = 'menu' | 'buy' | 'transfer' | 'jail' | 'freepass'
+type Mode = 'menu' | 'buy' | 'transfer' | 'jail' | 'freepass' | 'upgrade'
 const PASSES: PassType[] = ['rent_free', 'tax_free', 'jail_free']
+const MULTIPLIERS = Array.from(
+  { length: LAW_OFFICE_PRICE_MULT_MAX - LAW_OFFICE_PRICE_MULT_MIN + 1 },
+  (_, i) => LAW_OFFICE_PRICE_MULT_MIN + i,
+)
 
-/** Invested value of a developed tile — mirrors the engine's `tileValue`. */
+/** Current market value of an owned tile — mirrors the engine's `tileValue`. */
 function investedValue(tile: TileState): number {
   const def = BOARD[tile.id]!
+  if (def.type === 'buildable_land') {
+    let value = LAHAN_LAND_PRICE
+    if (tile.landBuild) {
+      for (let tr = 1; tr <= tile.tier; tr++) value += landTier(tile.landBuild, tr)?.buildCost ?? 0
+    }
+    return Math.round(value * tile.priceMultiplier)
+  }
   const base =
     def.type === 'transport' ? TRANSPORT_BUY_PRICE : def.region ? REGIONS[def.region].buyPrice : 0
   if (base === 0) return 0
@@ -32,7 +46,7 @@ function investedValue(tile: TileState): number {
     const tiers = tile.track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
     for (let tr = 1; tr <= tile.tier; tr++) value += base * (tiers[tr - 1]?.buildCostMult ?? 0)
   }
-  return value
+  return Math.round(value * tile.priceMultiplier)
 }
 
 function buyCost(tileId: TileId): number {
@@ -72,15 +86,21 @@ export function KantorHukumModal({
   const lawOfficeTransfer = useGame((s) => s.lawOfficeTransfer)
   const lawOfficeJail = useGame((s) => s.lawOfficeJail)
   const lawOfficeFreepass = useGame((s) => s.lawOfficeFreepass)
+  const lawOfficePriceUpgrade = useGame((s) => s.lawOfficePriceUpgrade)
   const [mode, setMode] = useState<Mode>('menu')
+  const [upgradeTileId, setUpgradeTileId] = useState<TileId | null>(null)
 
   if (!open || !state || !me) return null
   const cash = me.cash
-  const back = () => setMode('menu')
+  const back = () => {
+    setUpgradeTileId(null)
+    setMode('menu')
+  }
   // Closing (X / backdrop) only hides the modal locally — the opportunity is
   // kept, so reset to the top menu for the next reopen. Skipping is a separate,
   // explicit action that relinquishes the opportunity on the server.
   const handleClose = () => {
+    setUpgradeTileId(null)
     setMode('menu')
     onClose()
   }
@@ -91,6 +111,7 @@ export function KantorHukumModal({
     transfer: t('lawOffice.transfer.title'),
     jail: t('lawOffice.jail.title'),
     freepass: t('lawOffice.freepass.title'),
+    upgrade: t('lawOffice.upgrade.title'),
   }
   const passLabel: Record<PassType, string> = {
     rent_free: t('lawOffice.pass.rent_free'),
@@ -147,6 +168,24 @@ export function KantorHukumModal({
     onClick: () => lawOfficeFreepass(pass),
   }))
 
+  const myTiles = BOARD.filter((d) => {
+    if (d.type !== 'property' && d.type !== 'transport' && d.type !== 'buildable_land') return false
+    return state.tiles[d.id]?.ownerId === me.id
+  })
+  const upgradeItems: Choice[] = myTiles.map((d) => {
+    const tile = state.tiles[d.id]!
+    return {
+      key: d.id,
+      label: tileName(t, d.id),
+      sub: t('lawOffice.upgrade.tileSub', {
+        value: formatRupiah(investedValue(tile)),
+        mult: tile.priceMultiplier,
+      }),
+      disabled: false,
+      onClick: () => setUpgradeTileId(d.id),
+    }
+  })
+
   return (
     <Modal open={open} onClose={handleClose} title={titles[mode]} size="sm">
       {mode === 'menu' ? (
@@ -164,6 +203,9 @@ export function KantorHukumModal({
           <Button block onClick={() => setMode('freepass')}>
             {t('lawOffice.freepass.label', { price: formatRupiah(LAW_OFFICE_FREEPASS_PRICE) })}
           </Button>
+          <Button block onClick={() => setMode('upgrade')} disabled={myTiles.length === 0}>
+            {t('lawOffice.upgrade.label')}
+          </Button>
           <Button block variant="ghost" size="sm" onClick={onSkip}>
             {t('lawOffice.skip')}
           </Button>
@@ -171,6 +213,16 @@ export function KantorHukumModal({
             {t('lawOffice.cash', { amount: formatRupiah(cash) })}
           </Card>
         </div>
+      ) : mode === 'upgrade' && upgradeTileId != null ? (
+        <UpgradePanel
+          tile={state.tiles[upgradeTileId]!}
+          cash={cash}
+          onBack={() => setUpgradeTileId(null)}
+          onConfirm={(multiplier) => {
+            lawOfficePriceUpgrade(upgradeTileId, multiplier)
+            handleClose()
+          }}
+        />
       ) : (
         <Selection
           back={back}
@@ -181,11 +233,70 @@ export function KantorHukumModal({
                 ? transferItems
                 : mode === 'jail'
                   ? jailItems
-                  : freepassItems
+                  : mode === 'upgrade'
+                    ? upgradeItems
+                    : freepassItems
           }
         />
       )}
     </Modal>
+  )
+}
+
+function UpgradePanel({
+  tile,
+  cash,
+  onBack,
+  onConfirm,
+}: {
+  tile: TileState
+  cash: number
+  onBack: () => void
+  onConfirm: (multiplier: number) => void
+}) {
+  const { t } = useTranslation()
+  const [multiplier, setMultiplier] = useState(LAW_OFFICE_PRICE_MULT_MIN)
+  const value = investedValue(tile)
+  const cost = Math.round(value * multiplier)
+  const canAfford = cash >= cost
+
+  return (
+    <div className="space-y-3">
+      <div className="text-xs text-ink-muted">
+        {t('lawOffice.upgrade.desc', { tile: tileName(t, tile.id) })}
+      </div>
+      <div className="grid grid-cols-4 gap-1">
+        {MULTIPLIERS.map((m) => (
+          <button
+            key={m}
+            onClick={() => setMultiplier(m)}
+            className={`rounded-lg border-2 border-ink py-2 font-display text-lg font-bold transition ${
+              multiplier === m ? 'bg-accent text-ink shadow-brutal-sm' : 'bg-surface text-ink'
+            }`}
+          >
+            ×{m}
+          </button>
+        ))}
+      </div>
+      <Card flat tone="sunken" className="space-y-1 p-2 text-xs">
+        <div className="flex justify-between">
+          <span className="text-ink-muted">{t('lawOffice.upgrade.newMult')}</span>
+          <span className="font-semibold text-ink">×{tile.priceMultiplier * multiplier}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-ink-muted">{t('lawOffice.upgrade.cost')}</span>
+          <span className="font-semibold text-ink">{formatRupiah(cost)}</span>
+        </div>
+      </Card>
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="ghost" size="sm" block onClick={onBack}>
+          {t('lawOffice.back')}
+        </Button>
+        <Button size="sm" block disabled={!canAfford} onClick={() => onConfirm(multiplier)}>
+          {t('lawOffice.upgrade.confirm')}
+        </Button>
+      </div>
+    </div>
   )
 }
 

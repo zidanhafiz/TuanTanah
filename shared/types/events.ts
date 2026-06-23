@@ -67,6 +67,7 @@ export interface ClientToServerEvents {
   law_office_transfer: (payload: { tileId: TileId }) => void
   law_office_jail: (payload: { targetPlayerId: string }) => void
   law_office_freepass: (payload: { pass: PassType }) => void
+  law_office_upgrade_price: (payload: { tileId: TileId; multiplier: number }) => void
   law_office_skip: () => void
   meta_action: (payload: {
     action: MetaActionType

@@ -9,6 +9,7 @@ import {
   lawOfficeBuy,
   lawOfficeFreepass,
   lawOfficeJail,
+  lawOfficePriceUpgrade,
   lawOfficeSkip,
   lawOfficeTransfer,
   payJail,
@@ -141,6 +142,16 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
       await mutateRoom(store, roomId, (state) => lawOfficeFreepass(state, playerId, payload.pass))
+      await broadcastAndArm(io, store, roomId)
+    }),
+  )
+
+  socket.on('law_office_upgrade_price', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      await mutateRoom(store, roomId, (state) =>
+        lawOfficePriceUpgrade(state, playerId, payload.tileId, payload.multiplier),
+      )
       await broadcastAndArm(io, store, roomId)
     }),
   )

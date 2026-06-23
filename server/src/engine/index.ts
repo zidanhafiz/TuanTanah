@@ -16,6 +16,8 @@ import {
   landTier,
   LAW_OFFICE_FREEPASS_PRICE,
   LAW_OFFICE_JAIL_FEE,
+  LAW_OFFICE_PRICE_MULT_MAX,
+  LAW_OFFICE_PRICE_MULT_MIN,
   LAW_OFFICE_TRANSFER_RATE,
   MAX_PLAYERS,
   MIN_PLAYERS,
@@ -80,6 +82,7 @@ export function createGameState(roomId: string, now: number): GameState {
       tier: 0,
       builderId: null,
       landBuild: null,
+      priceMultiplier: 1,
     })),
     turn: {
       hasRolled: false,
@@ -580,14 +583,14 @@ export function computeRent(state: GameState, tileId: TileId): RupiahAmount {
 
   if (def.type === 'transport') {
     const count = transportOwnedCount(state, tile.ownerId)
-    const base = TRANSPORT_RENT[count] ?? 0
+    const base = (TRANSPORT_RENT[count] ?? 0) * tile.priceMultiplier
     return Math.round(applyRentEffects(base, tileId, state))
   }
 
   // Lahan Kosong: per-tier landing rent for the built business.
   if (def.type === 'buildable_land') {
     if (!tile.landBuild || tile.tier < 1) return 0
-    const base = landTier(tile.landBuild, tile.tier)?.rent ?? 0
+    const base = (landTier(tile.landBuild, tile.tier)?.rent ?? 0) * tile.priceMultiplier
     return Math.round(applyRentEffects(base, tileId, state))
   }
 
@@ -610,7 +613,7 @@ export function computeRent(state: GameState, tileId: TileId): RupiahAmount {
     // regions, so undeveloped land isn't punishing). Defaults to full rentBase.
     mult = REGIONS[region].landRentMult ?? 1
   }
-  let rent = base * mult
+  let rent = base * mult * tile.priceMultiplier
   if (ownsFullRegion(state, tile.ownerId, region)) rent *= REGION_SET_RENT_MULTIPLIER
   rent = applyRentEffects(rent, tileId, state)
   return Math.round(rent)
@@ -644,6 +647,7 @@ export function buyTile(state: GameState, player: Player, tileId: TileId): void 
   tile.tier = 0
   tile.builderId = null
   tile.landBuild = null
+  tile.priceMultiplier = 1
   pushLog(state, `${player.name} bought ${def.name} for ${rupiah(price)}`, player.id)
 }
 
@@ -702,8 +706,13 @@ export function upgradeProperty(
 
   const nextTier = tile.tier + 1
   const tierDef = tiers[nextTier - 1]!
+  // Build cost scales with the tile's price multiplier — a boosted (more valuable)
+  // tile costs proportionally more to develop further.
   const cost = Math.round(
-    REGIONS[def.region].buyPrice * tierDef.buildCostMult * buildCostMultiplier(player),
+    REGIONS[def.region].buyPrice *
+      tierDef.buildCostMult *
+      buildCostMultiplier(player) *
+      tile.priceMultiplier,
   )
   if (player.cash < cost) throw new EngineError('Not enough cash to build')
 
@@ -745,6 +754,7 @@ export function sellProperty(state: GameState, playerId: string, tileId: TileId)
   tile.tier = 0
   tile.builderId = null
   tile.landBuild = null
+  tile.priceMultiplier = 1
   pushLog(
     state,
     `${player.name} sold ${getTileDef(tileId).name} back to the bank for ${rupiah(refund)}`,
@@ -773,7 +783,7 @@ export function downgradeProperty(state: GameState, playerId: string, tileId: Ti
     if (!tile.landBuild) throw new EngineError('Nothing to downgrade')
     const tierDef = landTier(tile.landBuild, tile.tier)
     if (!tierDef) throw new EngineError('Nothing to downgrade')
-    const refund = Math.round(tierDef.buildCost * SELL_REFUND_RATE)
+    const refund = Math.round(tierDef.buildCost * SELL_REFUND_RATE * tile.priceMultiplier)
     player.cash += refund
     state.bank -= refund
     tile.tier -= 1
@@ -794,7 +804,9 @@ export function downgradeProperty(state: GameState, playerId: string, tileId: Ti
 
   const tiers = tile.track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
   const tierDef = tiers[tile.tier - 1]!
-  const refund = Math.round(REGIONS[def.region].buyPrice * tierDef.buildCostMult * SELL_REFUND_RATE)
+  const refund = Math.round(
+    REGIONS[def.region].buyPrice * tierDef.buildCostMult * SELL_REFUND_RATE * tile.priceMultiplier,
+  )
   player.cash += refund
   state.bank -= refund
   tile.tier -= 1
@@ -844,7 +856,7 @@ export function buildLahan(
   const nextTier = tile.tier + 1
   const tierDef = landTier(business, nextTier)
   if (!tierDef) throw new EngineError('Invalid tier')
-  const cost = Math.round(tierDef.buildCost * buildCostMultiplier(player))
+  const cost = Math.round(tierDef.buildCost * buildCostMultiplier(player) * tile.priceMultiplier)
   if (player.cash < cost) throw new EngineError('Not enough cash to build')
 
   player.cash -= cost
@@ -940,6 +952,47 @@ export function lawOfficeFreepass(state: GameState, playerId: string, pass: Pass
   pushLog(
     state,
     `${player.name} bought a ${label} pass for ${rupiah(LAW_OFFICE_FREEPASS_PRICE)}`,
+    player.id,
+  )
+}
+
+/**
+ * Kantor Hukum: permanently boost an owned tile's price by a ×2–×5 multiplier.
+ * Cost = current tileValue × multiplier (paid to the bank). The boost stacks
+ * multiplicatively and scales the tile's rent, passive income, and market value
+ * (sell refund / force-transfer price) — a comeback lever for cheap-region owners.
+ */
+export function lawOfficePriceUpgrade(
+  state: GameState,
+  playerId: string,
+  tileId: TileId,
+  multiplier: number,
+): void {
+  const player = requireLawOffice(state, playerId)
+  if (
+    !Number.isInteger(multiplier) ||
+    multiplier < LAW_OFFICE_PRICE_MULT_MIN ||
+    multiplier > LAW_OFFICE_PRICE_MULT_MAX
+  ) {
+    throw new EngineError(
+      `Multiplier must be an integer from ${LAW_OFFICE_PRICE_MULT_MIN} to ${LAW_OFFICE_PRICE_MULT_MAX}`,
+    )
+  }
+  const tile = state.tiles[tileId]
+  if (!tile || tile.ownerId !== player.id) throw new EngineError('You do not own that tile')
+  const def = getTileDef(tileId)
+  if (def.type !== 'property' && def.type !== 'transport' && def.type !== 'buildable_land') {
+    throw new EngineError('That tile cannot be upgraded')
+  }
+  const cost = Math.round(tileValue(tile) * multiplier)
+  if (player.cash < cost) throw new EngineError('Not enough cash to upgrade the tile price')
+  player.cash -= cost
+  state.bank += cost
+  tile.priceMultiplier *= multiplier
+  state.turn.pendingLawOffice = false
+  pushLog(
+    state,
+    `${player.name} boosted ${def.name} price ×${multiplier} (now ×${tile.priceMultiplier}) for ${rupiah(cost)}`,
     player.id,
   )
 }

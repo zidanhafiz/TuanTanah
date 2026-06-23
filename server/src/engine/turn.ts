@@ -27,7 +27,7 @@ export function collectPassiveIncome(state: GameState, player: Player): RupiahAm
       const regionDef = REGIONS[region]
       const tierDef = PROPERTY_TIERS[tier - 1]
       if (!tierDef) continue
-      let passive = regionDef.passiveBase * tierDef.passiveMult
+      let passive = regionDef.passiveBase * tierDef.passiveMult * tile.priceMultiplier
       if (ownsFullRegion(state, player.id, region)) passive *= REGION_SET_PASSIVE_MULTIPLIER
       total += passive
       continue
@@ -36,7 +36,7 @@ export function collectPassiveIncome(state: GameState, player: Player): RupiahAm
     // Lahan Kosong businesses: tiered passive (bigger than property), treated like
     // property income — subject to passive multipliers and revenue-share deals.
     if (def.type === 'buildable_land' && tile.landBuild) {
-      total += landTier(tile.landBuild, tier)?.passive ?? 0
+      total += (landTier(tile.landBuild, tier)?.passive ?? 0) * tile.priceMultiplier
     }
   }
   total = applyPassiveMultiplier(total, player.id, state)
