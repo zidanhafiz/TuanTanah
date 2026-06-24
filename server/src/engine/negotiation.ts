@@ -11,6 +11,7 @@ import {
 } from '@tuan-tanah/shared'
 import type { GameState, NegotiationDeal, Player, RupiahAmount, TileId } from '@tuan-tanah/shared'
 import { getTileDef } from './board.js'
+import { settleIfAble } from './elimination.js'
 import { EngineError, rupiah } from './index.js'
 import { pushLog, uid } from './util.js'
 
@@ -40,6 +41,8 @@ function dealLabel(deal: NegotiationDeal): string {
       return 'property swap'
     case 'cash_for_property':
       return 'cash-for-property deal'
+    case 'sell_property':
+      return 'property sale'
     case 'rent_immunity':
       return 'rent-immunity deal'
     case 'revenue_share':
@@ -55,6 +58,7 @@ function dealLabel(deal: NegotiationDeal): string {
 function dealValue(deal: NegotiationDeal): RupiahAmount {
   switch (deal.type) {
     case 'cash_for_property':
+    case 'sell_property':
     case 'rent_immunity':
       return deal.cashAmount ?? 0
     case 'property_swap': {
@@ -103,6 +107,14 @@ export function validateDeal(state: GameState, deal: NegotiationDeal): string | 
       if ((deal.cashAmount ?? 0) <= 0) return 'Enter a price'
       if (ownerOf(state, deal.requestTileId) !== to.id) return `${to.name} no longer owns that tile`
       if (from.cash < (deal.cashAmount ?? 0)) return 'You cannot afford this offer'
+      return null
+    }
+    case 'sell_property': {
+      // Proposer sells their own tile to the target for cash (the buyer pays).
+      if (deal.offerTileId == null) return 'Select a tile to sell'
+      if ((deal.cashAmount ?? 0) <= 0) return 'Enter a price'
+      if (ownerOf(state, deal.offerTileId) !== from.id) return 'You no longer own the offered tile'
+      if (to.cash < (deal.cashAmount ?? 0)) return `${to.name} cannot afford this offer`
       return null
     }
     case 'rent_immunity': {
@@ -198,6 +210,10 @@ export function respondToDeal(
     if (error) throw new EngineError(error)
     applyDeal(state, deal)
     if (from && to) pushLog(state, `${to.name} accepted ${from.name}'s ${dealLabel(deal)}`, to.id)
+    // A deal that raised cash for a player in debt should clear it automatically,
+    // so a broke seller can settle by selling to another player (not just the bank).
+    settleIfAble(state, deal.fromPlayerId)
+    settleIfAble(state, deal.toPlayerId)
   } else if (from && to) {
     pushLog(state, `${to.name} rejected ${from.name}'s ${dealLabel(deal)}`, to.id)
   }
@@ -239,6 +255,19 @@ export function applyDeal(state: GameState, deal: NegotiationDeal): void {
       pushLog(
         state,
         `${from.name} bought ${tileName(deal.requestTileId!)} from ${to.name} for ${rupiah(amount)}`,
+        from.id,
+      )
+      break
+    }
+    case 'sell_property': {
+      // Proposer (seller) hands their tile to the target (buyer) for cash.
+      const amount = deal.cashAmount ?? 0
+      to.cash -= amount
+      from.cash += amount
+      state.tiles[deal.offerTileId!]!.ownerId = to.id
+      pushLog(
+        state,
+        `${from.name} sold ${tileName(deal.offerTileId!)} to ${to.name} for ${rupiah(amount)}`,
         from.id,
       )
       break

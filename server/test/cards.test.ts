@@ -86,12 +86,12 @@ describe('drawKejadian — immediate cash effects', () => {
     expect(players[1]!.cash).toBe(2_000_000)
   })
 
-  it('kenaikan_bbm taxes everyone but the tax-immune Ojol Driver', () => {
+  it('kenaikan_bbm taxes everyone, with the Ojol Driver paying half', () => {
     const { state, players } = makeGame(2, { cash: 1_000_000, roles: [null, 'ojol_driver'] })
     state.kejadianDeck = ['kenaikan_bbm']
     drawKejadian(state, players[0]!)
-    expect(players[0]!.cash).toBe(500_000) // paid 500k
-    expect(players[1]!.cash).toBe(1_000_000) // immune
+    expect(players[0]!.cash).toBe(500_000) // paid 500k in full
+    expect(players[1]!.cash).toBe(750_000) // Ojol Driver paid 250k (50%)
   })
 })
 

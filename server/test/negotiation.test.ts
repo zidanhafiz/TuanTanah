@@ -5,7 +5,7 @@ import { hasRentImmunity, tickEffects, tickLapEffects } from '../src/engine/effe
 import { applyDeal, proposeDeal, respondToDeal, validateDeal } from '../src/engine/negotiation.js'
 import { chargeInterest } from '../src/engine/pinjol.js'
 import { collectPassiveIncome } from '../src/engine/turn.js'
-import { addEffect, makeGame, own } from './helpers.js'
+import { addDebt, addEffect, makeGame, own } from './helpers.js'
 
 function deal(partial: Partial<NegotiationDeal> & Pick<NegotiationDeal, 'type'>): NegotiationDeal {
   return {
@@ -43,6 +43,81 @@ describe('validateDeal — property_swap', () => {
       requestTileId: 2,
     })
     expect(validateDeal(state, d)).not.toBeNull()
+  })
+})
+
+describe('sell_property', () => {
+  it('validates a sale of the proposer’s own tile the buyer can afford', () => {
+    const { state, players } = makeGame(2, { cash: 10_000_000 })
+    own(state, 1, players[0]!.id)
+    const d = deal({
+      type: 'sell_property',
+      fromPlayerId: players[0]!.id,
+      toPlayerId: players[1]!.id,
+      offerTileId: 1,
+      cashAmount: 5_000_000,
+    })
+    expect(validateDeal(state, d)).toBeNull()
+  })
+
+  it('rejects when the buyer cannot afford the price', () => {
+    const { state, players } = makeGame(2, { cash: 1_000_000 })
+    own(state, 1, players[0]!.id)
+    const d = deal({
+      type: 'sell_property',
+      fromPlayerId: players[0]!.id,
+      toPlayerId: players[1]!.id,
+      offerTileId: 1,
+      cashAmount: 5_000_000,
+    })
+    expect(validateDeal(state, d)).not.toBeNull()
+  })
+
+  it('transfers the tile to the buyer and pays the seller', () => {
+    const { state, players } = makeGame(2, { cash: 10_000_000 })
+    const [seller, buyer] = players
+    own(state, 1, seller!.id)
+    const sellerCash = seller!.cash
+    const buyerCash = buyer!.cash
+    applyDeal(
+      state,
+      deal({
+        type: 'sell_property',
+        fromPlayerId: seller!.id,
+        toPlayerId: buyer!.id,
+        offerTileId: 1,
+        cashAmount: 4_000_000,
+      }),
+    )
+    expect(state.tiles[1]!.ownerId).toBe(buyer!.id)
+    expect(seller!.cash).toBe(sellerCash + 4_000_000)
+    expect(buyer!.cash).toBe(buyerCash - 4_000_000)
+  })
+
+  it('lets a broke debtor settle their debt by selling to another player', () => {
+    const { state, players } = makeGame(2, { cash: 0 })
+    const [debtor, buyer] = players
+    state.currentPlayerIndex = 0
+    own(state, 1, debtor!.id) // debtor's only asset
+    buyer!.cash = 10_000_000
+    addDebt(state, { debtorId: debtor!.id, amount: 3_000_000, creditorId: null, type: 'tax' })
+    proposeDeal(
+      state,
+      debtor!.id,
+      deal({
+        type: 'sell_property',
+        toPlayerId: buyer!.id,
+        offerTileId: 1,
+        cashAmount: 5_000_000,
+      }),
+    )
+    const dealId = state.pendingDeals[0]!.id
+    respondToDeal(state, buyer!.id, dealId, true)
+    // Sale raised 5jt; the 3jt debt auto-settles, leaving the debtor solvent.
+    expect(state.pendingDebts).toHaveLength(0)
+    expect(state.tiles[1]!.ownerId).toBe(buyer!.id)
+    expect(debtor!.cash).toBe(2_000_000) // 5jt from sale − 3jt debt paid
+    expect(debtor!.isEliminated).toBe(false)
   })
 })
 

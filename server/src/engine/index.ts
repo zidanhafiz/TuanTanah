@@ -41,6 +41,7 @@ import type {
   GameState,
   LandBusiness,
   PassType,
+  PendingAuction,
   Player,
   PropertyTrack,
   Role,
@@ -58,7 +59,7 @@ import {
   hasRentImmunity,
   tickLapEffects,
 } from './effects.js'
-import { buildCostMultiplier, buyPriceMultiplier, isTaxImmune, salaryFor } from './roles.js'
+import { buildCostMultiplier, buyPriceMultiplier, salaryFor, taxMultiplier } from './roles.js'
 import { advanceTurn, collectPassiveIncome, startTurn } from './turn.js'
 import { defaultRng, pushLog, shuffle, uid, type Rng } from './util.js'
 
@@ -99,6 +100,7 @@ export function createGameState(roomId: string, now: number): GameState {
     pendingKejadianBlock: false,
     pendingDebts: [],
     pendingDeals: [],
+    pendingAuction: null,
     bank: BANK_STARTING,
     settings: {
       winCondition: 'both',
@@ -453,17 +455,14 @@ function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): T
       return {}
     }
     case 'tax': {
-      if (isTaxImmune(player)) {
-        pushLog(state, `${player.name} skipped ${def.name} (tax-immune)`, player.id)
-        return {}
-      }
       if (consumeOwnedCard(player, 'tax_free')) {
         pushLog(state, `${player.name} used a tax-free pass on ${def.name}`, player.id)
         return {}
       }
       const percent = def.taxPercent ?? 0
       const base = def.taxBasis === 'cash' ? player.cash : playerWealth(state, player)
-      const amount = Math.round((base * percent) / 100)
+      // Ojol Driver pays a reduced rate (taxMultiplier); everyone else pays full.
+      const amount = Math.round((base * percent * taxMultiplier(player)) / 100)
       charge(state, player, amount, null, 'tax', def.name)
       return {}
     }
@@ -557,6 +556,11 @@ function payRent(
 ): RentPaid | null {
   const owner = state.players.find((p) => p.id === ownerId)
   if (!owner) return null
+  // A jailed owner collects no rent — the lander passes through free of charge.
+  if (owner.inJail) {
+    pushLog(state, `${owner.name} is in jail — no rent due on ${getTileDef(tileId).name}`, payer.id)
+    return null
+  }
   // An accepted rent-immunity deal waives this rent entirely (no charge, no Investor cut).
   if (hasRentImmunity(state, payer.id, tileId)) {
     pushLog(state, `${payer.name} is immune from rent on ${getTileDef(tileId).name}`, payer.id)
@@ -886,11 +890,13 @@ export function lawOfficeBuy(state: GameState, playerId: string, tileId: TileId)
 }
 
 /**
- * Kantor Hukum: force-buy another player's property at a 30% discount (pay
- * LAW_OFFICE_TRANSFER_RATE of its invested value to the owner). Tier, track and
- * builder carry over with the tile.
+ * Kantor Hukum: open a force-buy auction for another player's property. The
+ * opening bid is LAW_OFFICE_TRANSFER_RATE (70%) of the tile's invested value.
+ * Nothing changes hands yet — the owner may defend by out-bidding (see
+ * `placeAuctionBid`), and the auction resolves via `concedeAuction`. The table is
+ * paused while `state.pendingAuction` is set.
  */
-export function lawOfficeTransfer(state: GameState, playerId: string, tileId: TileId): void {
+export function startLawOfficeAuction(state: GameState, playerId: string, tileId: TileId): void {
   const player = requireLawOffice(state, playerId)
   const def = getTileDef(tileId)
   if (def.type !== 'property' && def.type !== 'transport') {
@@ -902,17 +908,109 @@ export function lawOfficeTransfer(state: GameState, playerId: string, tileId: Ti
   const owner = state.players.find((p) => p.id === tile.ownerId)
   if (!owner || owner.isEliminated) throw new EngineError('That tile has no active owner')
 
-  const price = Math.round(tileValue(tile) * LAW_OFFICE_TRANSFER_RATE)
-  if (player.cash < price) throw new EngineError('Not enough cash for the transfer')
-  player.cash -= price
-  owner.cash += price
-  tile.ownerId = player.id
+  const openingBid = Math.round(tileValue(tile) * LAW_OFFICE_TRANSFER_RATE)
+  if (player.cash < openingBid) throw new EngineError('Not enough cash for the opening bid')
+
+  state.pendingAuction = {
+    tileId,
+    attackerId: player.id,
+    ownerId: owner.id,
+    currentBid: openingBid,
+    highBidderId: player.id,
+    history: [{ playerId: player.id, amount: openingBid }],
+    deadline: null,
+  }
   state.turn.pendingLawOffice = false
   pushLog(
     state,
-    `${player.name} force-bought ${def.name} from ${owner.name} for ${rupiah(price)} (30% off)`,
+    `${player.name} opened a force-buy bid for ${def.name} at ${rupiah(openingBid)} — ${owner.name} may defend`,
     player.id,
   )
+}
+
+/** The auction participant whose turn it is to raise or concede (never the high bidder). */
+function auctionToActId(auction: PendingAuction): string {
+  return auction.highBidderId === auction.attackerId ? auction.ownerId : auction.attackerId
+}
+
+/**
+ * Raise the standing bid in a live force-buy auction. Must be the to-act
+ * participant (the one who isn't currently winning), the amount must strictly
+ * exceed the current bid, and the bidder must hold enough cash to back it (cash is
+ * only moved when the auction resolves). The bidder becomes the new high bidder.
+ */
+export function placeAuctionBid(state: GameState, playerId: string, amount: RupiahAmount): void {
+  const auction = state.pendingAuction
+  if (!auction) throw new EngineError('There is no active auction')
+  if (playerId !== auctionToActId(auction)) throw new EngineError('It is not your bid')
+  const player = state.players.find((p) => p.id === playerId)
+  if (!player || player.isEliminated) throw new EngineError('You cannot bid')
+  if (!Number.isFinite(amount) || amount <= auction.currentBid) {
+    throw new EngineError(`Your bid must be more than ${rupiah(auction.currentBid)}`)
+  }
+  if (player.cash < amount) throw new EngineError('Not enough cash to back that bid')
+
+  auction.currentBid = Math.round(amount)
+  auction.highBidderId = playerId
+  auction.history.push({ playerId, amount: auction.currentBid })
+  const def = getTileDef(auction.tileId)
+  pushLog(state, `${player.name} bid ${rupiah(auction.currentBid)} for ${def.name}`, playerId)
+}
+
+/**
+ * Stop bidding in a live force-buy auction. Only the to-act participant can
+ * concede; the current high bidder wins. If the attacker wins they pay the owner
+ * and take the tile (tier/track/multiplier carry over); if the owner wins they
+ * keep the tile and pay their bid to the bank.
+ */
+export function concedeAuction(state: GameState, playerId: string): void {
+  const auction = state.pendingAuction
+  if (!auction) throw new EngineError('There is no active auction')
+  if (playerId !== auctionToActId(auction)) throw new EngineError('You are not bidding')
+  resolveAuction(state)
+}
+
+/**
+ * Timer-driven resolution: the to-act participant ran out of time, which counts as
+ * a concede, so the current high bidder wins. No-op when no auction is live.
+ */
+export function resolveAuctionTimeout(state: GameState): void {
+  resolveAuction(state)
+}
+
+/** Settle a force-buy auction in favour of the current high bidder, then clear it. */
+function resolveAuction(state: GameState): void {
+  const auction = state.pendingAuction
+  if (!auction) return
+  const def = getTileDef(auction.tileId)
+  const tile = state.tiles[auction.tileId]
+  const attacker = state.players.find((p) => p.id === auction.attackerId)
+  const owner = state.players.find((p) => p.id === auction.ownerId)
+  const bid = auction.currentBid
+  state.pendingAuction = null
+
+  // The tile may have changed hands or the owner left mid-pause in edge cases; in
+  // that case there's nothing to transfer, so just drop the auction.
+  if (!tile || !attacker || !owner) return
+
+  if (auction.highBidderId === attacker.id) {
+    attacker.cash -= bid
+    owner.cash += bid
+    tile.ownerId = attacker.id
+    pushLog(
+      state,
+      `${attacker.name} won the auction and force-bought ${def.name} from ${owner.name} for ${rupiah(bid)}`,
+      attacker.id,
+    )
+  } else {
+    owner.cash -= bid
+    state.bank += bid
+    pushLog(
+      state,
+      `${owner.name} defended ${def.name}, paying ${rupiah(bid)} to the bank`,
+      owner.id,
+    )
+  }
 }
 
 /** Kantor Hukum: pay a bribe to the bank to send another player to jail. */

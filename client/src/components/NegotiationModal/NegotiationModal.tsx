@@ -16,6 +16,7 @@ import { formatRupiah, useGame } from '../../store/gameStore.js'
 const DEAL_TYPES: NegotiationDealType[] = [
   'property_swap',
   'cash_for_property',
+  'sell_property',
   'rent_immunity',
   'revenue_share',
   'player_loan',
@@ -74,20 +75,24 @@ export function NegotiationModal({
   const myTiles = ownedTiles(state, me.id)
   const targetTiles = targetId ? ownedTiles(state, targetId) : []
 
-  const needsOffer = type === 'property_swap'
+  const needsOffer = type === 'property_swap' || type === 'sell_property'
   const needsRequest = type === 'property_swap' || type === 'cash_for_property'
   const needsImmunity = type === 'rent_immunity'
   const needsLaps = type === 'rent_immunity' || type === 'revenue_share'
   const needsShare = type === 'revenue_share'
   const needsCash =
     type === 'cash_for_property' ||
+    type === 'sell_property' ||
     type === 'rent_immunity' ||
     type === 'player_loan' ||
     type === 'cash_gift' ||
     type === 'property_swap'
   // Cash is required (> 0) for these; optional (0 = free) for swap top-up and immunity fee.
   const cashRequired =
-    type === 'cash_for_property' || type === 'player_loan' || type === 'cash_gift'
+    type === 'cash_for_property' ||
+    type === 'sell_property' ||
+    type === 'player_loan' ||
+    type === 'cash_gift'
   const needsCashDir = type === 'property_swap' || type === 'player_loan' || type === 'cash_gift'
   const needsInterest = type === 'player_loan'
 
@@ -100,7 +105,9 @@ export function NegotiationModal({
           ? t('negotiation.giftAmount')
           : type === 'property_swap'
             ? t('negotiation.cashTopup')
-            : t('negotiation.yourOffer')
+            : type === 'sell_property'
+              ? t('negotiation.sellPrice')
+              : t('negotiation.yourOffer')
 
   const cashDirLabels: [string, string] =
     type === 'player_loan'
@@ -132,6 +139,8 @@ export function NegotiationModal({
       // property_swap: only include a top-up when there's actually cash.
       ...(type === 'property_swap' && cashJuta > 0 ? { cashAmount, cashFrom } : {}),
       ...(type === 'cash_for_property' ? { cashAmount } : {}),
+      // sell_property: proposer's own tile (offerTileId, set above) for cash from the buyer.
+      ...(type === 'sell_property' ? { cashAmount } : {}),
       // rent_immunity: direction + laps; fee may be 0 (free gift). Covers all the
       // other player's properties.
       ...(needsImmunity ? { immuneFor, cashAmount, laps } : {}),

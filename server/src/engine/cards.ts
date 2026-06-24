@@ -28,7 +28,7 @@ import { charge } from './elimination.js'
 // Runtime-only import (called from drawHustle, never at module-eval time), so the
 // index.ts ↔ cards.ts cycle is safe.
 import { advanceToTile } from './index.js'
-import { isTaxImmune } from './roles.js'
+import { taxMultiplier } from './roles.js'
 import { defaultRng, pushLog, uid, type Rng } from './util.js'
 
 const HUSTLE_BY_ID = new Map(HUSTLE_CARDS.map((c) => [c.id, c]))
@@ -138,8 +138,9 @@ export function drawKejadian(
     case 'kenaikan_bbm': {
       const tax = 500_000
       for (const p of activePlayers(state)) {
-        if (isTaxImmune(p)) continue // Ojol Driver never pays travel tax
-        charge(state, p, tax, null, 'fine', 'kenaikan BBM')
+        // Ojol Driver pays a reduced travel tax (taxMultiplier); others pay full.
+        const amount = Math.round(tax * taxMultiplier(p))
+        if (amount > 0) charge(state, p, amount, null, 'fine', 'kenaikan BBM')
       }
       break
     }

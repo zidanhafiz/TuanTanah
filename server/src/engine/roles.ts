@@ -26,9 +26,12 @@ export function investorCut(amount: RupiahAmount): RupiahAmount {
   return Math.round(amount * INVESTOR_RENT_CUT_RATE)
 }
 
-/** Ojol Driver never pays travel/movement tax (tax tiles + the BBM card). */
-export function isTaxImmune(player: Player): boolean {
-  return player.role === 'ojol_driver'
+/**
+ * Tax multiplier for a player (tax tiles + the BBM card). Ojol Driver pays half;
+ * everyone else pays in full.
+ */
+export function taxMultiplier(player: Player): number {
+  return player.role === 'ojol_driver' ? 0.5 : 1
 }
 
 // TODO (other tasks): rentenir forced loans (pinjol system), sales 15% deal

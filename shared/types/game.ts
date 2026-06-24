@@ -159,6 +159,24 @@ export interface PendingVote {
   votes: Record<string, string> // voterId -> targetPlayerId
 }
 
+// A live Kantor Hukum force-buy auction. The attacker (law-office player) and the
+// tile's current owner alternate bids; the player to act is always whichever of
+// the two is NOT the current `highBidderId`. The table is paused while this is set.
+// On concede/timeout the high bidder wins: if the attacker wins they pay the owner
+// and take the tile; if the owner wins they keep the tile and pay their bid to the
+// bank. Cash is validated at bid time but only moved on resolution.
+export interface PendingAuction {
+  tileId: TileId
+  attackerId: string // law-office player trying to acquire the tile
+  ownerId: string // defending current owner
+  currentBid: RupiahAmount
+  highBidderId: string // attacker or owner; the other one is to act
+  history: Array<{ playerId: string; amount: RupiahAmount }>
+  // Epoch ms when the to-act player auto-concedes for inactivity, or null when no
+  // timer is armed. Set by the server's timer layer, not the engine.
+  deadline: number | null
+}
+
 export type WinCondition = 'time' | 'wealth' | 'both'
 
 // How a finished game was actually decided (settings.winCondition is the
@@ -219,6 +237,8 @@ export interface GameState {
   pendingKejadianBlock?: boolean
   // An in-progress Pemilu election; cleared once the vote resolves.
   pendingVote?: PendingVote | null
+  // A live Kantor Hukum force-buy auction; while set the table is paused.
+  pendingAuction?: PendingAuction | null
   // Unpayable charges awaiting resolution; while non-empty the game is paused.
   pendingDebts: PendingDebt[]
   // Outstanding negotiation offers awaiting the target's accept/reject.
@@ -242,6 +262,7 @@ export interface GameState {
 export type NegotiationDealType =
   | 'property_swap'
   | 'cash_for_property'
+  | 'sell_property' // jual properti: proposer sells their own tile (offerTileId) to the target for cash
   | 'rent_immunity'
   | 'revenue_share'
   | 'player_loan' // pinjam uang: a peer loan; lender fronts cash, repaid via the pinjol flow

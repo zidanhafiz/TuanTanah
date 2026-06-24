@@ -7,10 +7,18 @@ import { Button, Card } from '../ui/index.js'
 /**
  * Shown in place of the turn controls when the current player owes an unpayable
  * charge. The debt settles automatically once they raise enough cash (selling or
- * downgrading a property via the board, or taking a pinjol); "give up" declares
- * bankruptcy.
+ * downgrading a property via the board, selling a property to another player, or
+ * taking a pinjol); "give up" declares bankruptcy.
  */
-export function DebtPanel({ debt, onTakePinjol }: { debt: PendingDebt; onTakePinjol: () => void }) {
+export function DebtPanel({
+  debt,
+  onTakePinjol,
+  onSellToPlayer,
+}: {
+  debt: PendingDebt
+  onTakePinjol: () => void
+  onSellToPlayer: () => void
+}) {
   const { t } = useTranslation()
   const state = useGame((s) => s.state)
   const me = useGame((s) => s.me)()
@@ -38,6 +46,9 @@ export function DebtPanel({ debt, onTakePinjol }: { debt: PendingDebt; onTakePin
       <div className="text-[11px] text-ink-muted">{t('debt.autoSettleHint')}</div>
       <Button block size="sm" onClick={onTakePinjol}>
         {t('debt.takePinjol')}
+      </Button>
+      <Button block size="sm" variant="secondary" onClick={onSellToPlayer}>
+        {t('debt.sellToPlayer')}
       </Button>
       {confirmingGiveUp ? (
         <div className="space-y-2">

@@ -1,6 +1,6 @@
 import { INVESTOR_RENT_CUT_RATE, ROLES } from '@tuan-tanah/shared'
 import { describe, expect, it } from 'vitest'
-import { buyPriceMultiplier, investorCut, isTaxImmune, salaryFor } from '../src/engine/roles.js'
+import { buyPriceMultiplier, investorCut, salaryFor, taxMultiplier } from '../src/engine/roles.js'
 import { makeGame } from './helpers.js'
 
 describe('salaryFor', () => {
@@ -38,10 +38,10 @@ describe('investorCut', () => {
   })
 })
 
-describe('isTaxImmune', () => {
-  it('is true only for the Ojol Driver', () => {
+describe('taxMultiplier', () => {
+  it('halves tax for the Ojol Driver and is full for others', () => {
     const { players } = makeGame(2, { roles: ['ojol_driver', 'pengusaha'] })
-    expect(isTaxImmune(players[0]!)).toBe(true)
-    expect(isTaxImmune(players[1]!)).toBe(false)
+    expect(taxMultiplier(players[0]!)).toBe(0.5)
+    expect(taxMultiplier(players[1]!)).toBe(1)
   })
 })

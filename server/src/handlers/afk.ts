@@ -9,7 +9,7 @@
 // still in the past, the current player is auto-skipped.
 import { AFK_TIMEOUT_MS } from '@tuan-tanah/shared'
 import type { GameState } from '@tuan-tanah/shared'
-import { applyAfkTimeout } from '../engine/index.js'
+import { applyAfkTimeout, resolveAuctionTimeout } from '../engine/index.js'
 import { mutateRoom } from '../rooms.js'
 import type { GameStore } from '../store.js'
 import { broadcastState, type TTServer } from './common.js'
@@ -32,6 +32,7 @@ function afkEligible(state: GameState): boolean {
   if (state.phase !== 'playing') return false
   if (state.pendingDebts.length > 0) return false
   if (state.pendingVote) return false
+  if (state.pendingAuction) return false
   const current = state.players[state.currentPlayerIndex]
   return !!current && !current.isEliminated
 }
@@ -68,6 +69,56 @@ export async function broadcastAndArm(
 ): Promise<void> {
   await armAfk(io, store, roomId)
   await broadcastState(io, store, roomId)
+}
+
+// Per-room force-buy auction timers. A live auction pauses the normal turn clock
+// (see `afkEligible`); this separate timer concedes for the to-act bidder if they
+// stall, so the table can't freeze. Re-armed on every bid, cleared on resolution.
+const roomAuctionTimers = new Map<string, NodeJS.Timeout>()
+
+export function clearAuctionTimer(roomId: string): void {
+  const timer = roomAuctionTimers.get(roomId)
+  if (timer) {
+    clearTimeout(timer)
+    roomAuctionTimers.delete(roomId)
+  }
+}
+
+/**
+ * Set the live auction's `deadline` and (re)schedule its concede-on-timeout timer.
+ * No-op when no auction is live. Call after opening an auction or accepting a bid.
+ */
+export async function armAuction(io: TTServer, store: GameStore, roomId: string): Promise<void> {
+  const armed = await mutateRoom(store, roomId, (state) => {
+    if (!state.pendingAuction || state.phase !== 'playing') return false
+    state.pendingAuction.deadline = Date.now() + AFK_TIMEOUT_MS
+    return true
+  }).catch(() => false)
+
+  clearAuctionTimer(roomId)
+  if (!armed) return
+  const timer = setTimeout(() => {
+    void resolveAuctionAfk(io, store, roomId)
+  }, AFK_TIMEOUT_MS)
+  timer.unref?.()
+  roomAuctionTimers.set(roomId, timer)
+}
+
+/**
+ * Fired when the to-act bidder runs out the auction clock. Re-checks the deadline
+ * (a bid may have re-armed it → no-op), resolves the auction for the high bidder,
+ * then re-arms the normal turn clock and resolves any win condition.
+ */
+async function resolveAuctionAfk(io: TTServer, store: GameStore, roomId: string): Promise<void> {
+  await mutateRoom(store, roomId, (state) => {
+    const auction = state.pendingAuction
+    if (!auction || auction.deadline === null || Date.now() < auction.deadline) return
+    resolveAuctionTimeout(state)
+  }).catch(() => undefined)
+
+  clearAuctionTimer(roomId)
+  await broadcastAndArm(io, store, roomId)
+  await concludeIfWon(io, store, roomId)
 }
 
 /**

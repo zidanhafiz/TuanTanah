@@ -69,6 +69,10 @@ export interface ClientToServerEvents {
   law_office_freepass: (payload: { pass: PassType }) => void
   law_office_upgrade_price: (payload: { tileId: TileId; multiplier: number }) => void
   law_office_skip: () => void
+  // A Kantor Hukum force-buy opens an auction (law_office_transfer). The two
+  // participants raise (auction_bid) or stop (auction_concede); highest bid wins.
+  auction_bid: (payload: { amount: RupiahAmount }) => void
+  auction_concede: () => void
   meta_action: (payload: {
     action: MetaActionType
     targetId?: string

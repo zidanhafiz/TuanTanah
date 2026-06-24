@@ -227,9 +227,10 @@ export function Game() {
       </Card>
     ) : null
 
-  // Negotiation is offered even off-turn (you can propose deals any time).
-  const canNegotiate =
-    phase === 'playing' && !myDebt && !debtor && Boolean(me && !me.isEliminated) && !rolling
+  // Negotiation is offered even off-turn and while play is paused for a debt, so a
+  // broke player can sell a property to another player (not just back to the bank)
+  // and others can buy from the debtor to help them settle.
+  const canNegotiate = phase === 'playing' && Boolean(me && !me.isEliminated) && !rolling
   const negotiateButton = canNegotiate ? (
     <Tooltip content={t('game.negotiateDesc')} className="w-full">
       <Button variant="secondary" size="sm" block onClick={() => openNegotiate()}>
@@ -291,7 +292,11 @@ export function Game() {
         </div>
       </Card>
     ) : myDebt ? (
-      <DebtPanel debt={myDebt} onTakePinjol={() => setShowPinjol(true)} />
+      <DebtPanel
+        debt={myDebt}
+        onTakePinjol={() => setShowPinjol(true)}
+        onSellToPlayer={() => openNegotiate({ type: 'sell_property' })}
+      />
     ) : debtor ? (
       <Card tone="danger" flat className="py-3 text-center text-sm text-ink">
         {t('game.pausedWaitingPre')}{' '}

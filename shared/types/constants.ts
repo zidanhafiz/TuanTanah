@@ -286,7 +286,7 @@ export const ROLES: Record<Role, RoleDef> = {
     salary: jt(3),
     ability: 'Build & upgrade tiles 20% cheaper',
   },
-  politisi: { id: 'politisi', name: 'Politisi', salary: jt(4), ability: 'Lobby costs 50% less' },
+  politisi: { id: 'politisi', name: 'Politisi', salary: jt(4.5), ability: 'Lobby costs 50% less' },
   freelancer: {
     id: 'freelancer',
     name: 'Freelancer',
@@ -296,7 +296,7 @@ export const ROLES: Record<Role, RoleDef> = {
   investor: {
     id: 'investor',
     name: 'Investor',
-    salary: jt(2.5),
+    salary: jt(3),
     ability: 'Earn 5% from every rent paid to others',
   },
   kontraktor: {
@@ -308,13 +308,13 @@ export const ROLES: Record<Role, RoleDef> = {
   ojol_driver: {
     id: 'ojol_driver',
     name: 'Ojol Driver',
-    salary: jt(1.5),
-    ability: 'Never pay travel/movement tax',
+    salary: jt(3),
+    ability: 'Pays 50% less tax (travel, income & luxury)',
   },
   influencer: {
     id: 'influencer',
     name: 'Influencer',
-    salary: jt(2),
+    salary: jt(3),
     ability: 'Once per game: viral boost 3× for 3 turns',
   },
   pejabat: {
@@ -326,13 +326,13 @@ export const ROLES: Record<Role, RoleDef> = {
   rentenir: {
     id: 'rentenir',
     name: 'Rentenir',
-    salary: jt(3.5),
+    salary: jt(4),
     ability: 'Force one player per round to take pinjol, earns the interest',
   },
   sales: {
     id: 'sales',
     name: 'Sales',
-    salary: jt(2.5),
+    salary: jt(3),
     ability: 'Buy property 25% cheaper + earn 15% bank bonus on initiated deals',
   },
 }

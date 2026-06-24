@@ -7,8 +7,9 @@ import id from './locales/id.json'
 export const SUPPORTED_LANGUAGES = ['en', 'id'] as const
 export type Language = (typeof SUPPORTED_LANGUAGES)[number]
 
-// Per-player language: detected from localStorage (a returning player's choice)
-// then the browser, falling back to Indonesian since the game is ID-themed.
+// Per-player language: detected from localStorage (a returning player's choice),
+// otherwise defaulting to Indonesian since the game is ID-themed. The browser
+// language is intentionally not consulted so new players start in Indonesian.
 void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -21,7 +22,7 @@ void i18n
     fallbackLng: 'id',
     interpolation: { escapeValue: false }, // React already escapes
     detection: {
-      order: ['localStorage', 'navigator'],
+      order: ['localStorage'],
       lookupLocalStorage: 'tuan-tanah:lang',
       caches: ['localStorage'],
     },

@@ -3,6 +3,7 @@ import { castVote, performMetaAction } from '../engine/actions.js'
 import {
   buildLahan,
   buyProperty,
+  concedeAuction,
   devTeleport,
   downgradeProperty,
   endTurn,
@@ -11,14 +12,15 @@ import {
   lawOfficeJail,
   lawOfficePriceUpgrade,
   lawOfficeSkip,
-  lawOfficeTransfer,
   payJail,
+  placeAuctionBid,
   proposeDeal,
   repayPinjol,
   resolveDebt,
   respondToDeal,
   rollDice,
   sellProperty,
+  startLawOfficeAuction,
   takeLoan,
   upgradeProperty,
   useAbility,
@@ -26,7 +28,7 @@ import {
 import { isDev } from '../env.js'
 import { mutateRoom } from '../rooms.js'
 import type { GameStore } from '../store.js'
-import { broadcastAndArm } from './afk.js'
+import { armAuction, broadcastAndArm, clearAuctionTimer } from './afk.js'
 import { guard, requireSession, type TTServer, type TTSocket } from './common.js'
 import { concludeIfWon } from './gameOver.js'
 
@@ -121,8 +123,33 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
   socket.on('law_office_transfer', (payload) =>
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
-      // A force-transfer shifts wealth between players, so a wealth win can trigger.
-      await mutateRoom(store, roomId, (state) => lawOfficeTransfer(state, playerId, payload.tileId))
+      // Opens a force-buy auction; nothing changes hands until it resolves. Arm the
+      // auction clock first so the broadcast carries its deadline, then broadcast
+      // (which disarms the normal turn clock while the table is paused).
+      await mutateRoom(store, roomId, (state) =>
+        startLawOfficeAuction(state, playerId, payload.tileId),
+      )
+      await armAuction(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
+    }),
+  )
+
+  socket.on('auction_bid', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      await mutateRoom(store, roomId, (state) => placeAuctionBid(state, playerId, payload.amount))
+      // Re-arm the clock for the new responder, then broadcast the fresh deadline.
+      await armAuction(io, store, roomId)
+      await broadcastAndArm(io, store, roomId)
+    }),
+  )
+
+  socket.on('auction_concede', () =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      // Resolving the auction shifts wealth, so a wealth win can trigger.
+      await mutateRoom(store, roomId, (state) => concedeAuction(state, playerId))
+      clearAuctionTimer(roomId)
       await broadcastAndArm(io, store, roomId)
       await concludeIfWon(io, store, roomId)
     }),
@@ -275,10 +302,15 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
   socket.on('respond_deal', (payload) =>
     guard(socket, async () => {
       const { roomId, playerId } = requireSession(socket)
-      await mutateRoom(store, roomId, (state) =>
-        respondToDeal(state, playerId, payload.dealId, payload.accept),
+      // Accepting a deal can settle a debtor's debt and even eliminate a player
+      // (e.g. a seller who is still short after the sale), so run with eliminations.
+      const { eliminated } = await mutateRoom(store, roomId, (state) =>
+        runWithEliminations(state, () =>
+          respondToDeal(state, playerId, payload.dealId, payload.accept),
+        ),
       )
       await broadcastAndArm(io, store, roomId)
+      emitEliminated(io, roomId, eliminated)
       await concludeIfWon(io, store, roomId)
     }),
   )

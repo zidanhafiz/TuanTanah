@@ -7,13 +7,14 @@ import { describe, expect, it } from 'vitest'
 import {
   EngineError,
   computeRent,
+  concedeAuction,
   lawOfficeBuy,
   lawOfficeFreepass,
   lawOfficeJail,
   lawOfficePriceUpgrade,
   lawOfficeSkip,
-  lawOfficeTransfer,
   sellProperty,
+  startLawOfficeAuction,
   upgradeProperty,
 } from '../src/engine/index.js'
 import { tileValue } from '../src/engine/elimination.js'
@@ -36,34 +37,36 @@ describe('Kantor Hukum (law_office)', () => {
     expect(state.turn.pendingLawOffice).toBe(false)
   })
 
-  it('force-buys a rival property at 70% of invested value, keeping tier & track', () => {
+  it('force-buys a rival property at 70% when the owner does not defend, keeping tier & track', () => {
     const { state, players } = atLawOffice()
     const [a, b] = players
     own(state, 1, b!.id, { track: 'property', tier: 2 })
     const price = Math.round(tileValue(state.tiles[1]!) * LAW_OFFICE_TRANSFER_RATE)
     const aCash = a!.cash
     const bCash = b!.cash
-    lawOfficeTransfer(state, a!.id, 1)
+    startLawOfficeAuction(state, a!.id, 1)
+    expect(state.turn.pendingLawOffice).toBe(false)
+    concedeAuction(state, b!.id) // owner declines to defend → attacker wins at the 70% open
     expect(state.tiles[1]!.ownerId).toBe(a!.id)
     expect(state.tiles[1]!).toMatchObject({ track: 'property', tier: 2 })
     expect(a!.cash).toBe(aCash - price)
     expect(b!.cash).toBe(bCash + price)
-    expect(state.turn.pendingLawOffice).toBe(false)
+    expect(state.pendingAuction).toBeNull()
   })
 
-  it('rejects transferring an unowned or own tile', () => {
+  it('rejects auctioning an unowned or own tile', () => {
     const { state, players } = atLawOffice()
-    expect(() => lawOfficeTransfer(state, players[0]!.id, 1)).toThrow(EngineError)
+    expect(() => startLawOfficeAuction(state, players[0]!.id, 1)).toThrow(EngineError)
     own(state, 2, players[0]!.id)
-    expect(() => lawOfficeTransfer(state, players[0]!.id, 2)).toThrow(EngineError)
+    expect(() => startLawOfficeAuction(state, players[0]!.id, 2)).toThrow(EngineError)
   })
 
-  it('rejects a transfer the actor cannot afford', () => {
+  it('rejects opening an auction the actor cannot afford', () => {
     const { state, players } = makeGame(2, { cash: 100 })
     state.currentPlayerIndex = 0
     state.turn.pendingLawOffice = true
     own(state, 1, players[1]!.id)
-    expect(() => lawOfficeTransfer(state, players[0]!.id, 1)).toThrow(EngineError)
+    expect(() => startLawOfficeAuction(state, players[0]!.id, 1)).toThrow(EngineError)
   })
 
   it('jails a rival and charges the bribe to the bank', () => {
@@ -202,7 +205,8 @@ describe('Kantor Hukum (law_office)', () => {
     // Force-transfer keeps the boost on the stolen tile.
     own(state, 2, b!.id, { track: 'property', tier: 1 })
     state.tiles[2]!.priceMultiplier = 2
-    lawOfficeTransfer(state, a!.id, 2)
+    startLawOfficeAuction(state, a!.id, 2)
+    concedeAuction(state, b!.id)
     expect(state.tiles[2]!.ownerId).toBe(a!.id)
     expect(state.tiles[2]!.priceMultiplier).toBe(2)
   })

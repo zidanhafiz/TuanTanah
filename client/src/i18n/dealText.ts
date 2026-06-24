@@ -34,6 +34,12 @@ export function describeDeal(state: GameState, deal: NegotiationDeal, t: TFunc):
         cash: formatRupiah(deal.cashAmount ?? 0),
         request: tileName(t, deal.requestTileId!),
       })
+    case 'sell_property':
+      return t('negotiation.desc.sell_property', {
+        from,
+        cash: formatRupiah(deal.cashAmount ?? 0),
+        offer: tileName(t, deal.offerTileId!),
+      })
     case 'rent_immunity': {
       const cash = formatRupiah(deal.cashAmount ?? 0)
       // immuneFor = who is immune. 'proposer' = they're immune on your properties (they pay you);

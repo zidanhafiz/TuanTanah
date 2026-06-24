@@ -149,8 +149,9 @@
     "owePre": "You owe",
     "oweTo": " to {{name}}",
     "cashShort": "Cash {{cash}} · short {{shortfall}}",
-    "autoSettleHint": "Raise the cash and it settles automatically — click one of your properties on the board to sell or downgrade it, or take a pinjol.",
+    "autoSettleHint": "Raise the cash and it settles automatically — click one of your properties on the board to sell or downgrade it, sell a property to another player, or take a pinjol.",
     "takePinjol": "🏦 Take a pinjol",
+    "sellToPlayer": "🤝 Sell to a player",
     "giveUpConfirm": "Give up and be eliminated? Your properties return to the bank.",
     "confirmBankruptcy": "Confirm — declare bankruptcy",
     "keepPlaying": "Keep playing",
@@ -216,6 +217,7 @@
     "dealTypes": {
       "property_swap": "Property swap",
       "cash_for_property": "Cash for property",
+      "sell_property": "Sell property",
       "rent_immunity": "Rent-free",
       "revenue_share": "Revenue share",
       "player_loan": "Loan",
@@ -229,6 +231,7 @@
     "pickPlayerFirst": "Pick a player first",
     "priceYouPay": "Price you pay (juta)",
     "yourOffer": "Your offer (juta)",
+    "sellPrice": "Price they pay (juta)",
     "immunityFee": "Immunity fee (juta, 0 = free)",
     "whoIsImmune": "Who is immune",
     "immuneMe": "I'm immune",
@@ -263,6 +266,7 @@
       "swap_cash_they": "They also add {{cash}}.",
       "swap_cash_you": "You also add {{cash}}.",
       "cash_for_property": "{{from}} offers {{cash}} to buy your {{request}}.",
+      "sell_property": "{{from}} offers to sell you their {{offer}} for {{cash}}.",
       "rent_immunity_get": "{{from}} pays you {{cash}} to go rent-free on all your properties for {{laps}} laps.",
       "rent_immunity_give": "You'd go rent-free on all {{from}}'s properties for {{laps}} laps; you pay {{from}} {{cash}}.",
       "revenue_share_proposer": "{{from}} will share {{percent}}% of their passive income with you for {{laps}} laps.",
@@ -336,9 +340,9 @@
       "title": "Buy a tile"
     },
     "transfer": {
-      "label": "📑 Force-buy a rival's property (30% off)",
+      "label": "📑 Force-buy a rival's property (start a bid)",
       "title": "Force-buy a property",
-      "cost": "{{price}} · from {{owner}}"
+      "cost": "Opening bid {{price}} · from {{owner}}"
     },
     "jail": {
       "label": "🚔 Send a rival to jail ({{fee}})",
@@ -362,6 +366,24 @@
       "tax_free": "Tax-free pass",
       "jail_free": "Jail-free pass"
     }
+  },
+  "auction": {
+    "title": "⚖️ Force-buy auction",
+    "over": "for {{tile}}",
+    "currentBid": "Current bid",
+    "leading": "Leading: {{name}}",
+    "yourBid": "Your bid",
+    "placeBid": "Place bid",
+    "bidPlaceholder": "More than {{min}}",
+    "mustExceed": "Enter more than {{min}}.",
+    "notEnoughCash": "Not enough cash to outbid.",
+    "giveUp": "Give up the property",
+    "stopBidding": "Stop bidding",
+    "waiting": "Waiting for {{name}}…",
+    "spectating": "{{attacker}} is trying to force-buy {{tile}} from {{owner}}.",
+    "ownerHint": "Defend by bidding higher — if you win you keep it but pay the bank.",
+    "attackerHint": "Raise to take it, or stop and let the owner keep it.",
+    "cash": "Your cash: {{amount}}"
   },
   "status": {
     "title": "My status",

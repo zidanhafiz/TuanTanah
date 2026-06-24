@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { AuctionModal } from './components/AuctionModal/AuctionModal.js'
 import { CardModal } from './components/CardModal/CardModal.js'
 import { ErrorToast } from './components/ErrorToast.js'
 import { IncomingDealModal } from './components/NegotiationModal/IncomingDealModal.js'
@@ -35,6 +36,7 @@ export function App() {
       <TurnBanner />
       <CardModal />
       <VotingModal />
+      <AuctionModal />
       <IncomingDealModal />
     </div>
   )

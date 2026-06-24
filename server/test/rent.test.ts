@@ -6,7 +6,7 @@ import {
   TRANSPORT_RENT,
 } from '@tuan-tanah/shared'
 import { describe, expect, it } from 'vitest'
-import { computeRent } from '../src/engine/index.js'
+import { computeRent, devTeleport } from '../src/engine/index.js'
 import { addEffect, makeGame, own } from './helpers.js'
 
 // Papua property tiles [1,2,3]; Bali [31,32]; transport tiles 5/14/28/33.
@@ -105,6 +105,34 @@ describe('computeRent — transport ladder', () => {
 
     own(state, 33, owner)
     expect(computeRent(state, 5)).toBe(TRANSPORT_RENT[4])
+  })
+})
+
+describe('payRent — jailed owner', () => {
+  it('charges no rent when the owner is in jail', () => {
+    const { state, players } = makeGame(2, { cash: 1_000_000 })
+    const [lander, owner] = players
+    state.currentPlayerIndex = 0
+    own(state, 1, owner!.id) // Papua property with rentBase rent
+    owner!.inJail = true
+    const landerCash = lander!.cash
+    const ownerCash = owner!.cash
+    devTeleport(state, lander!.id, 1) // land on the jailed owner's tile
+    expect(lander!.cash).toBe(landerCash) // lander pays nothing
+    expect(owner!.cash).toBe(ownerCash) // jailed owner collects nothing
+  })
+
+  it('charges rent normally once the owner is out of jail', () => {
+    const { state, players } = makeGame(2, { cash: 1_000_000 })
+    const [lander, owner] = players
+    state.currentPlayerIndex = 0
+    own(state, 1, owner!.id)
+    const rent = computeRent(state, 1)
+    const landerCash = lander!.cash
+    const ownerCash = owner!.cash
+    devTeleport(state, lander!.id, 1)
+    expect(lander!.cash).toBe(landerCash - rent)
+    expect(owner!.cash).toBe(ownerCash + rent)
   })
 })
 
