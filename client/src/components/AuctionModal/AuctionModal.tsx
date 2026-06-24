@@ -35,8 +35,9 @@ export function AuctionModal() {
   const isMyBid = me.id === toActId
 
   const minBid = auction.currentBid
-  const parsed = Math.round(Number(amount))
-  const validNumber = amount.trim() !== '' && Number.isFinite(parsed)
+  // `amount` holds raw digits only; the input renders them dot-grouped (1.000.000).
+  const parsed = Number(amount)
+  const validNumber = amount !== '' && Number.isFinite(parsed)
   const exceeds = validNumber && parsed > minBid
   const affordable = exceeds && parsed <= me.cash
   const canBid = exceeds && affordable
@@ -96,16 +97,15 @@ export function AuctionModal() {
             ) : (
               <>
                 <input
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  value={amount}
-                  min={minBid + 1}
-                  onChange={(e) => setAmount(e.target.value)}
+                  value={amount === '' ? '' : Number(amount).toLocaleString('id-ID')}
+                  onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') submit()
                   }}
                   placeholder={t('auction.bidPlaceholder', { min: formatRupiah(minBid) })}
-                  className="w-full rounded-lg border-2 border-ink bg-surface px-3 py-2 text-sm"
+                  className="w-full rounded-lg border-2 border-ink bg-surface px-3 py-2 text-sm tabular-nums"
                 />
                 <Button block disabled={!canBid} onClick={submit}>
                   {t('auction.placeBid')}

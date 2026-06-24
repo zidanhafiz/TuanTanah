@@ -37,7 +37,11 @@ export const TARGET_WEALTH_STEP = jt(10)
 // ---- AFK auto-skip ----
 // Inactivity allowed per turn before the active player is auto-skipped. The
 // countdown resets whenever the active player acts (the broadcast re-arms it).
-export const AFK_TIMEOUT_MS = 60_000
+export const AFK_TIMEOUT_MS = 30_000
+// Time the to-act bidder has to raise or concede in a Kantor Hukum force-buy
+// auction before they auto-concede. Shorter than the turn clock to keep the
+// fast-paced bidding war moving; re-armed after every bid.
+export const AUCTION_TIMEOUT_MS = 15_000
 // Per consecutive AFK turn the player is fined this × their strike count
 // (1st AFK → Rp 1jt, 2nd → Rp 2jt, 3rd → Rp 3jt). Capped at their cash on hand,
 // never opening a debt.

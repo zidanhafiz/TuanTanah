@@ -7,7 +7,7 @@
 // pushes the deadline forward and reschedules the timer — so the countdown resets
 // whenever the active player does anything. When the timer fires with the deadline
 // still in the past, the current player is auto-skipped.
-import { AFK_TIMEOUT_MS } from '@tuan-tanah/shared'
+import { AFK_TIMEOUT_MS, AUCTION_TIMEOUT_MS } from '@tuan-tanah/shared'
 import type { GameState } from '@tuan-tanah/shared'
 import { applyAfkTimeout, resolveAuctionTimeout } from '../engine/index.js'
 import { mutateRoom } from '../rooms.js'
@@ -91,7 +91,7 @@ export function clearAuctionTimer(roomId: string): void {
 export async function armAuction(io: TTServer, store: GameStore, roomId: string): Promise<void> {
   const armed = await mutateRoom(store, roomId, (state) => {
     if (!state.pendingAuction || state.phase !== 'playing') return false
-    state.pendingAuction.deadline = Date.now() + AFK_TIMEOUT_MS
+    state.pendingAuction.deadline = Date.now() + AUCTION_TIMEOUT_MS
     return true
   }).catch(() => false)
 
@@ -99,7 +99,7 @@ export async function armAuction(io: TTServer, store: GameStore, roomId: string)
   if (!armed) return
   const timer = setTimeout(() => {
     void resolveAuctionAfk(io, store, roomId)
-  }, AFK_TIMEOUT_MS)
+  }, AUCTION_TIMEOUT_MS)
   timer.unref?.()
   roomAuctionTimers.set(roomId, timer)
 }
