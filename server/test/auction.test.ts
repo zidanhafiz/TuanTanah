@@ -22,7 +22,7 @@ function auctionSetup(opts?: { ownerCash?: number; attackerCash?: number }) {
   own(g.state, 1, b!.id, { track: 'property', tier: 1 })
   if (opts?.attackerCash != null) a!.cash = opts.attackerCash
   if (opts?.ownerCash != null) b!.cash = opts.ownerCash
-  const opening = Math.round(tileValue(g.state.tiles[1]!) * LAW_OFFICE_TRANSFER_RATE)
+  const opening = Math.round(tileValue(g.state, g.state.tiles[1]!) * LAW_OFFICE_TRANSFER_RATE)
   return { state: g.state, a: a!, b: b!, opening }
 }
 

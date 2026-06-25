@@ -41,7 +41,7 @@ describe('Kantor Hukum (law_office)', () => {
     const { state, players } = atLawOffice()
     const [a, b] = players
     own(state, 1, b!.id, { track: 'property', tier: 2 })
-    const price = Math.round(tileValue(state.tiles[1]!) * LAW_OFFICE_TRANSFER_RATE)
+    const price = Math.round(tileValue(state, state.tiles[1]!) * LAW_OFFICE_TRANSFER_RATE)
     const aCash = a!.cash
     const bCash = b!.cash
     startLawOfficeAuction(state, a!.id, 1)
@@ -114,7 +114,7 @@ describe('Kantor Hukum (law_office)', () => {
     const { state, players } = atLawOffice()
     const a = players[0]!
     own(state, 1, a.id, { track: 'property', tier: 2 })
-    const value0 = tileValue(state.tiles[1]!)
+    const value0 = tileValue(state, state.tiles[1]!)
     const rent0 = computeRent(state, 1)
     const cash0 = a.cash
     const bank0 = state.bank
@@ -124,7 +124,7 @@ describe('Kantor Hukum (law_office)', () => {
     expect(state.tiles[1]!.priceMultiplier).toBe(3)
     expect(a.cash).toBe(cash0 - value0 * 3)
     expect(state.bank).toBe(bank0 + value0 * 3)
-    expect(tileValue(state.tiles[1]!)).toBe(value0 * 3)
+    expect(tileValue(state, state.tiles[1]!)).toBe(value0 * 3)
     expect(computeRent(state, 1)).toBe(rent0 * 3)
     expect(state.turn.pendingLawOffice).toBe(false)
   })
@@ -142,7 +142,7 @@ describe('Kantor Hukum (law_office)', () => {
     const { state, players } = atLawOffice()
     const a = players[0]!
     own(state, 1, a.id, { track: 'property', tier: 2 })
-    const value0 = tileValue(state.tiles[1]!)
+    const value0 = tileValue(state, state.tiles[1]!)
     const cash0 = a.cash
 
     lawOfficePriceUpgrade(state, a.id, 1, 2) // cost = value0 × 2
@@ -151,6 +151,38 @@ describe('Kantor Hukum (law_office)', () => {
 
     expect(state.tiles[1]!.priceMultiplier).toBe(6)
     expect(a.cash).toBe(cash0 - value0 * 2 - value0 * 2 * 3)
+  })
+
+  it('boosts every tile the player owns in the region for a property upgrade', () => {
+    const { state, players } = atLawOffice()
+    const a = players[0]!
+    // Own two of Papua's three tiles (1 & 2); tile 3 stays unowned.
+    own(state, 1, a.id, { track: 'property', tier: 1 })
+    own(state, 2, a.id, { track: 'house', tier: 1 })
+    lawOfficePriceUpgrade(state, a.id, 1, 3)
+    expect(state.tiles[1]!.priceMultiplier).toBe(3)
+    expect(state.tiles[2]!.priceMultiplier).toBe(3) // sibling region tile boosted too
+    expect(state.tiles[3]!.priceMultiplier).toBe(1) // unowned tile untouched
+  })
+
+  it('does not boost a region sibling owned by someone else', () => {
+    const { state, players } = atLawOffice()
+    const [a, b] = players
+    own(state, 1, a!.id, { track: 'property', tier: 1 })
+    own(state, 2, b!.id, { track: 'property', tier: 1 })
+    lawOfficePriceUpgrade(state, a!.id, 1, 2)
+    expect(state.tiles[1]!.priceMultiplier).toBe(2)
+    expect(state.tiles[2]!.priceMultiplier).toBe(1) // rival's tile unaffected
+  })
+
+  it('only boosts the single tile for a transport upgrade (no region)', () => {
+    const { state, players } = atLawOffice()
+    const a = players[0]!
+    own(state, 5, a.id) // Bandara Soekarno-Hatta (transport)
+    own(state, 14, a.id) // another transport tile
+    lawOfficePriceUpgrade(state, a.id, 5, 4)
+    expect(state.tiles[5]!.priceMultiplier).toBe(4)
+    expect(state.tiles[14]!.priceMultiplier).toBe(1)
   })
 
   it('rejects upgrading a tile you do not own', () => {

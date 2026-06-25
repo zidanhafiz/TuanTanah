@@ -69,10 +69,6 @@ export interface RegionDef {
   buyPrice: RupiahAmount
   rentBase: RupiahAmount // "House Rent Base"
   passiveBase: RupiahAmount // "Property Passive Base"
-  // Rent for a bare (tier-0, unbuilt) tile as a fraction of rentBase. Defaults
-  // to 1 (full rentBase) when unset; the premium regions discount it so landing
-  // on undeveloped premium land isn't punishing.
-  landRentMult?: number
   tileIds: TileId[]
 }
 
@@ -138,7 +134,6 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     buyPrice: jt(4.5),
     rentBase: jt(1.4),
     passiveBase: jt(1),
-    landRentMult: 0.6,
     tileIds: [31, 32],
   },
   jakarta: {
@@ -148,7 +143,6 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     buyPrice: jt(6),
     rentBase: jt(2.8),
     passiveBase: jt(2),
-    landRentMult: 0.6,
     tileIds: [35, 36],
   },
   tangerang: {
@@ -158,7 +152,6 @@ export const REGIONS: Record<RegionId, RegionDef> = {
     buyPrice: jt(8),
     rentBase: jt(4),
     passiveBase: jt(3),
-    landRentMult: 0.6,
     tileIds: [38, 39],
   },
 }
@@ -166,6 +159,8 @@ export const REGIONS: Record<RegionId, RegionDef> = {
 // Full-set bonus when one player owns every tile in a region.
 export const REGION_SET_RENT_MULTIPLIER = 2
 export const REGION_SET_PASSIVE_MULTIPLIER = 2
+// Tile market value also doubles when one player owns the full region.
+export const REGION_SET_VALUE_MULTIPLIER = 2
 
 // ---- Board (40 tiles) ----
 

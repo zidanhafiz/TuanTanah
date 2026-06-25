@@ -111,7 +111,7 @@ describe('sellProperty', () => {
     const p = players[0]!
     state.currentPlayerIndex = 0
     own(state, 1, p.id)
-    const refund = Math.round(tileValue(state.tiles[1]!) * SELL_REFUND_RATE)
+    const refund = Math.round(tileValue(state, state.tiles[1]!) * SELL_REFUND_RATE)
     sellProperty(state, p.id, 1)
     expect(p.cash).toBe(refund)
     expect(state.tiles[1]!.ownerId).toBeNull()

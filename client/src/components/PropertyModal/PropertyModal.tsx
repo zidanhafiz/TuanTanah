@@ -7,6 +7,7 @@ import {
   landTier,
   PROPERTY_TIERS,
   REGION_SET_RENT_MULTIPLIER,
+  REGION_SET_VALUE_MULTIPLIER,
   REGIONS,
   SELL_REFUND_RATE,
   TRANSPORT_BUY_PRICE,
@@ -32,9 +33,20 @@ import { EffectIcon, isTileEffect } from '../Board/icons.js'
 import { Badge, Button, Card, Modal } from '../ui/index.js'
 import { formatRupiah, useGame } from '../../store/gameStore.js'
 
+/** True if `ownerId` owns every tile in `region`. Mirrors the engine's ownsFullRegion. */
+function ownsFullRegion(
+  tiles: TileState[],
+  region: RegionDef | undefined,
+  ownerId: string | null,
+): boolean {
+  if (!region || !ownerId) return false
+  return region.tileIds.every((tid) => tiles[tid]?.ownerId === ownerId)
+}
+
 /** Invested value of a tile (base buy price + cumulative build cost, scaled by the
- * Kantor Hukum price multiplier). Mirrors the engine's tileValue. */
-function tileValue(tile: TileState): RupiahAmount {
+ * Kantor Hukum price multiplier, doubled while the owner holds the full region).
+ * Mirrors the engine's tileValue. */
+function tileValue(tile: TileState, tiles: TileState[]): RupiahAmount {
   const def = BOARD[tile.id]
   if (!def) return 0
   if (def.type === 'buildable_land') {
@@ -55,7 +67,11 @@ function tileValue(tile: TileState): RupiahAmount {
       if (tierDef) value += base * tierDef.buildCostMult
     }
   }
-  return Math.round(value * tile.priceMultiplier)
+  let market = Math.round(value * tile.priceMultiplier)
+  if (tile.ownerId && def.region && ownsFullRegion(tiles, REGIONS[def.region], tile.ownerId)) {
+    market *= REGION_SET_VALUE_MULTIPLIER
+  }
+  return market
 }
 
 type TFunc = ReturnType<typeof useTranslation>['t']
@@ -127,7 +143,7 @@ export function PropertyModal({
   const tileEffects = state.activeEffects.filter(
     (e) => isTileEffect(e) && e.targetTileIds?.includes(tileId),
   )
-  const refund = Math.round(tileValue(tile) * SELL_REFUND_RATE)
+  const refund = Math.round(tileValue(tile, state.tiles) * SELL_REFUND_RATE)
   // Sellable on your turn, or out of turn while you owe a debt (to raise cash).
   const iOweDebt = me ? state.pendingDebts.some((d) => d.debtorId === me.id) : false
   const canSell =
@@ -239,7 +255,9 @@ export function PropertyModal({
                   <span className="text-ink-faint">{tierLabel(tile, t)}</span>
                 )}
               </Row>
-              <Row label={t('property.investedValue')}>{formatRupiah(tileValue(tile))}</Row>
+              <Row label={t('property.investedValue')}>
+                {formatRupiah(tileValue(tile, state.tiles))}
+              </Row>
               {tile.priceMultiplier > 1 && (
                 <Row label={t('property.priceBoost')}>
                   <Badge tone="accent">×{tile.priceMultiplier}</Badge>
@@ -274,7 +292,9 @@ export function PropertyModal({
                   <Badge tone="accent">{tierLabel(tile, t)}</Badge>
                 </Row>
               )}
-              <Row label={t('property.investedValue')}>{formatRupiah(tileValue(tile))}</Row>
+              <Row label={t('property.investedValue')}>
+                {formatRupiah(tileValue(tile, state.tiles))}
+              </Row>
               {tile.priceMultiplier > 1 && (
                 <Row label={t('property.priceBoost')}>
                   <Badge tone="accent">×{tile.priceMultiplier}</Badge>
@@ -314,7 +334,7 @@ export function PropertyModal({
                 <ScheduleRow
                   name={t('property.landOnly')}
                   rent={formatRupiah(
-                    Math.round(region.rentBase * (region.landRentMult ?? 1) * tile.priceMultiplier),
+                    Math.round(region.rentBase * PROPERTY_TIERS[0].rentMult * tile.priceMultiplier),
                   )}
                   passive="—"
                   cost="—"

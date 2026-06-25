@@ -2,6 +2,7 @@ import {
   INVESTOR_RENT_CUT_RATE,
   KONTRAKTOR_CUT_RATE,
   PROPERTY_TIERS,
+  REGION_SET_VALUE_MULTIPLIER,
   REGIONS,
   TRANSPORT_BUY_PRICE,
 } from '@tuan-tanah/shared'
@@ -22,13 +23,13 @@ describe('tileValue', () => {
   it('values an undeveloped property at its buy price', () => {
     const { state, players } = makeGame(2)
     own(state, 1, players[0]!.id)
-    expect(tileValue(state.tiles[1]!)).toBe(REGIONS.papua.buyPrice)
+    expect(tileValue(state, state.tiles[1]!)).toBe(REGIONS.papua.buyPrice)
   })
 
   it('values a transport tile at the transport buy price', () => {
     const { state, players } = makeGame(2)
     own(state, 5, players[0]!.id)
-    expect(tileValue(state.tiles[5]!)).toBe(TRANSPORT_BUY_PRICE)
+    expect(tileValue(state, state.tiles[5]!)).toBe(TRANSPORT_BUY_PRICE)
   })
 
   it('adds cumulative build costs for a developed property', () => {
@@ -37,7 +38,17 @@ describe('tileValue', () => {
     const base = REGIONS.papua.buyPrice
     const expected =
       base + base * PROPERTY_TIERS[0]!.buildCostMult + base * PROPERTY_TIERS[1]!.buildCostMult
-    expect(tileValue(state.tiles[1]!)).toBe(expected)
+    expect(tileValue(state, state.tiles[1]!)).toBe(expected)
+  })
+
+  it('doubles a tile value when the owner holds the full region', () => {
+    const { state, players } = makeGame(2)
+    const owner = players[0]!.id
+    own(state, 1, owner)
+    const single = tileValue(state, state.tiles[1]!)
+    expect(single).toBe(REGIONS.papua.buyPrice)
+    for (const id of REGIONS.papua.tileIds) own(state, id, owner)
+    expect(tileValue(state, state.tiles[1]!)).toBe(single * REGION_SET_VALUE_MULTIPLIER)
   })
 })
 

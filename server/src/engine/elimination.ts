@@ -7,6 +7,7 @@ import {
   LAHAN_LAND_PRICE,
   landTier,
   PROPERTY_TIERS,
+  REGION_SET_VALUE_MULTIPLIER,
   REGIONS,
   TRANSPORT_BUY_PRICE,
 } from '@tuan-tanah/shared'
@@ -20,14 +21,17 @@ import type {
   TileState,
   WinReason,
 } from '@tuan-tanah/shared'
-import { getTileDef } from './board.js'
+import { getTileDef, ownsFullRegion } from './board.js'
 import { EngineError, rupiah } from './index.js'
 import { investorCut } from './roles.js'
 import { advanceTurn } from './turn.js'
 import { pushLog, uid } from './util.js'
 
-/** Market value of a single owned tile at its current tier. */
-export function tileValue(tile: TileState): RupiahAmount {
+/**
+ * Market value of a single owned tile at its current tier. Doubles while the owner
+ * holds every tile in the tile's region (full-region price bonus).
+ */
+export function tileValue(state: GameState, tile: TileState): RupiahAmount {
   const def = getTileDef(tile.id)
   // Lahan Kosong: bare land plus the cumulative build cost of its business tiers.
   if (def.type === 'buildable_land') {
@@ -51,7 +55,11 @@ export function tileValue(tile: TileState): RupiahAmount {
       if (tierDef) value += base * tierDef.buildCostMult
     }
   }
-  return Math.round(value * tile.priceMultiplier)
+  let market = Math.round(value * tile.priceMultiplier)
+  if (tile.ownerId && def.region && ownsFullRegion(state, tile.ownerId, def.region)) {
+    market *= REGION_SET_VALUE_MULTIPLIER
+  }
+  return market
 }
 
 /** Total wealth = cash + value of all owned property at current tier. */
@@ -59,7 +67,7 @@ export function playerWealth(state: GameState, player: Player): RupiahAmount {
   let wealth = player.cash
   for (const tile of state.tiles) {
     if (tile.ownerId !== player.id) continue
-    wealth += tileValue(tile)
+    wealth += tileValue(state, tile)
   }
   return Math.round(wealth)
 }

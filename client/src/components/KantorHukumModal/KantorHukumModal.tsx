@@ -8,10 +8,12 @@ import {
   LAW_OFFICE_PRICE_MULT_MIN,
   LAW_OFFICE_TRANSFER_RATE,
   PROPERTY_TIERS,
+  REGION_SET_VALUE_MULTIPLIER,
   REGIONS,
   TRANSPORT_BUY_PRICE,
   landTier,
   type PassType,
+  type RegionId,
   type TileId,
   type TileState,
 } from '@tuan-tanah/shared'
@@ -28,8 +30,15 @@ const MULTIPLIERS = Array.from(
   (_, i) => LAW_OFFICE_PRICE_MULT_MIN + i,
 )
 
-/** Current market value of an owned tile — mirrors the engine's `tileValue`. */
-function investedValue(tile: TileState): number {
+/** True if `ownerId` owns every tile in the given region. Mirrors engine ownsFullRegion. */
+function ownsFullRegion(tiles: TileState[], region: RegionId | undefined, ownerId: string | null) {
+  if (!region || !ownerId) return false
+  return REGIONS[region].tileIds.every((tid) => tiles[tid]?.ownerId === ownerId)
+}
+
+/** Current market value of an owned tile — mirrors the engine's `tileValue` (doubles
+ * while the owner holds the full region). */
+function investedValue(tile: TileState, tiles: TileState[]): number {
   const def = BOARD[tile.id]!
   if (def.type === 'buildable_land') {
     let value = LAHAN_LAND_PRICE
@@ -46,7 +55,11 @@ function investedValue(tile: TileState): number {
     const tiers = tile.track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
     for (let tr = 1; tr <= tile.tier; tr++) value += base * (tiers[tr - 1]?.buildCostMult ?? 0)
   }
-  return Math.round(value * tile.priceMultiplier)
+  let market = Math.round(value * tile.priceMultiplier)
+  if (tile.ownerId && def.region && ownsFullRegion(tiles, def.region, tile.ownerId)) {
+    market *= REGION_SET_VALUE_MULTIPLIER
+  }
+  return market
 }
 
 function buyCost(tileId: TileId): number {
@@ -143,7 +156,9 @@ export function KantorHukumModal({
     }
   })
   const transferItems: Choice[] = rivalTiles.map((d) => {
-    const price = Math.round(investedValue(state.tiles[d.id]!) * LAW_OFFICE_TRANSFER_RATE)
+    const price = Math.round(
+      investedValue(state.tiles[d.id]!, state.tiles) * LAW_OFFICE_TRANSFER_RATE,
+    )
     const owner = state.players.find((p) => p.id === state.tiles[d.id]?.ownerId)
     return {
       key: d.id,
@@ -178,7 +193,7 @@ export function KantorHukumModal({
       key: d.id,
       label: tileName(t, d.id),
       sub: t('lawOffice.upgrade.tileSub', {
-        value: formatRupiah(investedValue(tile)),
+        value: formatRupiah(investedValue(tile, state.tiles)),
         mult: tile.priceMultiplier,
       }),
       disabled: false,
@@ -216,6 +231,7 @@ export function KantorHukumModal({
       ) : mode === 'upgrade' && upgradeTileId != null ? (
         <UpgradePanel
           tile={state.tiles[upgradeTileId]!}
+          tiles={state.tiles}
           cash={cash}
           onBack={() => setUpgradeTileId(null)}
           onConfirm={(multiplier) => {
@@ -245,18 +261,20 @@ export function KantorHukumModal({
 
 function UpgradePanel({
   tile,
+  tiles,
   cash,
   onBack,
   onConfirm,
 }: {
   tile: TileState
+  tiles: TileState[]
   cash: number
   onBack: () => void
   onConfirm: (multiplier: number) => void
 }) {
   const { t } = useTranslation()
   const [multiplier, setMultiplier] = useState(LAW_OFFICE_PRICE_MULT_MIN)
-  const value = investedValue(tile)
+  const value = investedValue(tile, tiles)
   const cost = Math.round(value * multiplier)
   const canAfford = cash >= cost
 

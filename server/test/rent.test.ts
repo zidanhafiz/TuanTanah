@@ -19,10 +19,10 @@ describe('computeRent — property track', () => {
     expect(computeRent(state, 1)).toBe(0)
   })
 
-  it('charges the region rent base at tier 0', () => {
+  it('charges the tier-1 property rate (half rentBase) for bare owned land at tier 0', () => {
     const { state, players } = makeGame(2)
     own(state, 1, players[0]!.id)
-    expect(computeRent(state, 1)).toBe(PAPUA.rentBase)
+    expect(computeRent(state, 1)).toBe(Math.round(PAPUA.rentBase * PROPERTY_TIERS[0]!.rentMult))
   })
 
   it('charges the flat tier-1 rent price for property tiers 1–4', () => {
@@ -54,39 +54,37 @@ describe('computeRent — region full-set bonus', () => {
   it('doubles rent when the owner holds every tile in the region', () => {
     const { state, players } = makeGame(2)
     const owner = players[0]!.id
-    // Bare Bali tiles: the land-only discount applies before the set bonus.
+    // Bare tiles rent at the tier-1 property rate; the set bonus applies on top.
     for (const id of BALI.tileIds) own(state, id, owner)
-    const land = BALI.rentBase * (BALI.landRentMult ?? 1)
-    expect(computeRent(state, 31)).toBe(land * REGION_SET_RENT_MULTIPLIER)
+    const land = BALI.rentBase * PROPERTY_TIERS[0]!.rentMult
+    expect(computeRent(state, 31)).toBe(Math.round(land * REGION_SET_RENT_MULTIPLIER))
   })
 
   it('does not apply the bonus when the set is incomplete', () => {
     const { state, players } = makeGame(2)
     own(state, 31, players[0]!.id) // owns only 1 of bali's 2 tiles
-    expect(computeRent(state, 31)).toBe(BALI.rentBase * (BALI.landRentMult ?? 1))
+    expect(computeRent(state, 31)).toBe(Math.round(BALI.rentBase * PROPERTY_TIERS[0]!.rentMult))
   })
 })
 
-describe('computeRent — bare-land discount (premium regions)', () => {
-  it('discounts tier-0 rent by landRentMult on a premium region', () => {
+describe('computeRent — bare owned land', () => {
+  it('rents tier-0 land at the tier-1 property rate (half rentBase) on a premium region', () => {
     const { state, players } = makeGame(2)
     own(state, 31, players[0]!.id) // Bali, bare land
-    expect(BALI.landRentMult).toBe(0.6)
-    expect(computeRent(state, 31)).toBe(Math.round(BALI.rentBase * BALI.landRentMult!))
+    expect(computeRent(state, 31)).toBe(Math.round(BALI.rentBase * PROPERTY_TIERS[0]!.rentMult))
   })
 
-  it('does not discount once a building is added', () => {
+  it('uses the same tier-1 property rate on a non-premium region', () => {
+    const { state, players } = makeGame(2)
+    own(state, 1, players[0]!.id) // Papua, bare land
+    expect(computeRent(state, 1)).toBe(Math.round(PAPUA.rentBase * PROPERTY_TIERS[0]!.rentMult))
+  })
+
+  it('switches to the building rate once a building is added', () => {
     const { state, players } = makeGame(2)
     own(state, 31, players[0]!.id, { track: 'house', tier: 1 })
-    // Tier 1 house => full rentBase × tier mult, no land discount.
+    // Tier 1 house => full rentBase × tier mult, no land rate.
     expect(computeRent(state, 31)).toBe(BALI.rentBase * HOUSE_TIERS[0]!.rentMult)
-  })
-
-  it('leaves non-premium regions at full rentBase when bare', () => {
-    const { state, players } = makeGame(2)
-    own(state, 1, players[0]!.id) // Papua, no landRentMult
-    expect(PAPUA.landRentMult).toBeUndefined()
-    expect(computeRent(state, 1)).toBe(PAPUA.rentBase)
   })
 })
 
@@ -141,7 +139,9 @@ describe('computeRent — active effects', () => {
     const { state, players } = makeGame(2)
     own(state, 1, players[0]!.id)
     addEffect(state, { type: 'rent_multiplier', targetTileIds: [1], multiplier: 0.5 })
-    expect(computeRent(state, 1)).toBe(PAPUA.rentBase * 0.5)
+    expect(computeRent(state, 1)).toBe(
+      Math.round(PAPUA.rentBase * PROPERTY_TIERS[0]!.rentMult * 0.5),
+    )
   })
 
   it('multiplies transport rent by a transport_multiplier effect', () => {

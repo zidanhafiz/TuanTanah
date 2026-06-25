@@ -613,9 +613,9 @@ export function computeRent(state: GameState, tileId: TileId): RupiahAmount {
       mult = PROPERTY_TIERS[rentIdx]?.rentMult ?? 1
     }
   } else {
-    // Bare, unbuilt land: some regions discount the landing rent (e.g. premium
-    // regions, so undeveloped land isn't punishing). Defaults to full rentBase.
-    mult = REGIONS[region].landRentMult ?? 1
+    // Bare, unbuilt owned land rents at the Tier-1 property rate (half rentBase),
+    // uniform across regions — so undeveloped land isn't as costly as a built house.
+    mult = PROPERTY_TIERS[0].rentMult
   }
   let rent = base * mult * tile.priceMultiplier
   if (ownsFullRegion(state, tile.ownerId, region)) rent *= REGION_SET_RENT_MULTIPLIER
@@ -750,7 +750,7 @@ export function sellProperty(state: GameState, playerId: string, tileId: TileId)
   if (!tile) throw new EngineError('Invalid tile')
   if (tile.ownerId !== player.id) throw new EngineError("You don't own that tile")
 
-  const refund = Math.round(tileValue(tile) * SELL_REFUND_RATE)
+  const refund = Math.round(tileValue(state, tile) * SELL_REFUND_RATE)
   player.cash += refund
   state.bank -= refund
   tile.ownerId = null
@@ -908,7 +908,7 @@ export function startLawOfficeAuction(state: GameState, playerId: string, tileId
   const owner = state.players.find((p) => p.id === tile.ownerId)
   if (!owner || owner.isEliminated) throw new EngineError('That tile has no active owner')
 
-  const openingBid = Math.round(tileValue(tile) * LAW_OFFICE_TRANSFER_RATE)
+  const openingBid = Math.round(tileValue(state, tile) * LAW_OFFICE_TRANSFER_RATE)
   if (player.cash < openingBid) throw new EngineError('Not enough cash for the opening bid')
 
   state.pendingAuction = {
@@ -1056,8 +1056,10 @@ export function lawOfficeFreepass(state: GameState, playerId: string, pass: Pass
 
 /**
  * Kantor Hukum: permanently boost an owned tile's price by a ×2–×5 multiplier.
- * Cost = current tileValue × multiplier (paid to the bank). The boost stacks
- * multiplicatively and scales the tile's rent, passive income, and market value
+ * Cost = selected tile's current tileValue × multiplier (paid to the bank). For a
+ * property tile the boost applies to every tile the player owns in that region; for
+ * transport and Lahan Kosong (no region) it applies only to the selected tile. The
+ * boost stacks multiplicatively and scales rent, passive income, and market value
  * (sell refund / force-transfer price) — a comeback lever for cheap-region owners.
  */
 export function lawOfficePriceUpgrade(
@@ -1082,15 +1084,25 @@ export function lawOfficePriceUpgrade(
   if (def.type !== 'property' && def.type !== 'transport' && def.type !== 'buildable_land') {
     throw new EngineError('That tile cannot be upgraded')
   }
-  const cost = Math.round(tileValue(tile) * multiplier)
+  const cost = Math.round(tileValue(state, tile) * multiplier)
   if (player.cash < cost) throw new EngineError('Not enough cash to upgrade the tile price')
   player.cash -= cost
   state.bank += cost
-  tile.priceMultiplier *= multiplier
+  // A property upgrade boosts every tile the player owns in that region; transport and
+  // Lahan Kosong (which have no region) only boost the single selected tile.
+  if (def.type === 'property' && def.region) {
+    for (const tid of REGIONS[def.region].tileIds) {
+      const rt = state.tiles[tid]
+      if (rt && rt.ownerId === player.id) rt.priceMultiplier *= multiplier
+    }
+  } else {
+    tile.priceMultiplier *= multiplier
+  }
   state.turn.pendingLawOffice = false
+  const scope = def.type === 'property' && def.region ? ' across the region' : ''
   pushLog(
     state,
-    `${player.name} boosted ${def.name} price ×${multiplier} (now ×${tile.priceMultiplier}) for ${rupiah(cost)}`,
+    `${player.name} boosted ${def.name} price ×${multiplier} (now ×${tile.priceMultiplier})${scope} for ${rupiah(cost)}`,
     player.id,
   )
 }
