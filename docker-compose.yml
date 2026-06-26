@@ -26,12 +26,12 @@ services:
     env_file: .env
     environment:
       - REDIS_URL=redis://redis:6379
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_KEY=${SUPABASE_SERVICE_KEY}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-tuan}:${POSTGRES_PASSWORD:-tuan}@postgres:5432/${POSTGRES_DB:-tuan_tanah}
       - NODE_ENV=production
       - PORT=3000
     depends_on:
       - redis
+      - postgres
     restart: unless-stopped
 
   redis:
@@ -41,7 +41,18 @@ services:
     command: redis-server --appendonly yes
     restart: unless-stopped
 
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-tuan}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-tuan}
+      - POSTGRES_DB=${POSTGRES_DB:-tuan_tanah}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
 volumes:
   redis_data:
+  postgres_data:
   caddy_data:
   caddy_config:

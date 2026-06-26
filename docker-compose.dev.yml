@@ -1,6 +1,8 @@
-# Local development helper — runs ONLY Redis in a container.
+# Local development helper — runs Redis + Postgres in containers.
 # Frontend + backend run on the host via `pnpm dev`.
-#   docker compose -f docker-compose.dev.yml up -d redis
+#   docker compose -f docker-compose.dev.yml up -d
+# Then point the server at Postgres and apply migrations:
+#   DATABASE_URL=postgres://tuan:tuan@localhost:5432/tuan_tanah pnpm --filter server migrate
 services:
   redis:
     image: redis:7-alpine
@@ -11,5 +13,18 @@ services:
     command: redis-server --appendonly yes
     restart: unless-stopped
 
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=tuan
+      - POSTGRES_PASSWORD=tuan
+      - POSTGRES_DB=tuan_tanah
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
 volumes:
   redis_dev_data:
+  postgres_dev_data:

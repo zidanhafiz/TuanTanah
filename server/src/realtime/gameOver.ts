@@ -5,7 +5,7 @@
 import { finalStandings, resolveGameOver } from '../engine/index.js'
 import { mutateRoom } from '../rooms/rooms.js'
 import type { GameStore } from '../rooms/store.js'
-import { persistGameResult } from '../supabase.js'
+import { persistGameResult } from '../persistence/gameHistory.js'
 import { clearAfkTimer } from './afk.js'
 import { broadcastState, type TTServer } from './common.js'
 
@@ -37,7 +37,7 @@ export async function concludeIfWon(io: TTServer, store: GameStore, roomId: stri
     winner: state.winner,
     finalStandings: finalStandings(state),
   })
-  // Fire-and-forget: archive completed-game stats (no-op unless Supabase is set).
+  // Fire-and-forget: archive completed-game stats (no-op unless DATABASE_URL is set).
   await persistGameResult(state, now)
 }
 

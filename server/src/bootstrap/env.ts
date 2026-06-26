@@ -3,8 +3,8 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: Number(process.env.PORT ?? 3000),
   redisUrl: process.env.REDIS_URL?.trim() || '',
-  supabaseUrl: process.env.SUPABASE_URL?.trim() || '',
-  supabaseKey: process.env.SUPABASE_SERVICE_KEY?.trim() || '',
+  // Postgres for durable game-history archival. Blank = persistence no-ops.
+  databaseUrl: process.env.DATABASE_URL?.trim() || '',
   roomTtlHours: Number(process.env.ROOM_TTL_HOURS ?? 24),
   // Allowed CORS origins for the client.
   corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
