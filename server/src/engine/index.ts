@@ -27,15 +27,19 @@ import {
   REGION_SET_RENT_MULTIPLIER,
   RINJANI_FEE,
   RINJANI_TILE_ID,
+  rpP,
   SELL_REFUND_RATE,
   STARTING_CASH_DEFAULT,
   STARTING_CASH_MAX,
   STARTING_CASH_MIN,
   TARGET_WEALTH_MAX,
   TARGET_WEALTH_MIN,
+  tierP,
+  tileP,
   TIME_LIMIT_OPTIONS,
   TRANSPORT_BUY_PRICE,
   TRANSPORT_RENT,
+  landTierP,
 } from '@tuan-tanah/shared'
 import type {
   GameState,
@@ -61,9 +65,25 @@ import {
 } from './effects.js'
 import { buildCostMultiplier, buyPriceMultiplier, salaryFor, taxMultiplier } from './roles.js'
 import { advanceTurn, collectPassiveIncome, startTurn } from './turn.js'
-import { defaultRng, pushLog, shuffle, uid, type Rng } from './util.js'
+import { renderErrorEn } from './messages.js'
+import { defaultRng, logKey, pushLog, shuffle, uid, type Rng } from './util.js'
+import type { LogParams } from '@tuan-tanah/shared'
 
-export class EngineError extends Error {}
+/**
+ * Thrown on invalid actions; handlers turn it into a socket `error` event. The
+ * `.message` is the English fallback. Prefer passing a localizable `code` (+
+ * `params`) so the client can show the error in the viewer's language; a plain
+ * string still works and renders verbatim (unknown code → itself).
+ */
+export class EngineError extends Error {
+  readonly code: string
+  readonly params?: LogParams
+  constructor(code: string, params?: LogParams) {
+    super(renderErrorEn(code, params))
+    this.code = code
+    this.params = params
+  }
+}
 
 export const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString('id-ID')}`
 
@@ -117,8 +137,8 @@ export function createGameState(roomId: string, now: number): GameState {
 }
 
 export function addPlayer(state: GameState, name: string): Player {
-  if (state.phase !== 'lobby') throw new EngineError('Game already started')
-  if (state.players.length >= MAX_PLAYERS) throw new EngineError('Room is full')
+  if (state.phase !== 'lobby') throw new EngineError('core.gameAlreadyStarted')
+  if (state.players.length >= MAX_PLAYERS) throw new EngineError('core.roomFull')
   const trimmed = name.trim().slice(0, 20) || `Player ${state.players.length + 1}`
   const player: Player = {
     id: uid(),
@@ -141,13 +161,13 @@ export function addPlayer(state: GameState, name: string): Player {
     afkStrikes: 0,
   }
   state.players.push(player)
-  pushLog(state, `${player.name} joined the room`, player.id)
+  logKey(state, 'core.joinedRoom', { name: player.name }, player.id)
   return player
 }
 
 export function getPlayer(state: GameState, playerId: string): Player {
   const p = state.players.find((x) => x.id === playerId)
-  if (!p) throw new EngineError('Player not in room')
+  if (!p) throw new EngineError('core.playerNotInRoom')
   return p
 }
 
@@ -160,18 +180,18 @@ export function removePlayer(state: GameState, playerId: string): void {
   const idx = state.players.findIndex((x) => x.id === playerId)
   if (idx === -1) return
   const [removed] = state.players.splice(idx, 1)
-  if (removed) pushLog(state, `${removed.name} left the room`)
+  if (removed) logKey(state, 'core.leftRoom', { name: removed.name })
   // Reassign room master if needed.
   if (removed?.isRoomMaster && state.players[0]) state.players[0].isRoomMaster = true
 }
 
 export function pickRole(state: GameState, playerId: string, role: Role | null): void {
-  if (state.phase !== 'lobby') throw new EngineError('Cannot change role after start')
+  if (state.phase !== 'lobby') throw new EngineError('core.cannotChangeRoleAfterStart')
   const player = getPlayer(state, playerId)
   if (role !== null) {
-    if (!state.settings.enabledRoles.includes(role)) throw new EngineError('Role is disabled')
+    if (!state.settings.enabledRoles.includes(role)) throw new EngineError('core.roleDisabled')
     const taken = state.players.some((p) => p.id !== playerId && p.role === role)
-    if (taken) throw new EngineError('Role already taken')
+    if (taken) throw new EngineError('core.roleTaken')
   }
   player.role = role
 }
@@ -181,9 +201,9 @@ export function updateSettings(
   playerId: string,
   partial: Partial<RoomSettings>,
 ): void {
-  if (state.phase !== 'lobby') throw new EngineError('Cannot change settings after start')
+  if (state.phase !== 'lobby') throw new EngineError('core.cannotChangeSettingsAfterStart')
   const player = getPlayer(state, playerId)
-  if (!player.isRoomMaster) throw new EngineError('Only the room master can change settings')
+  if (!player.isRoomMaster) throw new EngineError('core.notRoomMaster')
   const next = { ...state.settings, ...partial }
   if (partial.startingCash !== undefined) {
     next.startingCash = Math.min(
@@ -193,7 +213,7 @@ export function updateSettings(
   }
   if (partial.winCondition !== undefined) {
     if (!['time', 'wealth', 'both'].includes(partial.winCondition)) {
-      throw new EngineError('Invalid win condition')
+      throw new EngineError('core.invalidWinCondition')
     }
   }
   if (partial.targetWealth !== undefined) {
@@ -204,15 +224,15 @@ export function updateSettings(
   }
   if (partial.timeLimitMinutes !== undefined) {
     if (!TIME_LIMIT_OPTIONS.includes(partial.timeLimitMinutes)) {
-      throw new EngineError('Invalid time limit')
+      throw new EngineError('core.invalidTimeLimit')
     }
   }
   if (partial.enabledRoles) {
-    if (!Array.isArray(partial.enabledRoles)) throw new EngineError('Invalid roles')
+    if (!Array.isArray(partial.enabledRoles)) throw new EngineError('core.invalidRoles')
     // Reject unknown role ids and de-dupe, so a crafted client can't inject
     // arbitrary strings into shared state.
     const valid = [...new Set(partial.enabledRoles)].filter((r) => ALL_ROLES.includes(r))
-    if (valid.length === 0) throw new EngineError('At least one role must be enabled')
+    if (valid.length === 0) throw new EngineError('core.atLeastOneRole')
     next.enabledRoles = valid
     // Unpick any roles that became disabled.
     for (const p of state.players) {
@@ -226,12 +246,12 @@ export function updateSettings(
 }
 
 export function startGame(state: GameState, playerId: string, rng: Rng = defaultRng): void {
-  if (state.phase !== 'lobby') throw new EngineError('Game already started')
+  if (state.phase !== 'lobby') throw new EngineError('core.gameAlreadyStarted')
   const player = getPlayer(state, playerId)
-  if (!player.isRoomMaster) throw new EngineError('Only the room master can start')
+  if (!player.isRoomMaster) throw new EngineError('core.notRoomMasterStart')
   const active = state.players.filter((p) => p.isConnected)
-  if (active.length < MIN_PLAYERS) throw new EngineError('Need at least 2 players')
-  if (active.some((p) => p.role === null)) throw new EngineError('All players must pick a role')
+  if (active.length < MIN_PLAYERS) throw new EngineError('core.needMorePlayers')
+  if (active.some((p) => p.role === null)) throw new EngineError('core.playersNeedRole')
 
   state.phase = 'playing'
   state.round = 1
@@ -256,19 +276,19 @@ export function startGame(state: GameState, playerId: string, rng: Rng = default
     rng,
   )
   state.startedAt = state.updatedAt
-  pushLog(state, 'Game started!')
+  logKey(state, 'core.gameStarted')
   startTurn(state)
 }
 
 // ---- In-game actions ----
 
 export function requireTurn(state: GameState, playerId: string): Player {
-  if (state.phase !== 'playing') throw new EngineError('Game is not in progress')
+  if (state.phase !== 'playing') throw new EngineError('core.gameNotInProgress')
   const current = state.players[state.currentPlayerIndex]
-  if (!current || current.id !== playerId) throw new EngineError('Not your turn')
-  if (current.isEliminated) throw new EngineError('You have been eliminated')
+  if (!current || current.id !== playerId) throw new EngineError('core.notYourTurn')
+  if (current.isEliminated) throw new EngineError('core.eliminated')
   if (state.pendingDebts.length > 0) {
-    throw new EngineError('Resolve outstanding debts before continuing')
+    throw new EngineError('core.hasPendingDebts')
   }
   return current
 }
@@ -279,13 +299,13 @@ export function requireTurn(state: GameState, playerId: string): Player {
  * raise the cash even when it isn't their turn.
  */
 export function requireDebtorOrTurn(state: GameState, playerId: string): Player {
-  if (state.phase !== 'playing') throw new EngineError('Game is not in progress')
+  if (state.phase !== 'playing') throw new EngineError('core.gameNotInProgress')
   const player = state.players.find((p) => p.id === playerId)
-  if (!player) throw new EngineError('Player not found')
-  if (player.isEliminated) throw new EngineError('You have been eliminated')
+  if (!player) throw new EngineError('core.playerNotFound')
+  if (player.isEliminated) throw new EngineError('core.eliminated')
   const isTurn = state.players[state.currentPlayerIndex]?.id === playerId
   const hasDebt = state.pendingDebts.some((d) => d.debtorId === playerId)
-  if (!isTurn && !hasDebt) throw new EngineError('Not your turn')
+  if (!isTurn && !hasDebt) throw new EngineError('core.notYourTurn')
   return player
 }
 
@@ -311,7 +331,7 @@ export function rollDice(state: GameState, playerId: string, rng: Rng = defaultR
   // move-granting double. Jail-escape and three-doubles both clear rolledDoubles,
   // so they fall through to this guard and reject a re-roll.
   if (state.turn.hasRolled && !state.turn.rolledDoubles) {
-    throw new EngineError('Already rolled this turn')
+    throw new EngineError('core.alreadyRolled')
   }
   // Rolling proves the player is present: clear any consecutive AFK strikes.
   player.afkStrikes = 0
@@ -323,11 +343,11 @@ export function rollDice(state: GameState, playerId: string, rng: Rng = defaultR
   state.turn.hasRolled = true
   state.turn.lastDice = [d1, d2]
   state.turn.rolledDoubles = doubles
-  pushLog(
-    state,
-    `${player.name} rolled ${d1} + ${d2} = ${d1 + d2}${doubles ? ' (doubles!)' : ''}`,
-    player.id,
-  )
+  if (doubles) {
+    logKey(state, 'core.rolledDoubles', { name: player.name, d1, d2, total: d1 + d2 }, player.id)
+  } else {
+    logKey(state, 'core.rolled', { name: player.name, d1, d2, total: d1 + d2 }, player.id)
+  }
 
   if (wasInJail) {
     if (doubles) {
@@ -336,16 +356,17 @@ export function rollDice(state: GameState, playerId: string, rng: Rng = defaultR
       // Escaping jail via doubles does NOT grant an extra roll, so clear the flag
       // and leave doublesCount untouched. They still move on the escaping roll.
       state.turn.rolledDoubles = false
-      pushLog(state, `${player.name} rolled doubles and escaped jail`, player.id)
+      logKey(state, 'core.escapedJailDoubles', { name: player.name }, player.id)
     } else {
       player.jailTurnsLeft -= 1
       if (player.jailTurnsLeft <= 0) {
         player.inJail = false
-        pushLog(state, `${player.name} served their time and is released`, player.id)
+        logKey(state, 'core.releasedFromJail', { name: player.name }, player.id)
       } else {
-        pushLog(
+        logKey(
           state,
-          `${player.name} stays in jail (${player.jailTurnsLeft} turn(s) left)`,
+          'core.staysInJail',
+          { name: player.name, count: player.jailTurnsLeft },
           player.id,
         )
       }
@@ -356,7 +377,7 @@ export function rollDice(state: GameState, playerId: string, rng: Rng = defaultR
     if (state.turn.doublesCount >= 3) {
       // Three doubles in a row: straight to jail without moving, and no re-roll.
       state.turn.rolledDoubles = false
-      pushLog(state, `${player.name} rolled three doubles in a row — straight to jail!`, player.id)
+      logKey(state, 'core.threeDoubles', { name: player.name }, player.id)
       sendToJail(state, player)
       return { dice: [d1, d2] }
     }
@@ -382,7 +403,7 @@ export function devTeleport(
 ): RollResult {
   const player = requireTurn(state, playerId)
   if (!Number.isInteger(tileId) || tileId < 0 || tileId >= BOARD_SIZE) {
-    throw new EngineError('Invalid tile')
+    throw new EngineError('core.invalidTile')
   }
   player.position = tileId
   state.turn.hasRolled = true
@@ -405,7 +426,7 @@ function movePlayer(
     const salary = salaryFor(player)
     player.cash += salary
     state.bank -= salary
-    pushLog(state, `${player.name} passed GO (+${rupiah(salary)} salary)`, player.id)
+    logKey(state, 'core.passedGo', { name: player.name, amount: rpP(salary) }, player.id)
     // A new lap: refresh the meta-action allowance, and mark loan interest due
     // (charged at the start of their next turn, off the movement/debt path).
     player.metaActionsUsed = []
@@ -445,19 +466,34 @@ function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): T
       const tile = state.tiles[player.position]!
       if (tile.ownerId === null) {
         state.turn.pendingBuyTileId = player.position
-        pushLog(state, `${player.name} landed on ${def.name} (unowned)`, player.id)
+        logKey(
+          state,
+          'core.landedUnowned',
+          { name: player.name, tile: tileP(player.position) },
+          player.id,
+        )
       } else if (tile.ownerId !== player.id) {
         const rent = computeRent(state, player.position)
         const paid = payRent(state, player, tile.ownerId, rent, player.position)
         return paid ? { rent: paid } : {}
       } else {
-        pushLog(state, `${player.name} landed on their own ${def.name}`, player.id)
+        logKey(
+          state,
+          'core.landedOwn',
+          { name: player.name, tile: tileP(player.position) },
+          player.id,
+        )
       }
       return {}
     }
     case 'tax': {
       if (consumeOwnedCard(player, 'tax_free')) {
-        pushLog(state, `${player.name} used a tax-free pass on ${def.name}`, player.id)
+        logKey(
+          state,
+          'core.taxFreePass',
+          { name: player.name, tile: tileP(player.position) },
+          player.id,
+        )
         return {}
       }
       const percent = def.taxPercent ?? 0
@@ -483,7 +519,12 @@ function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): T
       const tile = state.tiles[player.position]!
       if (tile.ownerId === null) {
         state.turn.pendingBuyTileId = player.position
-        pushLog(state, `${player.name} landed on ${def.name} (unowned)`, player.id)
+        logKey(
+          state,
+          'core.landedUnowned',
+          { name: player.name, tile: tileP(player.position) },
+          player.id,
+        )
       } else if (tile.ownerId !== player.id && tile.landBuild && tile.tier >= 1) {
         const paid = payRent(
           state,
@@ -494,7 +535,12 @@ function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): T
         )
         return paid ? { rent: paid } : {}
       } else {
-        pushLog(state, `${player.name} landed on ${def.name}`, player.id)
+        logKey(
+          state,
+          'core.landedOn',
+          { name: player.name, tile: tileP(player.position) },
+          player.id,
+        )
       }
       return {}
     }
@@ -502,7 +548,12 @@ function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): T
       // Defer to the player's choice: they pick one legal action (or skip) via a
       // dedicated event while `pendingLawOffice` is set.
       state.turn.pendingLawOffice = true
-      pushLog(state, `${player.name} arrived at ${def.name}`, player.id)
+      logKey(
+        state,
+        'core.arrivedAt',
+        { name: player.name, tile: tileP(player.position) },
+        player.id,
+      )
       return {}
     }
     case 'vacation': {
@@ -510,11 +561,11 @@ function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): T
       return {}
     }
     case 'go':
-      pushLog(state, `${player.name} landed on GO`, player.id)
+      logKey(state, 'core.landedGo', { name: player.name }, player.id)
       return {}
     case 'jail_visit':
     default:
-      pushLog(state, `${player.name} landed on ${def.name}`, player.id)
+      logKey(state, 'core.landedOn', { name: player.name, tile: tileP(player.position) }, player.id)
       return {}
   }
 }
@@ -525,11 +576,7 @@ function resolveTile(state: GameState, player: Player, rng: Rng = defaultRng): T
  * salary. A player who can't pay raises a pending debt via `charge`.
  */
 function resolveRinjani(state: GameState, lander: Player): void {
-  pushLog(
-    state,
-    `${lander.name} reached Gunung Rinjani — everyone is summoned to the mountain!`,
-    lander.id,
-  )
+  logKey(state, 'core.rinjani', { name: lander.name }, lander.id)
   for (const p of state.players) {
     if (p.isEliminated || p.inJail) continue
     p.position = RINJANI_TILE_ID
@@ -539,13 +586,13 @@ function resolveRinjani(state: GameState, lander: Player): void {
 
 export function sendToJail(state: GameState, player: Player): void {
   if (consumeOwnedCard(player, 'jail_free')) {
-    pushLog(state, `${player.name} used a jail-free pass and avoided jail`, player.id)
+    logKey(state, 'core.jailFreePass', { name: player.name }, player.id)
     return
   }
   player.position = JAIL_TILE_ID
   player.inJail = true
   player.jailTurnsLeft = JAIL_DURATION_TURNS
-  pushLog(state, `${player.name} was sent to jail`, player.id)
+  logKey(state, 'core.sentToJail', { name: player.name }, player.id)
 }
 
 function payRent(
@@ -559,18 +606,18 @@ function payRent(
   if (!owner) return null
   // A jailed owner collects no rent — the lander passes through free of charge.
   if (owner.inJail) {
-    pushLog(state, `${owner.name} is in jail — no rent due on ${getTileDef(tileId).name}`, payer.id)
+    logKey(state, 'core.ownerInJail', { owner: owner.name, tile: tileP(tileId) }, payer.id)
     return null
   }
   // An accepted rent-immunity deal waives this rent entirely (no charge, no Investor cut).
   if (hasRentImmunity(state, payer.id, tileId)) {
-    pushLog(state, `${payer.name} is immune from rent on ${getTileDef(tileId).name}`, payer.id)
+    logKey(state, 'core.rentImmune', { name: payer.name, tile: tileP(tileId) }, payer.id)
     return null
   }
   if (amount <= 0) return null
   // A held rent-free pass waives this rent entirely, same as immunity.
   if (consumeOwnedCard(payer, 'rent_free')) {
-    pushLog(state, `${payer.name} used a rent-free pass on ${getTileDef(tileId).name}`, payer.id)
+    logKey(state, 'core.rentFreePass', { name: payer.name, tile: tileP(tileId) }, payer.id)
     return null
   }
 
@@ -628,11 +675,11 @@ export function computeRent(state: GameState, tileId: TileId): RupiahAmount {
 export function buyTile(state: GameState, player: Player, tileId: TileId): void {
   const def = getTileDef(tileId)
   if (def.type !== 'property' && def.type !== 'transport' && def.type !== 'buildable_land') {
-    throw new EngineError('That tile cannot be bought')
+    throw new EngineError('core.tileNotBuyable')
   }
   const tile = state.tiles[tileId]
-  if (!tile) throw new EngineError('Invalid tile')
-  if (tile.ownerId !== null) throw new EngineError('Tile already owned')
+  if (!tile) throw new EngineError('core.invalidTile')
+  if (tile.ownerId !== null) throw new EngineError('core.tileAlreadyOwned')
 
   // Lahan Kosong is a flat-priced bare plot (no region, no Sales discount); other
   // buyable tiles use their region/transport price with role discounts applied.
@@ -643,7 +690,7 @@ export function buyTile(state: GameState, player: Player, tileId: TileId): void 
     const basePrice = def.type === 'transport' ? TRANSPORT_BUY_PRICE : REGIONS[def.region!].buyPrice
     price = Math.round(basePrice * buyPriceMultiplier(player))
   }
-  if (player.cash < price) throw new EngineError('Not enough cash')
+  if (player.cash < price) throw new EngineError('core.notEnoughCash')
 
   player.cash -= price
   state.bank += price
@@ -653,13 +700,18 @@ export function buyTile(state: GameState, player: Player, tileId: TileId): void 
   tile.builderId = null
   tile.landBuild = null
   tile.priceMultiplier = 1
-  pushLog(state, `${player.name} bought ${def.name} for ${rupiah(price)}`, player.id)
+  logKey(
+    state,
+    'core.boughtTile',
+    { name: player.name, tile: tileP(tileId), amount: rpP(price) },
+    player.id,
+  )
 }
 
 export function buyProperty(state: GameState, playerId: string, tileId: TileId): void {
   const player = requireTurn(state, playerId)
   if (state.turn.pendingBuyTileId !== tileId) {
-    throw new EngineError('You can only buy the tile you just landed on')
+    throw new EngineError('core.canOnlyBuyLandedTile')
   }
   buyTile(state, player, tileId)
   state.turn.pendingBuyTileId = null
@@ -680,18 +732,18 @@ export function upgradeProperty(
   const player = requireTurn(state, playerId)
   const def = getTileDef(tileId)
   if (def.type !== 'property' || !def.region) {
-    throw new EngineError('Only property tiles can be developed')
+    throw new EngineError('core.notPropertyTile')
   }
   const tile = state.tiles[tileId]
-  if (!tile || tile.ownerId === null) throw new EngineError('That tile is not owned')
+  if (!tile || tile.ownerId === null) throw new EngineError('core.tileNotOwned')
 
   const isOwn = tile.ownerId === player.id
   const isKontraktorBuild = !isOwn && player.role === 'kontraktor'
-  if (!isOwn && !isKontraktorBuild) throw new EngineError("You don't own that tile")
+  if (!isOwn && !isKontraktorBuild) throw new EngineError('core.notYourTile')
 
   // Optional room rule: the tile owner must own the whole region before building.
   if (state.settings.requireFullRegionToBuild && !ownsFullRegion(state, tile.ownerId, def.region)) {
-    throw new EngineError('You must own the whole region before building here')
+    throw new EngineError('core.needFullRegion')
   }
 
   // No per-turn upgrade cap: a player may develop as many tiers as cash allows.
@@ -699,15 +751,15 @@ export function upgradeProperty(
   // First build picks + locks the track; later builds must stay on it.
   let activeTrack = tile.track
   if (tile.tier === 0) {
-    if (!track) throw new EngineError('Choose a track (house or property) for the first build')
+    if (!track) throw new EngineError('core.chooseTrack')
     activeTrack = track
   } else if (track && track !== tile.track) {
-    throw new EngineError('This tile is already locked to the other track')
+    throw new EngineError('core.trackLocked')
   }
-  if (!activeTrack) throw new EngineError('Choose a track for the first build')
+  if (!activeTrack) throw new EngineError('core.chooseTrackFirst')
 
   const tiers = activeTrack === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
-  if (tile.tier >= tiers.length) throw new EngineError('This tile is already at its top tier')
+  if (tile.tier >= tiers.length) throw new EngineError('core.topTier')
 
   const nextTier = tile.tier + 1
   const tierDef = tiers[nextTier - 1]!
@@ -719,7 +771,7 @@ export function upgradeProperty(
       buildCostMultiplier(player) *
       tile.priceMultiplier,
   )
-  if (player.cash < cost) throw new EngineError('Not enough cash to build')
+  if (player.cash < cost) throw new EngineError('core.notEnoughCashBuild')
 
   player.cash -= cost
   state.bank += cost
@@ -729,15 +781,28 @@ export function upgradeProperty(
 
   if (isKontraktorBuild) {
     const owner = state.players.find((p) => p.id === tile.ownerId)
-    pushLog(
+    logKey(
       state,
-      `${player.name} built ${tierDef.name} on ${owner?.name ?? 'a'}'s ${def.name} for ${rupiah(cost)} (earns a rent cut)`,
+      'core.kontraktorBuilt',
+      {
+        name: player.name,
+        tier: tierP(activeTrack!, nextTier),
+        owner: owner?.name ?? 'a',
+        tile: tileP(tileId),
+        amount: rpP(cost),
+      },
       player.id,
     )
   } else {
-    pushLog(
+    logKey(
       state,
-      `${player.name} upgraded ${def.name} to ${tierDef.name} for ${rupiah(cost)}`,
+      'core.upgradedTile',
+      {
+        name: player.name,
+        tile: tileP(tileId),
+        tier: tierP(activeTrack!, nextTier),
+        amount: rpP(cost),
+      },
       player.id,
     )
   }
@@ -748,8 +813,8 @@ export function sellProperty(state: GameState, playerId: string, tileId: TileId)
   // Allowed on your turn, or out of turn while you owe a debt (to raise cash).
   const player = requireDebtorOrTurn(state, playerId)
   const tile = state.tiles[tileId]
-  if (!tile) throw new EngineError('Invalid tile')
-  if (tile.ownerId !== player.id) throw new EngineError("You don't own that tile")
+  if (!tile) throw new EngineError('core.invalidTile')
+  if (tile.ownerId !== player.id) throw new EngineError('core.notYourTile')
 
   const refund = Math.round(tileValue(state, tile) * SELL_REFUND_RATE)
   player.cash += refund
@@ -760,9 +825,10 @@ export function sellProperty(state: GameState, playerId: string, tileId: TileId)
   tile.builderId = null
   tile.landBuild = null
   tile.priceMultiplier = 1
-  pushLog(
+  logKey(
     state,
-    `${player.name} sold ${getTileDef(tileId).name} back to the bank for ${rupiah(refund)}`,
+    'core.soldTile',
+    { name: player.name, tile: tileP(tileId), amount: rpP(refund) },
     player.id,
   )
   // If this covered a pending debt, settle it (and advance off an eliminated turn).
@@ -779,23 +845,31 @@ export function downgradeProperty(state: GameState, playerId: string, tileId: Ti
   const player = requireDebtorOrTurn(state, playerId)
   const def = getTileDef(tileId)
   const tile = state.tiles[tileId]
-  if (!tile) throw new EngineError('Invalid tile')
-  if (tile.ownerId !== player.id) throw new EngineError("You don't own that tile")
-  if (tile.tier < 1) throw new EngineError('Nothing to downgrade')
+  if (!tile) throw new EngineError('core.invalidTile')
+  if (tile.ownerId !== player.id) throw new EngineError('core.notYourTile')
+  if (tile.tier < 1) throw new EngineError('core.nothingToDowngrade')
 
   // Lahan Kosong: drop one business tier; refund SELL_REFUND_RATE of its build cost.
   if (def.type === 'buildable_land') {
-    if (!tile.landBuild) throw new EngineError('Nothing to downgrade')
-    const tierDef = landTier(tile.landBuild, tile.tier)
-    if (!tierDef) throw new EngineError('Nothing to downgrade')
+    if (!tile.landBuild) throw new EngineError('core.nothingToDowngrade')
+    const savedBusiness = tile.landBuild
+    const savedLandTier = tile.tier
+    const tierDef = landTier(savedBusiness, savedLandTier)
+    if (!tierDef) throw new EngineError('core.nothingToDowngrade')
     const refund = Math.round(tierDef.buildCost * SELL_REFUND_RATE * tile.priceMultiplier)
     player.cash += refund
     state.bank -= refund
     tile.tier -= 1
     if (tile.tier === 0) tile.landBuild = null
-    pushLog(
+    logKey(
       state,
-      `${player.name} downgraded ${tierDef.name} on ${def.name} for ${rupiah(refund)}`,
+      'core.downgradedLand',
+      {
+        name: player.name,
+        tier: landTierP(savedBusiness, savedLandTier),
+        tile: tileP(tileId),
+        amount: rpP(refund),
+      },
       player.id,
     )
     // If this covered a pending debt, settle it (and advance off an eliminated turn).
@@ -804,11 +878,13 @@ export function downgradeProperty(state: GameState, playerId: string, tileId: Ti
   }
 
   if (def.type !== 'property' || !def.region) {
-    throw new EngineError('Only property tiles can be downgraded')
+    throw new EngineError('core.notPropertyTileDowngrade')
   }
 
-  const tiers = tile.track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
-  const tierDef = tiers[tile.tier - 1]!
+  const savedTrack = tile.track!
+  const savedTier = tile.tier
+  const tiers = savedTrack === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
+  const tierDef = tiers[savedTier - 1]!
   const refund = Math.round(
     REGIONS[def.region].buyPrice * tierDef.buildCostMult * SELL_REFUND_RATE * tile.priceMultiplier,
   )
@@ -819,9 +895,15 @@ export function downgradeProperty(state: GameState, playerId: string, tileId: Ti
     tile.track = null
     tile.builderId = null
   }
-  pushLog(
+  logKey(
     state,
-    `${player.name} downgraded ${def.name} from ${tierDef.name} for ${rupiah(refund)}`,
+    'core.downgradedProperty',
+    {
+      name: player.name,
+      tile: tileP(tileId),
+      tier: tierP(savedTrack, savedTier),
+      amount: rpP(refund),
+    },
     player.id,
   )
   // If this covered a pending debt, settle it (and advance off an eliminated turn).
@@ -844,42 +926,61 @@ export function buildLahan(
 ): void {
   const player = requireTurn(state, playerId)
   const def = getTileDef(tileId)
-  if (def.type !== 'buildable_land') throw new EngineError('That tile is not buildable land')
+  if (def.type !== 'buildable_land') throw new EngineError('core.notBuildableLand')
   if (business !== 'dapur_mbg' && business !== 'warkop_cafe') {
-    throw new EngineError('Invalid business')
+    throw new EngineError('core.invalidBusiness')
   }
   const tile = state.tiles[tileId]
-  if (!tile) throw new EngineError('Invalid tile')
-  if (tile.ownerId !== player.id) throw new EngineError("You don't own that land")
+  if (!tile) throw new EngineError('core.invalidTile')
+  if (tile.ownerId !== player.id) throw new EngineError('core.notYourLand')
 
   // First build locks the business; later builds must stay on it.
   if (tile.landBuild && tile.landBuild !== business) {
-    throw new EngineError('This land is already locked to the other business')
+    throw new EngineError('core.landBizLocked')
   }
-  if (tile.tier >= LAND_MAX_TIER) throw new EngineError('Already at the top tier')
+  if (tile.tier >= LAND_MAX_TIER) throw new EngineError('core.alreadyTopTier')
 
   const nextTier = tile.tier + 1
   const tierDef = landTier(business, nextTier)
-  if (!tierDef) throw new EngineError('Invalid tier')
+  if (!tierDef) throw new EngineError('core.invalidTier')
   const cost = Math.round(tierDef.buildCost * buildCostMultiplier(player) * tile.priceMultiplier)
-  if (player.cash < cost) throw new EngineError('Not enough cash to build')
+  if (player.cash < cost) throw new EngineError('core.notEnoughCashBuild')
 
   player.cash -= cost
   state.bank += cost
   tile.landBuild = business
   tile.tier = nextTier
-  const verb = nextTier === 1 ? 'built' : 'upgraded'
-  pushLog(
-    state,
-    `${player.name} ${verb} ${tierDef.name} on ${def.name} for ${rupiah(cost)}`,
-    player.id,
-  )
+  if (nextTier === 1) {
+    logKey(
+      state,
+      'core.lahanBuilt',
+      {
+        name: player.name,
+        tier: landTierP(business, nextTier),
+        tile: tileP(tileId),
+        amount: rpP(cost),
+      },
+      player.id,
+    )
+  } else {
+    logKey(
+      state,
+      'core.lahanUpgraded',
+      {
+        name: player.name,
+        tier: landTierP(business, nextTier),
+        tile: tileP(tileId),
+        amount: rpP(cost),
+      },
+      player.id,
+    )
+  }
 }
 
 /** Guard a Kantor Hukum action: must be the current player, standing on the tile. */
 function requireLawOffice(state: GameState, playerId: string): Player {
   const player = requireTurn(state, playerId)
-  if (!state.turn.pendingLawOffice) throw new EngineError('You are not at the Kantor Hukum')
+  if (!state.turn.pendingLawOffice) throw new EngineError('core.notAtLawOffice')
   return player
 }
 
@@ -901,16 +1002,16 @@ export function startLawOfficeAuction(state: GameState, playerId: string, tileId
   const player = requireLawOffice(state, playerId)
   const def = getTileDef(tileId)
   if (def.type !== 'property' && def.type !== 'transport') {
-    throw new EngineError('Only properties can be force-transferred')
+    throw new EngineError('core.onlyPropertyTransfer')
   }
   const tile = state.tiles[tileId]
-  if (!tile || tile.ownerId === null) throw new EngineError('That tile is unowned — buy it instead')
-  if (tile.ownerId === player.id) throw new EngineError('You already own that tile')
+  if (!tile || tile.ownerId === null) throw new EngineError('core.tileUnowned')
+  if (tile.ownerId === player.id) throw new EngineError('core.alreadyOwnTile')
   const owner = state.players.find((p) => p.id === tile.ownerId)
-  if (!owner || owner.isEliminated) throw new EngineError('That tile has no active owner')
+  if (!owner || owner.isEliminated) throw new EngineError('core.noActiveOwner')
 
   const openingBid = Math.round(tileValue(state, tile) * LAW_OFFICE_TRANSFER_RATE)
-  if (player.cash < openingBid) throw new EngineError('Not enough cash for the opening bid')
+  if (player.cash < openingBid) throw new EngineError('core.notEnoughCashOpeningBid')
 
   state.pendingAuction = {
     tileId,
@@ -922,9 +1023,10 @@ export function startLawOfficeAuction(state: GameState, playerId: string, tileId
     deadline: null,
   }
   state.turn.pendingLawOffice = false
-  pushLog(
+  logKey(
     state,
-    `${player.name} opened a force-buy bid for ${def.name} at ${rupiah(openingBid)} — ${owner.name} may defend`,
+    'core.auctionOpened',
+    { name: player.name, tile: tileP(tileId), amount: rpP(openingBid), owner: owner.name },
     player.id,
   )
 }
@@ -942,20 +1044,24 @@ function auctionToActId(auction: PendingAuction): string {
  */
 export function placeAuctionBid(state: GameState, playerId: string, amount: RupiahAmount): void {
   const auction = state.pendingAuction
-  if (!auction) throw new EngineError('There is no active auction')
-  if (playerId !== auctionToActId(auction)) throw new EngineError('It is not your bid')
+  if (!auction) throw new EngineError('core.noActiveAuction')
+  if (playerId !== auctionToActId(auction)) throw new EngineError('core.notYourBid')
   const player = state.players.find((p) => p.id === playerId)
-  if (!player || player.isEliminated) throw new EngineError('You cannot bid')
+  if (!player || player.isEliminated) throw new EngineError('core.cannotBid')
   if (!Number.isFinite(amount) || amount <= auction.currentBid) {
-    throw new EngineError(`Your bid must be more than ${rupiah(auction.currentBid)}`)
+    throw new EngineError('core.bidTooLow', { amount: rpP(auction.currentBid) })
   }
-  if (player.cash < amount) throw new EngineError('Not enough cash to back that bid')
+  if (player.cash < amount) throw new EngineError('core.notEnoughCashBid')
 
   auction.currentBid = Math.round(amount)
   auction.highBidderId = playerId
   auction.history.push({ playerId, amount: auction.currentBid })
-  const def = getTileDef(auction.tileId)
-  pushLog(state, `${player.name} bid ${rupiah(auction.currentBid)} for ${def.name}`, playerId)
+  logKey(
+    state,
+    'core.auctionBid',
+    { name: player.name, amount: rpP(auction.currentBid), tile: tileP(auction.tileId) },
+    playerId,
+  )
 }
 
 /**
@@ -966,8 +1072,8 @@ export function placeAuctionBid(state: GameState, playerId: string, amount: Rupi
  */
 export function concedeAuction(state: GameState, playerId: string): void {
   const auction = state.pendingAuction
-  if (!auction) throw new EngineError('There is no active auction')
-  if (playerId !== auctionToActId(auction)) throw new EngineError('You are not bidding')
+  if (!auction) throw new EngineError('core.noActiveAuction')
+  if (playerId !== auctionToActId(auction)) throw new EngineError('core.notBidding')
   resolveAuction(state)
 }
 
@@ -983,7 +1089,6 @@ export function resolveAuctionTimeout(state: GameState): void {
 function resolveAuction(state: GameState): void {
   const auction = state.pendingAuction
   if (!auction) return
-  const def = getTileDef(auction.tileId)
   const tile = state.tiles[auction.tileId]
   const attacker = state.players.find((p) => p.id === auction.attackerId)
   const owner = state.players.find((p) => p.id === auction.ownerId)
@@ -998,17 +1103,19 @@ function resolveAuction(state: GameState): void {
     attacker.cash -= bid
     owner.cash += bid
     tile.ownerId = attacker.id
-    pushLog(
+    logKey(
       state,
-      `${attacker.name} won the auction and force-bought ${def.name} from ${owner.name} for ${rupiah(bid)}`,
+      'core.auctionWon',
+      { name: attacker.name, tile: tileP(auction.tileId), owner: owner.name, amount: rpP(bid) },
       attacker.id,
     )
   } else {
     owner.cash -= bid
     state.bank += bid
-    pushLog(
+    logKey(
       state,
-      `${owner.name} defended ${def.name}, paying ${rupiah(bid)} to the bank`,
+      'core.auctionDefended',
+      { name: owner.name, tile: tileP(auction.tileId), amount: rpP(bid) },
       owner.id,
     )
   }
@@ -1017,17 +1124,18 @@ function resolveAuction(state: GameState): void {
 /** Kantor Hukum: pay a bribe to the bank to send another player to jail. */
 export function lawOfficeJail(state: GameState, playerId: string, targetPlayerId: string): void {
   const player = requireLawOffice(state, playerId)
-  if (targetPlayerId === playerId) throw new EngineError('You cannot jail yourself')
+  if (targetPlayerId === playerId) throw new EngineError('core.cannotJailSelf')
   const target = state.players.find((p) => p.id === targetPlayerId)
-  if (!target || target.isEliminated) throw new EngineError('Invalid target')
-  if (target.inJail) throw new EngineError('That player is already in jail')
-  if (player.cash < LAW_OFFICE_JAIL_FEE) throw new EngineError('Not enough cash for the bribe')
+  if (!target || target.isEliminated) throw new EngineError('core.invalidTarget')
+  if (target.inJail) throw new EngineError('core.alreadyInJail')
+  if (player.cash < LAW_OFFICE_JAIL_FEE) throw new EngineError('core.notEnoughCashBribe')
 
   player.cash -= LAW_OFFICE_JAIL_FEE
   state.bank += LAW_OFFICE_JAIL_FEE
-  pushLog(
+  logKey(
     state,
-    `${player.name} paid ${rupiah(LAW_OFFICE_JAIL_FEE)} to send ${target.name} to jail`,
+    'core.jailBribe',
+    { name: player.name, amount: rpP(LAW_OFFICE_JAIL_FEE), target: target.name },
     player.id,
   )
   sendToJail(state, target)
@@ -1038,19 +1146,20 @@ export function lawOfficeJail(state: GameState, playerId: string, targetPlayerId
 export function lawOfficeFreepass(state: GameState, playerId: string, pass: PassType): void {
   const player = requireLawOffice(state, playerId)
   if (pass !== 'rent_free' && pass !== 'tax_free' && pass !== 'jail_free') {
-    throw new EngineError('Invalid pass type')
+    throw new EngineError('core.invalidPassType')
   }
   if (player.cash < LAW_OFFICE_FREEPASS_PRICE) {
-    throw new EngineError('Not enough cash for a free-pass card')
+    throw new EngineError('core.notEnoughCashFreepass')
   }
   player.cash -= LAW_OFFICE_FREEPASS_PRICE
   state.bank += LAW_OFFICE_FREEPASS_PRICE
   player.ownedCards.push({ id: uid(), type: pass })
   state.turn.pendingLawOffice = false
   const label = pass.replace('_', '-')
-  pushLog(
+  logKey(
     state,
-    `${player.name} bought a ${label} pass for ${rupiah(LAW_OFFICE_FREEPASS_PRICE)}`,
+    'core.boughtFreepass',
+    { name: player.name, pass: label, amount: rpP(LAW_OFFICE_FREEPASS_PRICE) },
     player.id,
   )
 }
@@ -1075,18 +1184,19 @@ export function lawOfficePriceUpgrade(
     multiplier < LAW_OFFICE_PRICE_MULT_MIN ||
     multiplier > LAW_OFFICE_PRICE_MULT_MAX
   ) {
-    throw new EngineError(
-      `Multiplier must be an integer from ${LAW_OFFICE_PRICE_MULT_MIN} to ${LAW_OFFICE_PRICE_MULT_MAX}`,
-    )
+    throw new EngineError('core.invalidMultiplier', {
+      min: LAW_OFFICE_PRICE_MULT_MIN,
+      max: LAW_OFFICE_PRICE_MULT_MAX,
+    })
   }
   const tile = state.tiles[tileId]
-  if (!tile || tile.ownerId !== player.id) throw new EngineError('You do not own that tile')
+  if (!tile || tile.ownerId !== player.id) throw new EngineError('core.doNotOwnTile')
   const def = getTileDef(tileId)
   if (def.type !== 'property' && def.type !== 'transport' && def.type !== 'buildable_land') {
-    throw new EngineError('That tile cannot be upgraded')
+    throw new EngineError('core.tileNotUpgradable')
   }
   const cost = Math.round(tileValue(state, tile) * multiplier)
-  if (player.cash < cost) throw new EngineError('Not enough cash to upgrade the tile price')
+  if (player.cash < cost) throw new EngineError('core.notEnoughCashPriceUpgrade')
   player.cash -= cost
   state.bank += cost
   // A property upgrade boosts every tile the player owns in that region; transport and
@@ -1100,19 +1210,40 @@ export function lawOfficePriceUpgrade(
     tile.priceMultiplier *= multiplier
   }
   state.turn.pendingLawOffice = false
-  const scope = def.type === 'property' && def.region ? ' across the region' : ''
-  pushLog(
-    state,
-    `${player.name} boosted ${def.name} price ×${multiplier} (now ×${tile.priceMultiplier})${scope} for ${rupiah(cost)}`,
-    player.id,
-  )
+  if (def.type === 'property' && def.region) {
+    logKey(
+      state,
+      'core.priceBoostRegion',
+      {
+        name: player.name,
+        tile: tileP(tileId),
+        mult: multiplier,
+        total: tile.priceMultiplier,
+        amount: rpP(cost),
+      },
+      player.id,
+    )
+  } else {
+    logKey(
+      state,
+      'core.priceBoost',
+      {
+        name: player.name,
+        tile: tileP(tileId),
+        mult: multiplier,
+        total: tile.priceMultiplier,
+        amount: rpP(cost),
+      },
+      player.id,
+    )
+  }
 }
 
 /** Kantor Hukum: decline to act and leave the tile. */
 export function lawOfficeSkip(state: GameState, playerId: string): void {
   const player = requireLawOffice(state, playerId)
   state.turn.pendingLawOffice = false
-  pushLog(state, `${player.name} left the Kantor Hukum without acting`, player.id)
+  logKey(state, 'core.lawOfficeSkip', { name: player.name }, player.id)
 }
 
 /**
@@ -1122,11 +1253,11 @@ export function lawOfficeSkip(state: GameState, playerId: string): void {
  */
 export function repayPinjol(state: GameState, playerId: string, loanId?: string): void {
   const player = requireTurn(state, playerId)
-  if (player.loans.length === 0) throw new EngineError('You have no loans to repay')
+  if (player.loans.length === 0) throw new EngineError('core.noLoans')
   const loans = loanId ? player.loans.filter((l) => l.id === loanId) : [...player.loans]
-  if (loans.length === 0) throw new EngineError('Loan not found')
+  if (loans.length === 0) throw new EngineError('core.loanNotFound')
   const total = loans.reduce((sum, l) => sum + l.amount, 0)
-  if (player.cash < total) throw new EngineError('Not enough cash to repay')
+  if (player.cash < total) throw new EngineError('core.notEnoughCashRepay')
 
   for (const loan of loans) {
     const lender = loan.lenderId
@@ -1137,24 +1268,24 @@ export function repayPinjol(state: GameState, playerId: string, loanId?: string)
     player.cash -= loan.amount
     player.loans = player.loans.filter((l) => l.id !== loan.id)
   }
-  pushLog(state, `${player.name} repaid ${rupiah(total)} in pinjol`, player.id)
+  logKey(state, 'core.repaidPinjol', { name: player.name, amount: rpP(total) }, player.id)
 }
 
 export function payJail(state: GameState, playerId: string): void {
   const player = requireTurn(state, playerId)
-  if (!player.inJail) throw new EngineError('You are not in jail')
-  if (player.cash < JAIL_EXIT_COST) throw new EngineError('Not enough cash to pay bail')
+  if (!player.inJail) throw new EngineError('core.notInJail')
+  if (player.cash < JAIL_EXIT_COST) throw new EngineError('core.notEnoughCashBail')
   player.cash -= JAIL_EXIT_COST
   state.bank += JAIL_EXIT_COST
   player.inJail = false
   player.jailTurnsLeft = 0
-  pushLog(state, `${player.name} paid ${rupiah(JAIL_EXIT_COST)} bail`, player.id)
+  logKey(state, 'core.paidBail', { name: player.name, amount: rpP(JAIL_EXIT_COST) }, player.id)
 }
 
 export function endTurn(state: GameState, playerId: string): void {
   const player = requireTurn(state, playerId)
-  if (!state.turn.hasRolled) throw new EngineError('Roll the dice before ending your turn')
-  pushLog(state, `${player.name} ended their turn`, player.id)
+  if (!state.turn.hasRolled) throw new EngineError('core.notRolled')
+  logKey(state, 'core.endedTurn', { name: player.name }, player.id)
   advanceTurn(state)
 }
 

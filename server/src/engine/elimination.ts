@@ -9,6 +9,7 @@ import {
   PROPERTY_TIERS,
   REGION_SET_VALUE_MULTIPLIER,
   REGIONS,
+  rpP,
   TRANSPORT_BUY_PRICE,
 } from '@tuan-tanah/shared'
 import type {
@@ -22,10 +23,10 @@ import type {
   WinReason,
 } from '@tuan-tanah/shared'
 import { getTileDef, ownsFullRegion } from './board.js'
-import { EngineError, rupiah } from './index.js'
+import { EngineError } from './index.js'
 import { investorCut } from './roles.js'
 import { advanceTurn } from './turn.js'
-import { pushLog, uid } from './util.js'
+import { logKey, uid } from './util.js'
 
 /**
  * Market value of a single owned tile at its current tier. Doubles while the owner
@@ -135,13 +136,13 @@ export function endGame(state: GameState, winnerId: string, reason: WinReason): 
   state.winReason = reason
   const winner = state.players.find((p) => p.id === winnerId)
   const name = winner?.name ?? 'Someone'
-  const why =
+  const code =
     reason === 'time'
-      ? 'time ran out'
+      ? 'elimination.winsTime'
       : reason === 'wealth'
-        ? 'reached the target wealth'
-        : 'is the last player standing'
-  pushLog(state, `🏆 ${name} wins — ${why}!`, winnerId)
+        ? 'elimination.winsWealth'
+        : 'elimination.winsLastStanding'
+  logKey(state, code, { name }, winnerId)
 }
 
 /** Check + apply game-over in one step. Returns true if the game just ended. */
@@ -196,7 +197,7 @@ export function applyInvestorCut(
     if (cut <= 0) continue
     inv.cash += cut
     state.bank -= cut
-    pushLog(state, `${inv.name} earned ${rupiah(cut)} investor cut on rent`, inv.id)
+    logKey(state, 'elimination.investorCut', { name: inv.name, amount: rpP(cut) }, inv.id)
   }
 }
 
@@ -222,7 +223,7 @@ export function applyBuilderCut(
   if (cut <= 0) return
   owner.cash -= cut
   builder.cash += cut
-  pushLog(state, `${builder.name} earned ${rupiah(cut)} builder cut on rent`, builder.id)
+  logKey(state, 'elimination.builderCut', { name: builder.name, amount: rpP(cut) }, builder.id)
 }
 
 /**
@@ -247,7 +248,7 @@ export function charge(
       applyInvestorCut(state, player.id, creditorId, amount)
       applyBuilderCut(state, creditorId, tileId, amount)
     }
-    pushLog(state, `${player.name} paid ${rupiah(amount)} — ${reason}`, player.id)
+    logKey(state, 'elimination.paid', { name: player.name, amount: rpP(amount), reason }, player.id)
     return
   }
   oweDebt(state, player, creditorId, amount, type, reason, tileId)
@@ -277,9 +278,10 @@ function oweDebt(
     reason,
     tileId,
   })
-  pushLog(
+  logKey(
     state,
-    `${player.name} owes ${rupiah(amount)} (${reason}) and must sell property or take a pinjol`,
+    'elimination.owesDebt',
+    { name: player.name, amount: rpP(amount), reason },
     player.id,
   )
 }
@@ -295,9 +297,10 @@ function payOwed(state: GameState, debt: PendingDebt): void {
     applyBuilderCut(state, debt.creditorId, debt.tileId, debt.amount)
   }
   state.pendingDebts = state.pendingDebts.filter((d) => d.id !== debt.id)
-  pushLog(
+  logKey(
     state,
-    `${debtor.name} settled their ${rupiah(debt.amount)} debt (${debt.reason})`,
+    'elimination.settled',
+    { name: debtor.name, amount: rpP(debt.amount), reason: debt.reason },
     debtor.id,
   )
 }
@@ -323,7 +326,7 @@ export function eliminate(state: GameState, player: Player): void {
   player.loans = []
   player.isEliminated = true
   state.pendingDebts = state.pendingDebts.filter((d) => d.debtorId !== player.id)
-  pushLog(state, `💀 ${player.name} went bankrupt and was eliminated`, player.id)
+  logKey(state, 'elimination.bankrupt', { name: player.name }, player.id)
 }
 
 /**
@@ -336,7 +339,7 @@ export function forfeit(state: GameState, playerId: string): void {
   const player = state.players.find((p) => p.id === playerId)
   if (!player || player.isEliminated) return
   eliminate(state, player)
-  pushLog(state, `🏳️ ${player.name} left the game`, playerId)
+  logKey(state, 'elimination.forfeit', { name: player.name }, playerId)
   const current = state.players[state.currentPlayerIndex]
   if (current?.id === playerId && state.pendingDebts.length === 0) advanceTurn(state)
 }
@@ -355,7 +358,7 @@ export function applyAfkTimeout(state: GameState, playerId: string): void {
   player.afkStrikes += 1
 
   if (player.afkStrikes > AFK_MAX_STRIKES) {
-    pushLog(state, `⏱️ ${player.name} was kicked for repeated inactivity`, playerId)
+    logKey(state, 'elimination.afkKicked', { name: player.name }, playerId)
     forfeit(state, playerId)
     return
   }
@@ -364,7 +367,7 @@ export function applyAfkTimeout(state: GameState, playerId: string): void {
   const taken = Math.min(player.cash, fine)
   player.cash -= taken
   state.bank += taken
-  pushLog(state, `⏱️ ${player.name} was AFK — turn skipped and fined ${rupiah(taken)}`, playerId)
+  logKey(state, 'elimination.afkFined', { name: player.name, amount: rpP(taken) }, playerId)
   advanceTurn(state)
 }
 
@@ -387,9 +390,9 @@ export function settleIfAble(state: GameState, playerId: string): void {
  */
 export function resolveDebt(state: GameState, playerId: string, giveUp: boolean): void {
   const debt = state.pendingDebts.find((d) => d.debtorId === playerId)
-  if (!debt) throw new EngineError('You have no outstanding debt')
+  if (!debt) throw new EngineError('elimination.noDebt')
   const player = state.players.find((p) => p.id === playerId)
-  if (!player) throw new EngineError('Player not found')
+  if (!player) throw new EngineError('elimination.playerNotFound')
 
   if (giveUp) {
     eliminate(state, player)
@@ -398,9 +401,9 @@ export function resolveDebt(state: GameState, playerId: string, giveUp: boolean)
   } else if (!state.tiles.some((t) => t.ownerId === playerId)) {
     eliminate(state, player)
   } else {
-    throw new EngineError(
-      `You still owe ${rupiah(debt.amount - player.cash)} — sell or downgrade property, or take a pinjol`,
-    )
+    throw new EngineError('elimination.stillOwes', {
+      amount: rpP(debt.amount - player.cash),
+    })
   }
   finalizeDebtState(state)
 }

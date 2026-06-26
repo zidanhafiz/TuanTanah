@@ -66,7 +66,7 @@ React + `react-router-dom` — `App.tsx` defines routes: `/` (`Home`), `/room/:r
 
 UI building blocks: a neobrutalist design system under `components/ui/`, framer-motion for board/token/dice animations (`lib/motion.ts`, `store/rollAnimation.ts`), `lucide-react` icons, and a sound system (`sound/` — `AudioManager`, cues driven off state transitions in `stateSounds.ts`, toggle persisted via `sound/settings.ts`).
 
-**i18n** is client-side and per-player (EN/ID) via `i18next` + `react-i18next` (`client/src/i18n/`). UI strings live in `locales/{en,id}.json`; game data from `shared` constants is localized through an overlay in `i18n/gameData.ts`. Server-side game-log/error strings are not yet localized — that's the remaining i18n gap.
+**i18n** is client-side and per-player (EN/ID) via `i18next` + `react-i18next` (`client/src/i18n/`). UI strings live in `locales/{en,id}.json`; game data from `shared` constants is localized through an overlay in `i18n/gameData.ts`. Server-side game-log and `EngineError` strings are **structured + localized**: the engine emits a stable message `code` plus tagged `params` (via `logKey(...)` and `new EngineError(code, params)`), the bilingual templates live in `shared/i18n/messages/*` (one module per engine file, merged into `LOG_MESSAGES` / `ERROR_MESSAGES`), and the client re-renders them in the viewer's language (`client/src/i18n/messages.ts`, wired into `EventLog` + the `error` event). Each entry still carries a rendered English `message` as a fallback. When you add a log/error in the engine, add its code to the matching `shared/i18n/messages/*` module in **both** `en` and `id` (a parity test guards this). Small residual gaps: lobby **ack** errors (`handlers/lobby.ts`, returned via `AckResult.error` as plain English) and the free-text `PendingDebt.reason` label are not yet keyed.
 
 ### Persistence
 
@@ -78,7 +78,7 @@ Supabase (`supabase.ts`) persists **final game history** (game row + per-player 
 
 The full loop is implemented — there are **no `notImplemented` stubs left** in `game.ts`. Working: create/join/leave/rejoin room → lobby (pick role, room-master settings) → start → roll → move → resolve tile (buy property, pay rent, tax, draw card, jail) → meta-actions (invest/work/hustle/sabotage/korupsi/negotiate) → property & tier upgrades / downgrades / sells → pinjol loans + debt resolution → structured negotiation deals → role active abilities → voting → elimination/bankruptcy cascade → win conditions → game-over with final standings (optionally archived to Supabase).
 
-Remaining gaps are balance/content TODOs, not missing systems — search for `TODO` in `server/src/engine/` (e.g. the role-modifier follow-ups in `roles.ts`). The other known gap is server-side i18n (game-log/error strings are English-only). Treat `TODO` markers as intentional later-milestone work, not bugs.
+Remaining gaps are balance/content TODOs, not missing systems — search for `TODO` in `server/src/engine/` (e.g. the role-modifier follow-ups in `roles.ts`). Server-side i18n is now done — engine game-log + `EngineError` strings are keyed and localized EN/ID (see the i18n note above); only lobby ack errors and the `PendingDebt.reason` label remain English. Treat `TODO` markers as intentional later-milestone work, not bugs.
 
 ## Conventions
 

@@ -8,12 +8,13 @@ import {
   PINJOL_INTEREST_RATE,
   PINJOL_MAX_LOANS,
   REGIONS,
+  rpP,
 } from '@tuan-tanah/shared'
 import type { GameState, Player, RupiahAmount } from '@tuan-tanah/shared'
 import { getTileDef } from './board.js'
 import { charge, settleIfAble } from './elimination.js'
-import { EngineError, requireDebtorOrTurn, requireTurn, rupiah } from './index.js'
-import { pushLog, uid } from './util.js'
+import { EngineError, requireDebtorOrTurn, requireTurn } from './index.js'
+import { logKey, uid } from './util.js'
 
 /** Sum of the buy price of every tile the player owns (property value only). */
 export function propertyValue(state: GameState, player: Player): RupiahAmount {
@@ -52,34 +53,37 @@ export function takeLoan(
   // Allowed on your turn, or out of turn while you owe a debt (to raise cash).
   const player = requireDebtorOrTurn(state, playerId)
 
-  if (!PINJOL_AMOUNTS.includes(amount)) throw new EngineError('Invalid loan size')
+  if (!PINJOL_AMOUNTS.includes(amount)) throw new EngineError('pinjol.invalidLoanSize')
   if (player.loans.length >= PINJOL_MAX_LOANS) {
-    throw new EngineError(`You already have ${PINJOL_MAX_LOANS} active loans`)
+    throw new EngineError('pinjol.maxLoansReached', { count: PINJOL_MAX_LOANS })
   }
   const limit = PINJOL_BORROW_LIMIT_MULTIPLE * propertyValue(state, player)
   if (outstandingPrincipal(player) + amount > limit) {
-    throw new EngineError(
-      `Borrow limit is ${rupiah(limit)} (3× your property value); you can't borrow this much`,
-    )
+    throw new EngineError('pinjol.borrowLimitExceeded', { amount: rpP(limit) })
   }
 
   let lender: Player | null = null
   if (lenderId) {
-    if (lenderId === player.id) throw new EngineError('You cannot borrow from yourself')
+    if (lenderId === player.id) throw new EngineError('pinjol.cannotBorrowFromSelf')
     const found = state.players.find((p) => p.id === lenderId)
-    if (!found) throw new EngineError('Lender not found')
-    if (found.role !== 'rentenir') throw new EngineError('Only a Rentenir can lend pinjol')
-    if (found.isEliminated) throw new EngineError('That lender is eliminated')
-    if (found.cash < amount) throw new EngineError('Lender does not have enough cash')
+    if (!found) throw new EngineError('pinjol.lenderNotFound')
+    if (found.role !== 'rentenir') throw new EngineError('pinjol.onlyRentenirCanLend')
+    if (found.isEliminated) throw new EngineError('pinjol.lenderEliminated')
+    if (found.cash < amount) throw new EngineError('pinjol.lenderInsufficientCash')
     lender = found
   }
 
   grantLoan(state, player, amount, lender)
-  pushLog(
-    state,
-    `${player.name} took a ${rupiah(amount)} pinjol from ${lender ? lender.name : 'the bank'}`,
-    player.id,
-  )
+  if (lender) {
+    logKey(
+      state,
+      'pinjol.tookLoanFromRentenir',
+      { name: player.name, amount: rpP(amount), lender: lender.name },
+      player.id,
+    )
+  } else {
+    logKey(state, 'pinjol.tookLoanFromBank', { name: player.name, amount: rpP(amount) }, player.id)
+  }
   // Borrowing to cover a pending debt settles it once the cash is in hand.
   settleIfAble(state, playerId)
 }
@@ -100,31 +104,38 @@ export function forceLoan(
   amount: RupiahAmount,
 ): void {
   const rentenir = requireTurn(state, rentenirId)
-  if (rentenir.role !== 'rentenir') throw new EngineError('Only a Rentenir can force a loan')
+  if (rentenir.role !== 'rentenir') throw new EngineError('pinjol.onlyRentenirCanForce')
   if (rentenir.forcedLoanRound === state.round) {
-    throw new EngineError('You can only force one loan per round')
+    throw new EngineError('pinjol.forceOncePerRound')
   }
-  if (!PINJOL_AMOUNTS.includes(amount)) throw new EngineError('Invalid loan size')
+  if (!PINJOL_AMOUNTS.includes(amount)) throw new EngineError('pinjol.invalidLoanSize')
 
-  if (targetId === rentenir.id) throw new EngineError('You cannot force a loan on yourself')
+  if (targetId === rentenir.id) throw new EngineError('pinjol.cannotForceOnSelf')
   const target = state.players.find((p) => p.id === targetId)
-  if (!target) throw new EngineError('Target not found')
-  if (target.isEliminated) throw new EngineError('That player is eliminated')
+  if (!target) throw new EngineError('pinjol.targetNotFound')
+  if (target.isEliminated) throw new EngineError('pinjol.targetEliminated')
 
   if (target.loans.length >= PINJOL_MAX_LOANS) {
-    throw new EngineError(`${target.name} already has ${PINJOL_MAX_LOANS} active loans`)
+    throw new EngineError('pinjol.targetMaxLoansReached', {
+      name: target.name,
+      count: PINJOL_MAX_LOANS,
+    })
   }
   const limit = PINJOL_BORROW_LIMIT_MULTIPLE * propertyValue(state, target)
   if (outstandingPrincipal(target) + amount > limit) {
-    throw new EngineError(`${target.name} can't be forced past their ${rupiah(limit)} borrow limit`)
+    throw new EngineError('pinjol.targetBorrowLimitExceeded', {
+      name: target.name,
+      amount: rpP(limit),
+    })
   }
-  if (rentenir.cash < amount) throw new EngineError('You do not have enough cash to fund the loan')
+  if (rentenir.cash < amount) throw new EngineError('pinjol.rentenirInsufficientCash')
 
   grantLoan(state, target, amount, rentenir)
   rentenir.forcedLoanRound = state.round
-  pushLog(
+  logKey(
     state,
-    `${rentenir.name} forced a ${rupiah(amount)} pinjol on ${target.name}`,
+    'pinjol.forcedLoan',
+    { rentenir: rentenir.name, amount: rpP(amount), target: target.name },
     rentenir.id,
   )
 }
@@ -184,7 +195,7 @@ export function chargeInterest(state: GameState, player: Player): RupiahAmount {
       loan.interestPaid += loan.interestPerLap
     }
     player.cash -= total
-    pushLog(state, `${player.name} paid ${rupiah(total)} pinjol interest`, player.id)
+    logKey(state, 'pinjol.paidInterest', { name: player.name, amount: rpP(total) }, player.id)
   } else {
     // Can't cover it → opens a pending debt (multi-lender interest is collapsed
     // into a single bank debt; lenders forgo it in this bankruptcy edge case).

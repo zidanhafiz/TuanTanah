@@ -1,5 +1,5 @@
 import type { Server, Socket } from 'socket.io'
-import type { ClientToServerEvents, ServerToClientEvents } from '@tuan-tanah/shared'
+import type { ClientToServerEvents, LogParams, ServerToClientEvents } from '@tuan-tanah/shared'
 import type { GameStore } from '../store.js'
 import { getSession } from '../sessions.js'
 
@@ -38,7 +38,11 @@ export async function guard(socket: TTSocket, fn: () => Promise<void>): Promise<
   try {
     await fn()
   } catch (err) {
-    socket.emit('error', { message: (err as Error).message ?? 'Unexpected error' })
+    const e = err as Error & { code?: string; params?: LogParams }
+    socket.emit('error', {
+      message: e.message ?? 'Unexpected error',
+      ...(e.code ? { code: e.code, params: e.params } : {}),
+    })
   }
 }
 

@@ -1,6 +1,7 @@
 import { type GameState } from '@tuan-tanah/shared'
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { renderLogEntry } from '../../i18n/messages.js'
 
 export function EventLog({ state }: { state: GameState }) {
   const { t } = useTranslation()
@@ -21,7 +22,7 @@ export function EventLog({ state }: { state: GameState }) {
         {recent.map((e) => (
           <div key={e.id} className="border-b border-ink/15 pb-1 last:border-0">
             <span className="text-ink-faint">{t('eventLog.roundPrefix', { round: e.round })}</span>
-            {e.message}
+            {renderLogEntry(t, e)}
           </div>
         ))}
         {recent.length === 0 && <div className="text-ink-faint">{t('eventLog.empty')}</div>}

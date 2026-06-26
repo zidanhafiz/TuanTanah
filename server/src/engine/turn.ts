@@ -9,7 +9,8 @@ import type { GameState, Player, RupiahAmount } from '@tuan-tanah/shared'
 import { getTileDef, ownsFullRegion } from './board.js'
 import { applyPassiveMultiplier, effectiveTier, tickEffects } from './effects.js'
 import { chargeInterest } from './pinjol.js'
-import { pushLog } from './util.js'
+import { logKey } from './util.js'
+import { rpP } from '@tuan-tanah/shared'
 
 /** Passive income from a player's Property-track tiles (collected each turn). */
 export function collectPassiveIncome(state: GameState, player: Player): RupiahAmount {
@@ -44,11 +45,7 @@ export function collectPassiveIncome(state: GameState, player: Player): RupiahAm
   if (total > 0) {
     player.cash += total
     state.bank -= total
-    pushLog(
-      state,
-      `${player.name} collected Rp ${total.toLocaleString('id-ID')} passive income`,
-      player.id,
-    )
+    logKey(state, 'turn.passiveIncome', { name: player.name, amount: rpP(total) }, player.id)
     payRevenueShares(state, player, total)
   }
   return total
@@ -73,9 +70,10 @@ function payRevenueShares(state: GameState, player: Player, income: RupiahAmount
     remaining -= cut
     player.cash -= cut
     beneficiary.cash += cut
-    pushLog(
+    logKey(
       state,
-      `${player.name} shared Rp ${cut.toLocaleString('id-ID')} of passive income with ${beneficiary.name}`,
+      'turn.revenueShare',
+      { name: player.name, amount: rpP(cut), beneficiary: beneficiary.name },
       player.id,
     )
   }
@@ -104,7 +102,7 @@ function consumeTurnSkip(state: GameState, playerId: string): boolean {
   if (idx === -1) return false
   state.activeEffects.splice(idx, 1)
   const player = state.players.find((p) => p.id === playerId)
-  if (player) pushLog(state, `${player.name}'s turn was skipped`, playerId)
+  if (player) logKey(state, 'turn.turnSkipped', { name: player.name }, playerId)
   return true
 }
 
@@ -119,7 +117,7 @@ export function startTurn(state: GameState): void {
     chargeInterest(state, player)
     player.owesLapInterest = false
   }
-  pushLog(state, `${player.name}'s turn`, player.id)
+  logKey(state, 'turn.turnStart', { name: player.name }, player.id)
 }
 
 /** Index of the next non-eliminated player; returns -1 if none remain. */

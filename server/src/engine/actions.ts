@@ -15,14 +15,15 @@ import {
   PEMILU_SKIP_ROUNDS,
   SABOTAGE_DURATION_ROUNDS,
   SABOTAGE_RENT_MULTIPLIER,
+  rpP,
+  tileP,
 } from '@tuan-tanah/shared'
 import type { GameState, MetaActionType, Player } from '@tuan-tanah/shared'
-import { getTileDef } from './board.js'
 import { drawHustle } from './cards.js'
 import { charge } from './elimination.js'
-import { EngineError, requireTurn, rupiah, sendToJail } from './index.js'
+import { EngineError, requireTurn, sendToJail } from './index.js'
 import { salaryFor } from './roles.js'
-import { defaultRng, pushLog, uid, type Rng } from './util.js'
+import { defaultRng, logKey, uid, type Rng } from './util.js'
 
 export interface MetaActionRequest {
   action: MetaActionType
@@ -38,17 +39,17 @@ export interface MetaActionResult {
 
 /** Resolve a target player that must be another, non-eliminated player. */
 function requireTargetPlayer(state: GameState, selfId: string, targetId?: string): Player {
-  if (!targetId) throw new EngineError('Select a target player')
-  if (targetId === selfId) throw new EngineError('You cannot target yourself')
+  if (!targetId) throw new EngineError('actions.targetRequired')
+  if (targetId === selfId) throw new EngineError('actions.targetSelf')
   const target = state.players.find((p) => p.id === targetId)
-  if (!target) throw new EngineError('Target player not found')
-  if (target.isEliminated) throw new EngineError('Target player is eliminated')
+  if (!target) throw new EngineError('actions.targetNotFound')
+  if (target.isEliminated) throw new EngineError('actions.targetEliminated')
   return target
 }
 
 /** Deduct a cost from a player into the bank, or throw if they cannot afford it. */
 function payToBank(state: GameState, player: Player, amount: number): void {
-  if (player.cash < amount) throw new EngineError('Not enough cash')
+  if (player.cash < amount) throw new EngineError('actions.notEnoughCash')
   player.cash -= amount
   state.bank += amount
 }
@@ -68,10 +69,10 @@ export function performMetaAction(
   if (req.action !== 'negotiate') {
     const used = player.metaActionsUsed
     if (used.length >= META_ACTIONS_PER_LAP) {
-      throw new EngineError(`Already used ${META_ACTIONS_PER_LAP} meta actions this lap`)
+      throw new EngineError('actions.metaCapReached', { count: META_ACTIONS_PER_LAP })
     }
     if (used.includes(req.action)) {
-      throw new EngineError('You already used that action this lap')
+      throw new EngineError('actions.metaAlreadyUsed')
     }
   }
 
@@ -81,8 +82,8 @@ export function performMetaAction(
       // RNG order is fixed for reproducibility: (1) win check, (2) jackpot
       // sub-roll, (3) integer multiplier — the last only on a non-jackpot win.
       const deposit = req.depositAmount
-      if (deposit == null || deposit <= 0) throw new EngineError('Enter a deposit amount')
-      if (deposit > player.cash) throw new EngineError('Not enough cash to deposit')
+      if (deposit == null || deposit <= 0) throw new EngineError('actions.judolNoDeposit')
+      if (deposit > player.cash) throw new EngineError('actions.judolInsufficientFunds')
       player.cash -= deposit
       state.bank += deposit
       if (rng() < JUDOL_WIN_RATE) {
@@ -90,17 +91,27 @@ export function performMetaAction(
           const payout = deposit * JUDOL_JACKPOT_MULTIPLIER
           player.cash += payout
           state.bank -= payout
-          pushLog(state, `${player.name} hit the Judol JACKPOT (+${rupiah(payout)})`, player.id)
+          logKey(
+            state,
+            'actions.judolJackpot',
+            { name: player.name, amount: rpP(payout) },
+            player.id,
+          )
         } else {
           const span = JUDOL_WIN_MULT_MAX - JUDOL_WIN_MULT_MIN + 1
           const mult = JUDOL_WIN_MULT_MIN + Math.floor(rng() * span)
           const payout = deposit * mult
           player.cash += payout
           state.bank -= payout
-          pushLog(state, `${player.name} won Judol x${mult} (+${rupiah(payout)})`, player.id)
+          logKey(
+            state,
+            'actions.judolWin',
+            { name: player.name, mult, amount: rpP(payout) },
+            player.id,
+          )
         }
       } else {
-        pushLog(state, `${player.name} lost ${rupiah(deposit)} on Judol`, player.id)
+        logKey(state, 'actions.judolLose', { name: player.name, amount: rpP(deposit) }, player.id)
       }
       player.metaActionsUsed.push(req.action)
       return {}
@@ -108,13 +119,13 @@ export function performMetaAction(
 
     case 'work': {
       if (state.turn.hasRolled) {
-        throw new EngineError('Work must be chosen before rolling (it skips your move)')
+        throw new EngineError('actions.workAfterRoll')
       }
       const salary = salaryFor(player)
       player.cash += salary
       state.bank -= salary
       state.turn.hasRolled = true // forgoes movement; lets the player end their turn
-      pushLog(state, `${player.name} worked instead of moving (+${rupiah(salary)})`, player.id)
+      logKey(state, 'actions.work', { name: player.name, amount: rpP(salary) }, player.id)
       player.metaActionsUsed.push(req.action)
       return {}
     }
@@ -137,9 +148,10 @@ export function performMetaAction(
         roundsRemaining: 2,
         sourceCard: 'meta_lobby',
       })
-      pushLog(
+      logKey(
         state,
-        `${player.name} lobbied against ${target.name} (${rupiah(cost)}) — their next turn is skipped`,
+        'actions.lobby',
+        { name: player.name, target: target.name, amount: rpP(cost) },
         player.id,
       )
       player.metaActionsUsed.push(req.action)
@@ -147,10 +159,10 @@ export function performMetaAction(
     }
 
     case 'sabotage': {
-      if (req.tileId == null) throw new EngineError('Select a tile to sabotage')
+      if (req.tileId == null) throw new EngineError('actions.sabotageNoTile')
       const tile = state.tiles[req.tileId]
-      if (!tile || tile.ownerId === null) throw new EngineError('That tile is not owned')
-      if (tile.ownerId === player.id) throw new EngineError('You cannot sabotage your own tile')
+      if (!tile || tile.ownerId === null) throw new EngineError('actions.sabotageUnowned')
+      if (tile.ownerId === player.id) throw new EngineError('actions.sabotageSelf')
       payToBank(state, player, META_ACTION_COSTS.sabotage)
       state.activeEffects.push({
         id: uid(),
@@ -160,9 +172,10 @@ export function performMetaAction(
         roundsRemaining: SABOTAGE_DURATION_ROUNDS,
         sourceCard: 'meta_sabotage',
       })
-      pushLog(
+      logKey(
         state,
-        `${player.name} sabotaged ${getTileDef(req.tileId).name} (${rupiah(META_ACTION_COSTS.sabotage)})`,
+        'actions.sabotage',
+        { name: player.name, tile: tileP(req.tileId), amount: rpP(META_ACTION_COSTS.sabotage) },
         player.id,
       )
       player.metaActionsUsed.push(req.action)
@@ -173,14 +186,15 @@ export function performMetaAction(
       if (rng() < KORUPSI_SUCCESS_RATE) {
         player.cash += KORUPSI_STEAL_AMOUNT
         state.bank -= KORUPSI_STEAL_AMOUNT
-        pushLog(
+        logKey(
           state,
-          `${player.name} pulled off korupsi (+${rupiah(KORUPSI_STEAL_AMOUNT)})`,
+          'actions.korupsiSuccess',
+          { name: player.name, amount: rpP(KORUPSI_STEAL_AMOUNT) },
           player.id,
         )
       } else {
         sendToJail(state, player)
-        pushLog(state, `${player.name} was caught for korupsi — jailed`, player.id)
+        logKey(state, 'actions.korupsiJailed', { name: player.name }, player.id)
         // Fine on top of jail; opens a pending debt if they can't cover it.
         charge(state, player, KORUPSI_FINE, null, 'fine', 'korupsi fine')
       }
@@ -193,14 +207,14 @@ export function performMetaAction(
       // (propose/accept/reject/resolve) is TTG-8, so this does not consume the
       // per-turn meta action.
       const target = requireTargetPlayer(state, player.id, req.targetId)
-      pushLog(state, `${player.name} wants to negotiate with ${target.name}`, player.id)
+      logKey(state, 'actions.negotiate', { name: player.name, target: target.name }, player.id)
       return {}
     }
 
     default: {
       // Exhaustiveness guard.
       const _never: never = req.action
-      throw new EngineError(`Unknown meta action "${String(_never)}"`)
+      throw new EngineError('actions.unknownMetaAction', { name: String(_never) })
     }
   }
 }
@@ -236,11 +250,7 @@ function resolvePemilu(state: GameState, rng: Rng): void {
     roundsRemaining: PEMILU_SKIP_ROUNDS,
     sourceCard: 'pemilu',
   })
-  pushLog(
-    state,
-    `Pemilu result: ${winner?.name ?? 'a player'} got the most votes — their next turn is skipped`,
-    winnerId,
-  )
+  logKey(state, 'actions.pemiluResult', { name: winner?.name ?? 'a player' }, winnerId)
 }
 
 /**
@@ -254,15 +264,15 @@ export function castVote(
   rng: Rng = defaultRng,
 ): void {
   const vote = state.pendingVote
-  if (!vote) throw new EngineError('There is no active vote')
+  if (!vote) throw new EngineError('actions.noActiveVote')
   const voter = state.players.find((p) => p.id === voterId)
-  if (!voter || voter.isEliminated) throw new EngineError('You cannot vote')
-  if (voter.id === targetId) throw new EngineError('You cannot vote for yourself')
+  if (!voter || voter.isEliminated) throw new EngineError('actions.cannotVote')
+  if (voter.id === targetId) throw new EngineError('actions.voteSelf')
   const target = state.players.find((p) => p.id === targetId)
-  if (!target || target.isEliminated) throw new EngineError('Invalid vote target')
+  if (!target || target.isEliminated) throw new EngineError('actions.invalidVoteTarget')
 
   vote.votes[voterId] = targetId
-  pushLog(state, `${voter.name} cast their vote`, voterId)
+  logKey(state, 'actions.voteCast', { name: voter.name }, voterId)
 
   const allVoted = eligibleVoters(state).every((p) => vote.votes[p.id] != null)
   if (allVoted) resolvePemilu(state, rng)

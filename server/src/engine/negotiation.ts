@@ -4,16 +4,26 @@
 // re-validated against the current state and applied atomically. Pure engine logic —
 // throws EngineError on invalid input.
 import {
+  dealTypeP,
   PLAYER_LOAN_MAX_RATE,
   REGIONS,
+  rpP,
   SALES_DEAL_BONUS_RATE,
+  tileP,
   TRANSPORT_BUY_PRICE,
 } from '@tuan-tanah/shared'
-import type { GameState, NegotiationDeal, Player, RupiahAmount, TileId } from '@tuan-tanah/shared'
+import type {
+  GameState,
+  LogParams,
+  NegotiationDeal,
+  Player,
+  RupiahAmount,
+  TileId,
+} from '@tuan-tanah/shared'
 import { getTileDef } from './board.js'
 import { settleIfAble } from './elimination.js'
-import { EngineError, rupiah } from './index.js'
-import { pushLog, uid } from './util.js'
+import { EngineError } from './index.js'
+import { logKey, uid } from './util.js'
 
 function findPlayer(state: GameState, id: string): Player | undefined {
   return state.players.find((p) => p.id === id)
@@ -23,35 +33,12 @@ function ownerOf(state: GameState, tileId: TileId): string | null {
   return state.tiles[tileId]?.ownerId ?? null
 }
 
-function tileName(tileId: TileId): string {
-  return getTileDef(tileId).name
-}
-
 /** Bank buy price of a tile (used to value swaps for the Sales bonus). */
 function tileBuyPrice(tileId: TileId): RupiahAmount {
   const def = getTileDef(tileId)
   if (def.type === 'transport') return TRANSPORT_BUY_PRICE
   if (def.type === 'property' && def.region) return REGIONS[def.region].buyPrice
   return 0
-}
-
-function dealLabel(deal: NegotiationDeal): string {
-  switch (deal.type) {
-    case 'property_swap':
-      return 'property swap'
-    case 'cash_for_property':
-      return 'cash-for-property deal'
-    case 'sell_property':
-      return 'property sale'
-    case 'rent_immunity':
-      return 'rent-immunity deal'
-    case 'revenue_share':
-      return 'revenue-share deal'
-    case 'player_loan':
-      return 'loan deal'
-    case 'cash_gift':
-      return 'cash transfer'
-  }
 }
 
 /** The cash value of a deal, used to size the Sales 15% bank bonus. */
@@ -75,90 +62,100 @@ function dealValue(deal: NegotiationDeal): RupiahAmount {
   }
 }
 
-/** Returns a human-readable error string if the deal is invalid, else null. */
-export function validateDeal(state: GameState, deal: NegotiationDeal): string | null {
+/** A localizable validation failure: a message `code` plus its params. */
+export interface DealError {
+  code: string
+  params?: LogParams
+}
+
+/** Returns a structured, localizable error if the deal is invalid, else null. */
+export function validateDeal(state: GameState, deal: NegotiationDeal): DealError | null {
+  const e = (code: string, params?: LogParams): DealError => ({ code, params })
   const from = findPlayer(state, deal.fromPlayerId)
   const to = findPlayer(state, deal.toPlayerId)
-  if (!from) return 'Proposer is not in the game'
-  if (!to) return 'Target player not found'
-  if (from.id === to.id) return 'You cannot make a deal with yourself'
-  if (from.isEliminated || to.isEliminated) return 'Both players must be active'
+  if (!from) return e('negotiation.proposerNotInGame')
+  if (!to) return e('negotiation.targetNotFound')
+  if (from.id === to.id) return e('negotiation.dealWithSelf')
+  if (from.isEliminated || to.isEliminated) return e('negotiation.bothMustBeActive')
 
   switch (deal.type) {
     case 'property_swap': {
       if (deal.offerTileId == null || deal.requestTileId == null)
-        return 'Select a tile from each side'
-      if (deal.offerTileId === deal.requestTileId) return 'Pick two different tiles'
-      if (ownerOf(state, deal.offerTileId) !== from.id) return 'You no longer own the offered tile'
+        return e('negotiation.selectTileEachSide')
+      if (deal.offerTileId === deal.requestTileId) return e('negotiation.pickTwoDifferent')
+      if (ownerOf(state, deal.offerTileId) !== from.id) return e('negotiation.noLongerOwnOffered')
       if (ownerOf(state, deal.requestTileId) !== to.id)
-        return `${to.name} no longer owns the requested tile`
+        return e('negotiation.targetNoLongerOwnsRequested', { name: to.name })
       const cash = deal.cashAmount ?? 0
-      if (cash < 0) return 'Cash top-up cannot be negative'
+      if (cash < 0) return e('negotiation.cashTopupNegative')
       if (cash > 0) {
         if (deal.cashFrom !== 'proposer' && deal.cashFrom !== 'target')
-          return 'Choose who pays the cash top-up'
+          return e('negotiation.chooseTopupPayer')
         const payer = deal.cashFrom === 'proposer' ? from : to
-        if (payer.cash < cash) return `${payer.name} cannot afford the cash top-up`
+        if (payer.cash < cash) return e('negotiation.payerCannotAffordTopup', { name: payer.name })
       }
       return null
     }
     case 'cash_for_property': {
-      if (deal.requestTileId == null) return 'Select a tile to buy'
-      if ((deal.cashAmount ?? 0) <= 0) return 'Enter a price'
-      if (ownerOf(state, deal.requestTileId) !== to.id) return `${to.name} no longer owns that tile`
-      if (from.cash < (deal.cashAmount ?? 0)) return 'You cannot afford this offer'
+      if (deal.requestTileId == null) return e('negotiation.selectTileToBuy')
+      if ((deal.cashAmount ?? 0) <= 0) return e('negotiation.enterPrice')
+      if (ownerOf(state, deal.requestTileId) !== to.id)
+        return e('negotiation.targetNoLongerOwnsThat', { name: to.name })
+      if (from.cash < (deal.cashAmount ?? 0)) return e('negotiation.cannotAffordOffer')
       return null
     }
     case 'sell_property': {
       // Proposer sells their own tile to the target for cash (the buyer pays).
-      if (deal.offerTileId == null) return 'Select a tile to sell'
-      if ((deal.cashAmount ?? 0) <= 0) return 'Enter a price'
-      if (ownerOf(state, deal.offerTileId) !== from.id) return 'You no longer own the offered tile'
-      if (to.cash < (deal.cashAmount ?? 0)) return `${to.name} cannot afford this offer`
+      if (deal.offerTileId == null) return e('negotiation.selectTileToSell')
+      if ((deal.cashAmount ?? 0) <= 0) return e('negotiation.enterPrice')
+      if (ownerOf(state, deal.offerTileId) !== from.id) return e('negotiation.noLongerOwnOffered')
+      if (to.cash < (deal.cashAmount ?? 0))
+        return e('negotiation.namedCannotAffordOffer', { name: to.name })
       return null
     }
     case 'rent_immunity': {
       if (deal.immuneFor !== 'proposer' && deal.immuneFor !== 'target')
-        return 'Choose who is immune'
-      if ((deal.laps ?? 0) < 1) return 'Immunity must last at least 1 lap'
+        return e('negotiation.chooseImmune')
+      if ((deal.laps ?? 0) < 1) return e('negotiation.immunityMinLap')
       const cash = deal.cashAmount ?? 0
-      if (cash < 0) return 'Immunity fee cannot be negative'
+      if (cash < 0) return e('negotiation.immunityFeeNegative')
       // The immune player pays the owner (the non-immune party); fee may be 0 (free).
       const immune = deal.immuneFor === 'proposer' ? from : to
-      if (immune.cash < cash) return `${immune.name} cannot afford this offer`
+      if (immune.cash < cash) return e('negotiation.namedCannotAffordOffer', { name: immune.name })
       return null
     }
     case 'revenue_share': {
       const pct = deal.sharePercent ?? 0
-      if (pct <= 0 || pct > 100) return 'Share must be between 1% and 100%'
-      if ((deal.laps ?? 0) < 1) return 'Share must last at least 1 lap'
+      if (pct <= 0 || pct > 100) return e('negotiation.shareRange')
+      if ((deal.laps ?? 0) < 1) return e('negotiation.shareMinLap')
       if (deal.shareFrom !== 'proposer' && deal.shareFrom !== 'target')
-        return 'Choose who shares income'
+        return e('negotiation.chooseSharer')
       return null
     }
     case 'player_loan': {
       const principal = deal.cashAmount ?? 0
-      if (principal < 1) return 'Enter a loan amount'
+      if (principal < 1) return e('negotiation.enterLoanAmount')
       if (deal.cashFrom !== 'proposer' && deal.cashFrom !== 'target')
-        return 'Choose who lends the money'
+        return e('negotiation.chooseLender')
       const rate = deal.interestRate ?? 0
       if (rate < 0 || rate > PLAYER_LOAN_MAX_RATE)
-        return `Interest must be between 0% and ${Math.round(PLAYER_LOAN_MAX_RATE * 100)}% per lap`
+        return e('negotiation.interestRange', { max: Math.round(PLAYER_LOAN_MAX_RATE * 100) })
       const lender = deal.cashFrom === 'proposer' ? from : to
-      if (lender.cash < principal) return `${lender.name} cannot afford to lend this much`
+      if (lender.cash < principal)
+        return e('negotiation.lenderCannotAffordLend', { name: lender.name })
       return null
     }
     case 'cash_gift': {
       const amount = deal.cashAmount ?? 0
-      if (amount < 1) return 'Enter an amount'
+      if (amount < 1) return e('negotiation.enterAmount')
       if (deal.cashFrom !== 'proposer' && deal.cashFrom !== 'target')
-        return 'Choose who gives the money'
+        return e('negotiation.chooseGiver')
       const giver = deal.cashFrom === 'proposer' ? from : to
-      if (giver.cash < amount) return `${giver.name} cannot afford this`
+      if (giver.cash < amount) return e('negotiation.giverCannotAfford', { name: giver.name })
       return null
     }
     default:
-      return 'Unknown deal type'
+      return e('negotiation.unknownDealType')
   }
 }
 
@@ -179,12 +176,17 @@ export function proposeDeal(
     status: 'pending',
   }
   const error = validateDeal(state, deal)
-  if (error) throw new EngineError(error)
+  if (error) throw new EngineError(error.code, error.params)
 
   state.pendingDeals.push(deal)
   const from = findPlayer(state, deal.fromPlayerId)!
   const to = findPlayer(state, deal.toPlayerId)!
-  pushLog(state, `${from.name} proposed a ${dealLabel(deal)} to ${to.name}`, from.id)
+  logKey(
+    state,
+    'negotiation.proposed',
+    { name: from.name, deal: dealTypeP(deal.type), to: to.name },
+    from.id,
+  )
   return deal
 }
 
@@ -196,10 +198,9 @@ export function respondToDeal(
   accept: boolean,
 ): void {
   const idx = state.pendingDeals.findIndex((d) => d.id === dealId)
-  if (idx === -1) throw new EngineError('That deal is no longer available')
+  if (idx === -1) throw new EngineError('negotiation.dealGone')
   const deal = state.pendingDeals[idx]!
-  if (deal.toPlayerId !== playerId)
-    throw new EngineError('Only the target can respond to this deal')
+  if (deal.toPlayerId !== playerId) throw new EngineError('negotiation.notTarget')
 
   const from = findPlayer(state, deal.fromPlayerId)
   const to = findPlayer(state, deal.toPlayerId)
@@ -207,15 +208,26 @@ export function respondToDeal(
   if (accept) {
     // Re-validate: the world may have moved since the offer was made.
     const error = validateDeal(state, deal)
-    if (error) throw new EngineError(error)
+    if (error) throw new EngineError(error.code, error.params)
     applyDeal(state, deal)
-    if (from && to) pushLog(state, `${to.name} accepted ${from.name}'s ${dealLabel(deal)}`, to.id)
+    if (from && to)
+      logKey(
+        state,
+        'negotiation.accepted',
+        { name: to.name, proposer: from.name, deal: dealTypeP(deal.type) },
+        to.id,
+      )
     // A deal that raised cash for a player in debt should clear it automatically,
     // so a broke seller can settle by selling to another player (not just the bank).
     settleIfAble(state, deal.fromPlayerId)
     settleIfAble(state, deal.toPlayerId)
   } else if (from && to) {
-    pushLog(state, `${to.name} rejected ${from.name}'s ${dealLabel(deal)}`, to.id)
+    logKey(
+      state,
+      'negotiation.rejected',
+      { name: to.name, proposer: from.name, deal: dealTypeP(deal.type) },
+      to.id,
+    )
   }
   state.pendingDeals.splice(idx, 1)
 }
@@ -224,7 +236,7 @@ export function respondToDeal(
 export function applyDeal(state: GameState, deal: NegotiationDeal): void {
   const from = findPlayer(state, deal.fromPlayerId)
   const to = findPlayer(state, deal.toPlayerId)
-  if (!from || !to) throw new EngineError('A player in this deal is no longer available')
+  if (!from || !to) throw new EngineError('negotiation.playerGone')
 
   switch (deal.type) {
     case 'property_swap': {
@@ -237,14 +249,33 @@ export function applyDeal(state: GameState, deal: NegotiationDeal): void {
       }
       state.tiles[deal.offerTileId!]!.ownerId = to.id
       state.tiles[deal.requestTileId!]!.ownerId = from.id
-      const swapMsg = `${from.name} and ${to.name} swapped ${tileName(deal.offerTileId!)} ↔ ${tileName(deal.requestTileId!)}`
-      pushLog(
-        state,
-        cash > 0
-          ? `${swapMsg} with ${rupiah(cash)} from ${(deal.cashFrom === 'proposer' ? from : to).name}`
-          : swapMsg,
-        from.id,
-      )
+      if (cash > 0) {
+        logKey(
+          state,
+          'negotiation.swapWithCash',
+          {
+            name: from.name,
+            other: to.name,
+            tile1: tileP(deal.offerTileId!),
+            tile2: tileP(deal.requestTileId!),
+            amount: rpP(cash),
+            payer: (deal.cashFrom === 'proposer' ? from : to).name,
+          },
+          from.id,
+        )
+      } else {
+        logKey(
+          state,
+          'negotiation.swap',
+          {
+            name: from.name,
+            other: to.name,
+            tile1: tileP(deal.offerTileId!),
+            tile2: tileP(deal.requestTileId!),
+          },
+          from.id,
+        )
+      }
       break
     }
     case 'cash_for_property': {
@@ -252,9 +283,10 @@ export function applyDeal(state: GameState, deal: NegotiationDeal): void {
       from.cash -= amount
       to.cash += amount
       state.tiles[deal.requestTileId!]!.ownerId = from.id
-      pushLog(
+      logKey(
         state,
-        `${from.name} bought ${tileName(deal.requestTileId!)} from ${to.name} for ${rupiah(amount)}`,
+        'negotiation.bought',
+        { name: from.name, tile: tileP(deal.requestTileId!), from: to.name, amount: rpP(amount) },
         from.id,
       )
       break
@@ -265,9 +297,10 @@ export function applyDeal(state: GameState, deal: NegotiationDeal): void {
       to.cash -= amount
       from.cash += amount
       state.tiles[deal.offerTileId!]!.ownerId = to.id
-      pushLog(
+      logKey(
         state,
-        `${from.name} sold ${tileName(deal.offerTileId!)} to ${to.name} for ${rupiah(amount)}`,
+        'negotiation.sold',
+        { name: from.name, tile: tileP(deal.offerTileId!), to: to.name, amount: rpP(amount) },
         from.id,
       )
       break
@@ -291,13 +324,21 @@ export function applyDeal(state: GameState, deal: NegotiationDeal): void {
         lapAnchorPlayerId: immune.id, // decays on the immune player's own laps
         sourceCard: `deal_${deal.id}`,
       })
-      pushLog(
-        state,
-        amount > 0
-          ? `${immune.name} paid ${rupiah(amount)} to go rent-free on ${owner.name}'s properties for ${laps} lap(s)`
-          : `${immune.name} goes rent-free on ${owner.name}'s properties for ${laps} lap(s)`,
-        immune.id,
-      )
+      if (amount > 0) {
+        logKey(
+          state,
+          'negotiation.rentImmunityPaid',
+          { name: immune.name, amount: rpP(amount), owner: owner.name, laps },
+          immune.id,
+        )
+      } else {
+        logKey(
+          state,
+          'negotiation.rentImmunityFree',
+          { name: immune.name, owner: owner.name, laps },
+          immune.id,
+        )
+      }
       break
     }
     case 'revenue_share': {
@@ -315,9 +356,15 @@ export function applyDeal(state: GameState, deal: NegotiationDeal): void {
         lapAnchorPlayerId: source.id, // decays on the sharer's laps
         sourceCard: `deal_${deal.id}`,
       })
-      pushLog(
+      logKey(
         state,
-        `${source.name} will share ${deal.sharePercent}% of passive income with ${beneficiary.name} for ${laps} lap(s)`,
+        'negotiation.revenueShare',
+        {
+          name: source.name,
+          percent: deal.sharePercent ?? 0,
+          beneficiary: beneficiary.name,
+          laps,
+        },
         source.id,
       )
       break
@@ -338,9 +385,15 @@ export function applyDeal(state: GameState, deal: NegotiationDeal): void {
         interestPaid: 0,
         interestRate: rate,
       })
-      pushLog(
+      logKey(
         state,
-        `${borrower.name} borrowed ${rupiah(principal)} from ${lender.name} at ${Math.round(rate * 100)}%/lap`,
+        'negotiation.playerLoan',
+        {
+          name: borrower.name,
+          amount: rpP(principal),
+          lender: lender.name,
+          rate: Math.round(rate * 100),
+        },
         borrower.id,
       )
       break
@@ -351,7 +404,12 @@ export function applyDeal(state: GameState, deal: NegotiationDeal): void {
       const amount = deal.cashAmount ?? 0
       giver.cash -= amount
       receiver.cash += amount
-      pushLog(state, `${giver.name} gave ${rupiah(amount)} to ${receiver.name}`, giver.id)
+      logKey(
+        state,
+        'negotiation.cashGift',
+        { name: giver.name, amount: rpP(amount), to: receiver.name },
+        giver.id,
+      )
       break
     }
   }
@@ -362,7 +420,7 @@ export function applyDeal(state: GameState, deal: NegotiationDeal): void {
     if (bonus > 0) {
       from.cash += bonus
       state.bank -= bonus
-      pushLog(state, `${from.name} earned a ${rupiah(bonus)} Sales bonus on the deal`, from.id)
+      logKey(state, 'negotiation.salesBonus', { name: from.name, amount: rpP(bonus) }, from.id)
     }
   }
 }

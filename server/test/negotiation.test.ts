@@ -382,8 +382,8 @@ describe('validateDeal — new deal types', () => {
       fromPlayerId: players[0]!.id,
       toPlayerId: players[1]!.id,
     })
-    expect(validateDeal(state, { ...base, laps: 2 })).toMatch(/immune/i)
-    expect(validateDeal(state, { ...base, immuneFor: 'proposer', laps: 0 })).toMatch(/lap/i)
+    expect(validateDeal(state, { ...base, laps: 2 })?.code).toMatch(/immune/i)
+    expect(validateDeal(state, { ...base, immuneFor: 'proposer', laps: 0 })?.code).toMatch(/lap/i)
     expect(validateDeal(state, { ...base, immuneFor: 'proposer', laps: 2 })).toBeNull()
   })
 
@@ -401,7 +401,7 @@ describe('validateDeal — new deal types', () => {
           cashFrom: 'proposer',
           interestRate: 0.1,
         }),
-      ),
+      )?.code,
     ).toMatch(/afford/i)
     expect(
       validateDeal(
@@ -414,7 +414,7 @@ describe('validateDeal — new deal types', () => {
           cashFrom: 'proposer',
           interestRate: 0.9,
         }),
-      ),
+      )?.code,
     ).toMatch(/interest/i)
   })
 
@@ -430,7 +430,7 @@ describe('validateDeal — new deal types', () => {
           cashAmount: 5_000_000,
           cashFrom: 'proposer',
         }),
-      ),
+      )?.code,
     ).toMatch(/afford/i)
   })
 })

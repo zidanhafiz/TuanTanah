@@ -10,26 +10,31 @@ import {
   DOLLAR_NAIK_CASH_RATE,
   GEMPA_DURATION_ROUNDS,
   GEMPA_RENT_MULTIPLIER,
+  hustleP,
   HUSTLE_CARDS,
   INSPEKSI_PAJAK_RATE,
   INVESTASI_ASING_BONUS,
+  kejadianEffectP,
+  kejadianP,
   KEJADIAN_CARDS,
   KORUPSI_FINE,
   MUDIK_DURATION_ROUNDS,
   MUDIK_TRANSPORT_MULTIPLIER,
+  passP,
   REGIONS,
   REGION_BONUS_DURATION_ROUNDS,
   REGION_BONUS_MULTIPLIER,
+  rpP,
+  tileP,
   TRANSPORT_TILE_IDS,
 } from '@tuan-tanah/shared'
 import type { ActiveEffect, GameState, Player, RegionId } from '@tuan-tanah/shared'
-import { getTileDef } from './board.js'
 import { charge } from './elimination.js'
 // Runtime-only import (called from drawHustle, never at module-eval time), so the
 // index.ts ↔ cards.ts cycle is safe.
 import { advanceToTile } from './index.js'
 import { taxMultiplier } from './roles.js'
-import { defaultRng, pushLog, uid, type Rng } from './util.js'
+import { defaultRng, logKey, uid, type Rng } from './util.js'
 
 const HUSTLE_BY_ID = new Map(HUSTLE_CARDS.map((c) => [c.id, c]))
 const KEJADIAN_BY_ID = new Map(KEJADIAN_CARDS.map((c) => [c.id, c]))
@@ -71,9 +76,10 @@ export function drawHustle(
     case 'earn': {
       player.cash += card.amount
       state.bank -= card.amount
-      pushLog(
+      logKey(
         state,
-        `${player.name} hustled "${card.name}" (+Rp ${card.amount.toLocaleString('id-ID')})`,
+        'cards.hustleEarn',
+        { name: player.name, card: hustleP(id), amount: rpP(card.amount) },
         player.id,
       )
       break
@@ -85,17 +91,19 @@ export function drawHustle(
     }
     case 'pass': {
       player.ownedCards.push({ id: uid(), type: card.pass })
-      pushLog(
+      logKey(
         state,
-        `${player.name} hustled "${card.name}" — gained a ${card.pass} pass`,
+        'cards.hustlePass',
+        { name: player.name, card: hustleP(id), pass: passP(card.pass) },
         player.id,
       )
       break
     }
     case 'move': {
-      pushLog(
+      logKey(
         state,
-        `${player.name} hustled "${card.name}" — advancing to ${getTileDef(card.target).name}`,
+        'cards.hustleMove',
+        { name: player.name, card: hustleP(id), tile: tileP(card.target) },
         player.id,
       )
       // Moves the player (no dice) to the target tile, collecting pass-GO salary +
@@ -116,12 +124,17 @@ export function drawKejadian(
   const id = drawFrom(state.kejadianDeck)
   if (!id) return null
   const card = KEJADIAN_BY_ID.get(id)!
-  pushLog(state, `Kejadian Nasional: ${card.name} — ${card.effect}`, player.id)
+  logKey(
+    state,
+    'cards.kejadianDraw',
+    { card: kejadianP(id), effect: kejadianEffectP(id) },
+    player.id,
+  )
 
   // Pejabat may have armed a block; the card is drawn but its effects are nullified.
   if (state.pendingKejadianBlock) {
     state.pendingKejadianBlock = false
-    pushLog(state, `${card.name} was blocked by Pejabat — no effect`, player.id)
+    logKey(state, 'cards.kejadianBlocked', { card: kejadianP(id) }, player.id)
     return { cardId: id, name: card.name }
   }
 
@@ -181,7 +194,7 @@ export function drawKejadian(
       if (target && target.loans.length > 0) {
         charge(state, target, KORUPSI_FINE, null, 'fine', 'korupsi terungkap')
       } else {
-        pushLog(state, `Korupsi Terungkap — nobody has outstanding pinjol; no effect`)
+        logKey(state, 'cards.korupsiNoEffect')
       }
       break
     }
@@ -196,10 +209,7 @@ export function drawKejadian(
         passesWiped += p.ownedCards.length
         p.ownedCards = []
       }
-      pushLog(
-        state,
-        `Reshuffle Kabinet — ${cleared} effect(s) and ${passesWiped} free-pass card(s) wiped`,
-      )
+      logKey(state, 'cards.reshuffleKabinet', { cleared, passes: passesWiped })
       break
     }
 
@@ -238,10 +248,10 @@ export function drawKejadian(
           roundsRemaining: GEMPA_DURATION_ROUNDS,
           sourceCard: id,
         })
-        pushLog(
-          state,
-          `Gempa Bumi struck ${REGIONS[region].name} — rent halved for ${GEMPA_DURATION_ROUNDS} rounds`,
-        )
+        logKey(state, 'cards.gempaBumi', {
+          region: REGIONS[region].name,
+          rounds: GEMPA_DURATION_ROUNDS,
+        })
       }
       break
     }
@@ -274,11 +284,11 @@ export function drawKejadian(
     case 'pemilu': {
       const eligible = activePlayers(state).filter((p) => p.isConnected)
       if (eligible.length < 2) {
-        pushLog(state, `Pemilu — not enough players to hold a vote; no effect`)
+        logKey(state, 'cards.pemiluNoEffect')
         break
       }
       state.pendingVote = { card: 'pemilu', votes: {} }
-      pushLog(state, `Pemilu! Everyone votes for who skips their next turn`)
+      logKey(state, 'cards.pemiluStart')
       break
     }
 

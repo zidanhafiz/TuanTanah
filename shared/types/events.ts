@@ -12,6 +12,7 @@ import type {
   RupiahAmount,
   TileId,
 } from './game.js'
+import type { LogParams } from '../i18n/params.js'
 
 export type MetaActionType =
   | 'judol'
@@ -116,7 +117,8 @@ export interface ServerToClientEvents {
   deal_proposed: (payload: { deal: NegotiationDeal }) => void
   player_eliminated: (payload: { playerId: string }) => void
   game_over: (payload: { winner: string; finalStandings: FinalStanding[] }) => void
-  error: (payload: { message: string }) => void
+  // `message` is the English fallback; `code` + `params` let the client localize.
+  error: (payload: { message: string; code?: string; params?: LogParams }) => void
 }
 
 // Generic ack envelope for request/response style events.

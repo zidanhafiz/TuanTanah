@@ -15,6 +15,8 @@ import {
   type TileId,
 } from '@tuan-tanah/shared'
 import { create } from 'zustand'
+import i18n from '../i18n/index.js'
+import { renderErrorMessage } from '../i18n/messages.js'
 import { onResync } from '../lib/resync.js'
 import {
   type ClientSocket,
@@ -259,9 +261,9 @@ export const useGame = create<GameStore>((set, get) => ({
       }
     })
     socket.on('room_joined', ({ roomId, playerId }) => set({ roomId, playerId }))
-    socket.on('error', ({ message }) => {
+    socket.on('error', (payload) => {
       playSound('error')
-      set({ error: message })
+      set({ error: renderErrorMessage(i18n.t, payload) })
     })
     socket.on('card_drawn', ({ type, card, playerId }) => {
       // Heard as the card flips open (on token arrival), not mid-walk.
@@ -450,7 +452,7 @@ export const useGame = create<GameStore>((set, get) => ({
         }
         // Server sends `error` only to the offending socket, so each seat must
         // listen on its own connection to surface its action errors.
-        conn.on('error', ({ message }) => set({ error: message }))
+        conn.on('error', (payload) => set({ error: renderErrorMessage(i18n.t, payload) }))
         set({ seats: [...get().seats, { playerId: res.data.playerId, name, socket: conn }] })
       })
     }

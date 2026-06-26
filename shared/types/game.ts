@@ -1,6 +1,7 @@
 // Core game state types — mirrors the tech requirements doc (§6), with a few
 // additions needed to drive the UI (turn substate, event log, player colors).
 import type { MetaActionType } from './events.js'
+import type { LogParams } from '../i18n/params.js'
 
 export type RupiahAmount = number // always in rupiah, e.g. 2_000_000 = Rp 2 juta
 export type TileId = number // 0–39
@@ -221,7 +222,13 @@ export interface TurnState {
 export interface LogEntry {
   id: string
   round: number
+  // English fallback, rendered server-side from `code` + `params`. The client
+  // re-renders it in the viewer's language when `code` is present.
   message: string
+  // i18n message code (e.g. 'turn.passGo') and its structured params. Absent on
+  // legacy / non-localized entries, which fall back to `message`.
+  code?: string
+  params?: LogParams
   playerId?: string
 }
 
