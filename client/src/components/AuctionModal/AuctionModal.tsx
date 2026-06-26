@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNow } from '../../hooks/useNow.js'
-import { tileName } from '../../i18n/gameData.js'
-import { formatRupiah, useGame } from '../../store/gameStore.js'
+import { useNow } from '@/hooks/useNow.js'
+import { tileName } from '@/i18n/gameData.js'
+import { formatRupiah, useGame } from '@/store/gameStore.js'
 import { Badge, Button, Card, Modal } from '../ui/index.js'
 
 /**

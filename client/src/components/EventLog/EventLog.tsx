@@ -1,7 +1,7 @@
 import { type GameState } from '@tuan-tanah/shared'
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { renderLogEntry } from '../../i18n/messages.js'
+import { renderLogEntry } from '@/i18n/messages.js'
 
 export function EventLog({ state }: { state: GameState }) {
   const { t } = useTranslation()

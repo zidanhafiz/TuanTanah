@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, type ReactNode } from 'react'
-import { backdrop, modalPanel } from '../../lib/motion.js'
+import { backdrop, modalPanel } from '@/lib/motion.js'
 
 export interface ModalProps {
   open: boolean

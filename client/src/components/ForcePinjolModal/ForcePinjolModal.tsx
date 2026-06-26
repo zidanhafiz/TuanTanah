@@ -12,7 +12,7 @@ import {
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Card, Modal } from '../ui/index.js'
-import { formatRupiah, useGame } from '../../store/gameStore.js'
+import { formatRupiah, useGame } from '@/store/gameStore.js'
 
 /** Total buy-price value of the tiles a player owns (mirrors the engine). */
 function propertyValue(state: GameState, player: Player): RupiahAmount {

@@ -1,8 +1,8 @@
 import { type GameState } from '@tuan-tanah/shared'
 import { useTranslation } from 'react-i18next'
-import { useNow } from '../../hooks/useNow.js'
-import { passTypeName, roleName } from '../../i18n/gameData.js'
-import { formatRupiah } from '../../store/gameStore.js'
+import { useNow } from '@/hooks/useNow.js'
+import { passTypeName, roleName } from '@/i18n/gameData.js'
+import { formatRupiah } from '@/store/gameStore.js'
 import { MoneyDelta } from '../ui/MoneyDelta.js'
 
 // Below this many seconds the current player's turn countdown turns urgent.

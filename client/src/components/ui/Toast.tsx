@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import type { ReactNode } from 'react'
-import { toastSlide } from '../../lib/motion.js'
+import { toastSlide } from '@/lib/motion.js'
 
 type Tone = 'error' | 'info' | 'success'
 

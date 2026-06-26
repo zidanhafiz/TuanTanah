@@ -8,8 +8,8 @@ import {
   type TileState,
 } from '@tuan-tanah/shared'
 import type { TFunction } from 'i18next'
-import { tileName } from '../../i18n/gameData.js'
-import { compactRupiah } from '../../lib/format.js'
+import { tileName } from '@/i18n/gameData.js'
+import { compactRupiah } from '@/lib/format.js'
 import type { Side } from './geometry.js'
 import { DevGlyph, EffectGlyph, isTileEffect, LandGlyph, TileGlyph, TYPE_COLOR } from './icons.js'
 

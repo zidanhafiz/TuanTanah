@@ -1,7 +1,7 @@
 import { type PendingDebt } from '@tuan-tanah/shared'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { formatRupiah, useGame } from '../../store/gameStore.js'
+import { formatRupiah, useGame } from '@/store/gameStore.js'
 import { Button, Card } from '../ui/index.js'
 
 /**

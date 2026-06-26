@@ -1,7 +1,7 @@
 import type { GameState } from '@tuan-tanah/shared'
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { useRollAnim } from '../../store/rollAnimation.js'
+import { useRollAnim } from '@/store/rollAnimation.js'
 
 // Filled pip indices (0–8, row-major) for each die face.
 const PIPS: Record<number, number[]> = {

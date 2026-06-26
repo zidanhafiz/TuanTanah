@@ -2,10 +2,10 @@ import { HUSTLE_CARDS } from '@tuan-tanah/shared'
 import type { TFunction } from 'i18next'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { hustleName, kejadianEffect, kejadianName, passTypeName } from '../../i18n/gameData.js'
+import { hustleName, kejadianEffect, kejadianName, passTypeName } from '@/i18n/gameData.js'
 import { Badge, Card, Modal } from '../ui/index.js'
-import { formatRupiah, useGame } from '../../store/gameStore.js'
-import { isRollAnimating, useRollAnim } from '../../store/rollAnimation.js'
+import { formatRupiah, useGame } from '@/store/gameStore.js'
+import { isRollAnimating, useRollAnim } from '@/store/rollAnimation.js'
 
 const HUSTLE = new Map(HUSTLE_CARDS.map((c) => [c.id, c]))
 

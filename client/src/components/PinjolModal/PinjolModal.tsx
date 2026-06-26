@@ -11,7 +11,7 @@ import {
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, Card, Modal } from '../ui/index.js'
-import { formatRupiah, useGame } from '../../store/gameStore.js'
+import { formatRupiah, useGame } from '@/store/gameStore.js'
 
 const BANK = 'bank'
 

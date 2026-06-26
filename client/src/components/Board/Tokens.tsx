@@ -7,9 +7,9 @@ import {
 } from '@tuan-tanah/shared'
 import { motion, useAnimationControls } from 'framer-motion'
 import { useEffect, useRef } from 'react'
-import { onResync } from '../../lib/resync.js'
-import { useGame } from '../../store/gameStore.js'
-import { isRollAnimStuck, useRollAnim } from '../../store/rollAnimation.js'
+import { onResync } from '@/lib/resync.js'
+import { useGame } from '@/store/gameStore.js'
+import { isRollAnimStuck, useRollAnim } from '@/store/rollAnimation.js'
 import { tileCenter, tokenOffset } from './geometry.js'
 
 const STEP_SEC = 0.13 // per-tile hop duration

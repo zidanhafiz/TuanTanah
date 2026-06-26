@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import type { ReactNode } from 'react'
-import { EASE_SNAP } from '../../lib/motion.js'
+import { EASE_SNAP } from '@/lib/motion.js'
 
 /**
  * A transient label that rises and fades out — the shared vocabulary for the

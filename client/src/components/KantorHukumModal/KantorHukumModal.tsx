@@ -19,9 +19,9 @@ import {
 } from '@tuan-tanah/shared'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { tileName } from '../../i18n/gameData.js'
+import { tileName } from '@/i18n/gameData.js'
 import { Button, Card, Modal } from '../ui/index.js'
-import { formatRupiah, useGame } from '../../store/gameStore.js'
+import { formatRupiah, useGame } from '@/store/gameStore.js'
 
 type Mode = 'menu' | 'buy' | 'transfer' | 'jail' | 'freepass' | 'upgrade'
 const PASSES: PassType[] = ['rent_free', 'tax_free', 'jail_free']

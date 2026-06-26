@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { useNow } from '../../hooks/useNow.js'
-import { useGame } from '../../store/gameStore.js'
+import { useNow } from '@/hooks/useNow.js'
+import { useGame } from '@/store/gameStore.js'
 import { Card } from '../ui/index.js'
 
 // Below this many seconds the countdown switches to an urgent danger style.

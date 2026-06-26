@@ -1,3 +1,4 @@
+import { fileURLToPath, URL } from 'node:url'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 
@@ -11,6 +12,10 @@ export default defineConfig(({ mode }) => {
   const publicUrl = (env.VITE_PUBLIC_URL ?? '').replace(/\/$/, '')
 
   return {
+    resolve: {
+      // `@/` -> client/src. Keep in sync with tsconfig.json compilerOptions.paths.
+      alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+    },
     plugins: [
       react(),
       {

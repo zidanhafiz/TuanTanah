@@ -1,7 +1,7 @@
 import { Clock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useNow } from '../../hooks/useNow.js'
-import { useGame } from '../../store/gameStore.js'
+import { useNow } from '@/hooks/useNow.js'
+import { useGame } from '@/store/gameStore.js'
 
 /** Format a duration in ms as M:SS (or H:MM:SS once past an hour). */
 function formatElapsed(ms: number): string {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { compactRupiah } from '../../lib/format.js'
-import { isRollAnimating, useRollAnim } from '../../store/rollAnimation.js'
+import { compactRupiah } from '@/lib/format.js'
+import { isRollAnimating, useRollAnim } from '@/store/rollAnimation.js'
 import { FloatUp } from './FloatUp.js'
 
 /**

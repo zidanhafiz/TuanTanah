@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useGame } from '../../store/gameStore.js'
+import { useGame } from '@/store/gameStore.js'
 
 /**
  * Brief "Your turn" flash when the turn passes to the local player. Reads turn

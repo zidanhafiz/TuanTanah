@@ -32,7 +32,7 @@ import {
   UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react'
-import { effectSourceName, tileEffectLabel } from '../../i18n/gameData.js'
+import { effectSourceName, tileEffectLabel } from '@/i18n/gameData.js'
 
 /**
  * Board glyphs come from lucide-react. They're rendered with a chunky 2.1 stroke
