@@ -1,19 +1,14 @@
 import {
   BOARD,
-  HOUSE_TIERS,
   LAHAN_LAND_PRICE,
   LAW_OFFICE_FREEPASS_PRICE,
   LAW_OFFICE_JAIL_FEE,
   LAW_OFFICE_PRICE_MULT_MAX,
   LAW_OFFICE_PRICE_MULT_MIN,
   LAW_OFFICE_TRANSFER_RATE,
-  PROPERTY_TIERS,
-  REGION_SET_VALUE_MULTIPLIER,
   REGIONS,
   TRANSPORT_BUY_PRICE,
-  landTier,
   type PassType,
-  type RegionId,
   type TileId,
   type TileState,
 } from '@tuan-tanah/shared'
@@ -21,6 +16,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { tileName } from '@/i18n/gameData.js'
 import { Button, Card, Modal } from '@/components/ui/index.js'
+import { tileValue } from '@/features/game/lib/tileValue.js'
 import { formatRupiah, useGame } from '@/store/gameStore.js'
 
 type Mode = 'menu' | 'buy' | 'transfer' | 'jail' | 'freepass' | 'upgrade'
@@ -30,37 +26,9 @@ const MULTIPLIERS = Array.from(
   (_, i) => LAW_OFFICE_PRICE_MULT_MIN + i,
 )
 
-/** True if `ownerId` owns every tile in the given region. Mirrors engine ownsFullRegion. */
-function ownsFullRegion(tiles: TileState[], region: RegionId | undefined, ownerId: string | null) {
-  if (!region || !ownerId) return false
-  return REGIONS[region].tileIds.every((tid) => tiles[tid]?.ownerId === ownerId)
-}
-
-/** Current market value of an owned tile — mirrors the engine's `tileValue` (doubles
- * while the owner holds the full region). */
-function investedValue(tile: TileState, tiles: TileState[]): number {
-  const def = BOARD[tile.id]!
-  if (def.type === 'buildable_land') {
-    let value = LAHAN_LAND_PRICE
-    if (tile.landBuild) {
-      for (let tr = 1; tr <= tile.tier; tr++) value += landTier(tile.landBuild, tr)?.buildCost ?? 0
-    }
-    return Math.round(value * tile.priceMultiplier)
-  }
-  const base =
-    def.type === 'transport' ? TRANSPORT_BUY_PRICE : def.region ? REGIONS[def.region].buyPrice : 0
-  if (base === 0) return 0
-  let value = base
-  if (tile.tier >= 1) {
-    const tiers = tile.track === 'house' ? HOUSE_TIERS : PROPERTY_TIERS
-    for (let tr = 1; tr <= tile.tier; tr++) value += base * (tiers[tr - 1]?.buildCostMult ?? 0)
-  }
-  let market = Math.round(value * tile.priceMultiplier)
-  if (tile.ownerId && def.region && ownsFullRegion(tiles, def.region, tile.ownerId)) {
-    market *= REGION_SET_VALUE_MULTIPLIER
-  }
-  return market
-}
+// Market value of an owned tile — the shared engine mirror (doubles while the owner
+// holds the full region). Aliased to the modal's existing `investedValue` name.
+const investedValue = tileValue
 
 function buyCost(tileId: TileId): number {
   const def = BOARD[tileId]!
