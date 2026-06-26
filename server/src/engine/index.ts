@@ -135,6 +135,7 @@ export function addPlayer(state: GameState, name: string): Player {
     isRoomMaster: state.players.length === 0,
     isConnected: true,
     usedAbility: false,
+    forcedLoanRound: 0,
     metaActionsUsed: [],
     owesLapInterest: false,
     afkStrikes: 0,
@@ -1160,7 +1161,7 @@ export function endTurn(state: GameState, playerId: string): void {
 export * from './board.js'
 export { collectPassiveIncome } from './turn.js'
 export { useAbility } from './abilities.js'
-export { takeLoan } from './pinjol.js'
+export { forceLoan, takeLoan } from './pinjol.js'
 export { proposeDeal, respondToDeal } from './negotiation.js'
 export {
   applyAfkTimeout,

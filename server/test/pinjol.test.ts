@@ -4,6 +4,7 @@ import { EngineError, repayPinjol } from '../src/engine/index.js'
 import {
   canTakeLoan,
   chargeInterest,
+  forceLoan,
   outstandingPrincipal,
   propertyValue,
   takeLoan,
@@ -175,5 +176,99 @@ describe('repayPinjol', () => {
     state.currentPlayerIndex = 0
     p.loans = [loan(5_000_000)]
     expect(() => repayPinjol(state, p.id)).toThrow(EngineError)
+  })
+})
+
+describe('forceLoan', () => {
+  // Rentenir on turn (index 0) forcing a target who owns jakarta (limit 18jt).
+  function setup() {
+    const { state, players } = makeGame(2, { cash: 50_000_000, roles: ['rentenir', null] })
+    const [rentenir, target] = [players[0]!, players[1]!]
+    state.currentPlayerIndex = 0
+    own(state, 35, target.id) // jakarta buyPrice 6jt => borrow limit 18jt
+    return { state, rentenir, target }
+  }
+
+  it('funds the loan from the Rentenir and lands the cash + debt on the target', () => {
+    const { state, rentenir, target } = setup()
+    const bankBefore = state.bank
+    forceLoan(state, rentenir.id, target.id, 5_000_000)
+    expect(rentenir.cash).toBe(45_000_000) // fronted the 5jt
+    expect(target.cash).toBe(55_000_000) // received the unwanted cash
+    expect(state.bank).toBe(bankBefore) // bank is not involved
+    expect(target.loans).toHaveLength(1)
+    expect(target.loans[0]).toMatchObject({
+      amount: 5_000_000,
+      lenderId: rentenir.id,
+      interestPerLap: Math.round(5_000_000 * PINJOL_INTEREST_RATE),
+    })
+  })
+
+  it('routes the forced loan interest back to the Rentenir', () => {
+    const { state, rentenir, target } = setup()
+    forceLoan(state, rentenir.id, target.id, 5_000_000)
+    rentenir.cash = 0
+    chargeInterest(state, target)
+    expect(rentenir.cash).toBe(500_000)
+  })
+
+  it('marks the round used and rejects a second force in the same round', () => {
+    const { state, rentenir, target } = setup()
+    forceLoan(state, rentenir.id, target.id, 2_000_000)
+    expect(rentenir.forcedLoanRound).toBe(state.round)
+    expect(() => forceLoan(state, rentenir.id, target.id, 2_000_000)).toThrow(EngineError)
+  })
+
+  it('allows forcing again in a later round', () => {
+    const { state, rentenir, target } = setup()
+    forceLoan(state, rentenir.id, target.id, 2_000_000)
+    state.round += 1
+    expect(() => forceLoan(state, rentenir.id, target.id, 2_000_000)).not.toThrow()
+    expect(target.loans).toHaveLength(2)
+  })
+
+  it('rejects when the actor is not a Rentenir', () => {
+    const { state, players } = makeGame(2, { cash: 50_000_000 })
+    const [actor, target] = [players[0]!, players[1]!]
+    state.currentPlayerIndex = 0
+    own(state, 35, target.id)
+    expect(() => forceLoan(state, actor.id, target.id, 2_000_000)).toThrow(EngineError)
+  })
+
+  it('rejects forcing a loan off-turn', () => {
+    const { state, rentenir, target } = setup()
+    state.currentPlayerIndex = 1 // not the Rentenir's turn
+    expect(() => forceLoan(state, rentenir.id, target.id, 2_000_000)).toThrow(EngineError)
+  })
+
+  it('rejects forcing a loan on yourself', () => {
+    const { state, rentenir } = setup()
+    own(state, 1, rentenir.id)
+    expect(() => forceLoan(state, rentenir.id, rentenir.id, 2_000_000)).toThrow(EngineError)
+  })
+
+  it('rejects an invalid loan size', () => {
+    const { state, rentenir, target } = setup()
+    expect(() => forceLoan(state, rentenir.id, target.id, 3_000_000)).toThrow(EngineError)
+  })
+
+  it("rejects exceeding the target's borrow limit", () => {
+    const { state, players } = makeGame(2, { cash: 50_000_000, roles: ['rentenir', null] })
+    const [rentenir, target] = [players[0]!, players[1]!]
+    state.currentPlayerIndex = 0
+    own(state, 1, target.id) // papua 1jt => limit 3jt; 5jt forced loan exceeds it
+    expect(() => forceLoan(state, rentenir.id, target.id, 5_000_000)).toThrow(EngineError)
+  })
+
+  it('rejects when the target already holds the max number of loans', () => {
+    const { state, rentenir, target } = setup()
+    target.loans = [loan(2_000_000), loan(2_000_000), loan(2_000_000)]
+    expect(() => forceLoan(state, rentenir.id, target.id, 2_000_000)).toThrow(EngineError)
+  })
+
+  it('rejects when the Rentenir cannot fund the loan', () => {
+    const { state, rentenir, target } = setup()
+    rentenir.cash = 1_000_000
+    expect(() => forceLoan(state, rentenir.id, target.id, 2_000_000)).toThrow(EngineError)
   })
 })

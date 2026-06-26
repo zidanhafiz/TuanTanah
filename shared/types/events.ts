@@ -82,6 +82,9 @@ export interface ClientToServerEvents {
   use_ability: (payload: { ability: AbilityType }) => void
   pay_jail: () => void
   take_pinjol: (payload: { amount: RupiahAmount; lenderId?: string }) => void
+  // Rentenir's once-per-round loanshark power: force a rival to take a pinjol
+  // funded by (and owed to) the Rentenir.
+  force_pinjol: (payload: { targetId: string; amount: RupiahAmount }) => void
   // Voluntarily repay a pinjol loan's principal. Omit `loanId` to repay all loans.
   repay_pinjol: (payload: { loanId?: string }) => void
   propose_deal: (payload: { deal: NegotiationDeal }) => void

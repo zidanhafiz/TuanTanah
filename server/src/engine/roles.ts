@@ -34,5 +34,5 @@ export function taxMultiplier(player: Player): number {
   return player.role === 'ojol_driver' ? 0.5 : 1
 }
 
-// TODO (other tasks): rentenir forced loans (pinjol system), sales 15% deal
-// bonus (TTG-17 negotiation).
+// Rentenir's forced loans live in pinjol.ts (`forceLoan`). TODO (other tasks):
+// sales 15% deal bonus (TTG-17 negotiation).

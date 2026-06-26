@@ -7,6 +7,7 @@ import {
   devTeleport,
   downgradeProperty,
   endTurn,
+  forceLoan,
   lawOfficeBuy,
   lawOfficeFreepass,
   lawOfficeJail,
@@ -260,6 +261,19 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       )
       await broadcastAndArm(io, store, roomId)
       emitEliminated(io, roomId, eliminated)
+      await concludeIfWon(io, store, roomId)
+    }),
+  )
+
+  socket.on('force_pinjol', (payload) =>
+    guard(socket, async () => {
+      const { roomId, playerId } = requireSession(socket)
+      await mutateRoom(store, roomId, (state) =>
+        forceLoan(state, playerId, payload.targetId, payload.amount),
+      )
+      await broadcastAndArm(io, store, roomId)
+      // Funding the loan moves cash from the Rentenir to the target and can lift the
+      // target's wealth across the target threshold; re-check the win condition.
       await concludeIfWon(io, store, roomId)
     }),
   )

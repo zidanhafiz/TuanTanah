@@ -12,7 +12,7 @@ import {
 import type { GameState, Player, RupiahAmount } from '@tuan-tanah/shared'
 import { getTileDef } from './board.js'
 import { charge, settleIfAble } from './elimination.js'
-import { EngineError, requireDebtorOrTurn, rupiah } from './index.js'
+import { EngineError, requireDebtorOrTurn, requireTurn, rupiah } from './index.js'
 import { pushLog, uid } from './util.js'
 
 /** Sum of the buy price of every tile the player owns (property value only). */
@@ -74,20 +74,7 @@ export function takeLoan(
     lender = found
   }
 
-  if (lender) {
-    lender.cash -= amount
-  } else {
-    state.bank -= amount
-  }
-  player.cash += amount
-  player.loans.push({
-    id: uid(),
-    amount,
-    interestPerLap: Math.round(amount * PINJOL_INTEREST_RATE),
-    lenderId: lender ? lender.id : null,
-    roundBorrowed: state.round,
-    interestPaid: 0,
-  })
+  grantLoan(state, player, amount, lender)
   pushLog(
     state,
     `${player.name} took a ${rupiah(amount)} pinjol from ${lender ? lender.name : 'the bank'}`,
@@ -95,6 +82,78 @@ export function takeLoan(
   )
   // Borrowing to cover a pending debt settles it once the cash is in hand.
   settleIfAble(state, playerId)
+}
+
+/**
+ * Rentenir's signature loanshark power: on their turn, force a rival to take a
+ * pinjol they didn't ask for. The Rentenir fronts the cash (so it lands on the
+ * target) and becomes the lender, collecting 10%/lap interest for the loan's
+ * life. Limited to once per round. The target still can't be pushed past the
+ * normal pinjol limits (max active loans, 3× property-value borrow ceiling), so
+ * only rivals with collateral and loan headroom can be saddled. Mutates state;
+ * throws EngineError on invalid input.
+ */
+export function forceLoan(
+  state: GameState,
+  rentenirId: string,
+  targetId: string,
+  amount: RupiahAmount,
+): void {
+  const rentenir = requireTurn(state, rentenirId)
+  if (rentenir.role !== 'rentenir') throw new EngineError('Only a Rentenir can force a loan')
+  if (rentenir.forcedLoanRound === state.round) {
+    throw new EngineError('You can only force one loan per round')
+  }
+  if (!PINJOL_AMOUNTS.includes(amount)) throw new EngineError('Invalid loan size')
+
+  if (targetId === rentenir.id) throw new EngineError('You cannot force a loan on yourself')
+  const target = state.players.find((p) => p.id === targetId)
+  if (!target) throw new EngineError('Target not found')
+  if (target.isEliminated) throw new EngineError('That player is eliminated')
+
+  if (target.loans.length >= PINJOL_MAX_LOANS) {
+    throw new EngineError(`${target.name} already has ${PINJOL_MAX_LOANS} active loans`)
+  }
+  const limit = PINJOL_BORROW_LIMIT_MULTIPLE * propertyValue(state, target)
+  if (outstandingPrincipal(target) + amount > limit) {
+    throw new EngineError(`${target.name} can't be forced past their ${rupiah(limit)} borrow limit`)
+  }
+  if (rentenir.cash < amount) throw new EngineError('You do not have enough cash to fund the loan')
+
+  grantLoan(state, target, amount, rentenir)
+  rentenir.forcedLoanRound = state.round
+  pushLog(
+    state,
+    `${rentenir.name} forced a ${rupiah(amount)} pinjol on ${target.name}`,
+    rentenir.id,
+  )
+}
+
+/**
+ * Credit `borrower` with `amount`, debiting the funding Rentenir (or the bank
+ * when `lender` is null), and record the loan. Shared by the voluntary
+ * (`takeLoan`) and forced (`forceLoan`) paths.
+ */
+function grantLoan(
+  state: GameState,
+  borrower: Player,
+  amount: RupiahAmount,
+  lender: Player | null,
+): void {
+  if (lender) {
+    lender.cash -= amount
+  } else {
+    state.bank -= amount
+  }
+  borrower.cash += amount
+  borrower.loans.push({
+    id: uid(),
+    amount,
+    interestPerLap: Math.round(amount * PINJOL_INTEREST_RATE),
+    lenderId: lender ? lender.id : null,
+    roundBorrowed: state.round,
+    interestPaid: 0,
+  })
 }
 
 /**

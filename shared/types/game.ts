@@ -90,6 +90,9 @@ export interface Player {
   isRoomMaster: boolean
   isConnected: boolean
   usedAbility: boolean // for once-per-game role abilities
+  // Round in which the Rentenir last forced a loan on a rival (their once-per-round
+  // loanshark power). 0 = never used. Compared against state.round to gate reuse.
+  forcedLoanRound: number
   // Distinct meta actions used in the current lap (since last passing GO). Capped
   // at META_ACTIONS_PER_LAP, no repeats; reset when the player passes GO.
   // Pinjol/Negosiasi are unlimited and not tracked here.
