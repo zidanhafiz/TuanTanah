@@ -34,17 +34,17 @@ cp .env.example .env
 
 Edit `.env` and set:
 
-| Var               | Value                                                                                      |
-| ----------------- | ------------------------------------------------------------------------------------------ |
-| `NODE_ENV`        | `production`                                                                               |
-| `PORT`            | `3000`                                                                                     |
-| `CORS_ORIGINS`    | `https://yourdomain.com` (the server refuses to start if this is empty/localhost/wildcard) |
-| `ROOM_TTL_HOURS`  | `24`                                                                                       |
-| `DOMAIN`          | `yourdomain.com`                                                                           |
-| `ACME_EMAIL`      | your email (Let's Encrypt expiry notices)                                                  |
-| `REDIS_URL`       | leave as-is — compose overrides it to `redis://redis:6379`                                 |
-| `VITE_SERVER_URL` | leave **blank** (client talks to the API same-origin)                                      |
-| `SUPABASE_*`      | leave **blank** (deferred post-MVP)                                                        |
+| Var               | Value                                                                                               |
+| ----------------- | --------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`        | `production`                                                                                        |
+| `PORT`            | `3000`                                                                                              |
+| `CORS_ORIGINS`    | `https://yourdomain.com` (the server refuses to start if this is empty/localhost/wildcard)          |
+| `ROOM_TTL_HOURS`  | `24`                                                                                                |
+| `DOMAIN`          | `yourdomain.com`                                                                                    |
+| `ACME_EMAIL`      | your email (Let's Encrypt expiry notices)                                                           |
+| `REDIS_URL`       | leave as-is — compose overrides it to `redis://redis:6379`                                          |
+| `VITE_SERVER_URL` | leave **blank** (client talks to the API same-origin)                                               |
+| `DATABASE_URL`    | leave as-is — compose points it at the `postgres` service (run `pnpm --filter server migrate` once) |
 
 ```bash
 # 3. Build + start everything (Caddy auto-issues the TLS cert on first boot)

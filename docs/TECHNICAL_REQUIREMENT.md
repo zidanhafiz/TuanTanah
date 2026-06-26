@@ -24,14 +24,14 @@ A real-time multiplayer web-based Monopoly game with Indonesian theme, supportin
 
 ### Backend
 
-| Technology            | Version | Purpose                                          |
-| --------------------- | ------- | ------------------------------------------------ |
-| Node.js               | 20 LTS  | Runtime                                          |
-| TypeScript            | 5+      | Type safety                                      |
-| Fastify               | 4+      | HTTP server (lobby, room creation, health check) |
-| Socket.io             | 4+      | Real-time WebSocket event handling               |
-| ioredis               | 5+      | Redis client for game state persistence          |
-| @supabase/supabase-js | 2+      | Auth and Postgres client                         |
+| Technology  | Version | Purpose                                                          |
+| ----------- | ------- | ---------------------------------------------------------------- |
+| Node.js     | 20 LTS  | Runtime                                                          |
+| TypeScript  | 5+      | Type safety                                                      |
+| Fastify     | 4+      | HTTP server (lobby, room creation, health check)                 |
+| Socket.io   | 4+      | Real-time WebSocket event handling                               |
+| ioredis     | 5+      | Redis client for game state persistence                          |
+| kysely + pg | 0.29+   | Type-safe Postgres query builder + driver (game-history archive) |
 
 ### Infrastructure
 
@@ -41,7 +41,7 @@ A real-time multiplayer web-based Monopoly game with Indonesian theme, supportin
 | Docker + Docker Compose | Container orchestration                             | Free          |
 | Nginx (Docker)          | Reverse proxy, static file serving, WebSocket proxy | Free          |
 | Redis (Docker)          | In-memory game state storage with TTL               | Free          |
-| Supabase (hosted)       | PostgreSQL database + Auth                          | Free tier     |
+| Postgres (Docker)       | Self-hosted game-history archive (via Kysely)       | Free          |
 
 ---
 
@@ -87,14 +87,15 @@ tuan-tanah/
 └── server/                        ← Node.js + Socket.io backend
     ├── Dockerfile
     └── src/
-        ├── index.ts               ← Fastify + Socket.io bootstrap
-        ├── rooms.ts               ← room lifecycle management
-        ├── redis.ts               ← Redis read/write helpers
-        ├── supabase.ts            ← Supabase client
-        ├── handlers/
+        ├── bootstrap/             ← index.ts (entry) + env.ts (Fastify/Socket.io wiring)
+        ├── rooms/                 ← rooms.ts, sessions.ts, store.ts (lifecycle + live state)
+        ├── persistence/           ← Kysely Postgres client, schema, migrations/, gameHistory
+        ├── modules/               ← feature seams: auth, social, matchmaking, bots
+        ├── realtime/              ← socket handlers (was handlers/)
         │   ├── lobby.ts           ← join, set role, start game
-        │   └── game.ts            ← all in-game socket events
-        └── engine/                ← pure game logic, zero I/O
+        │   ├── game.ts            ← all in-game socket events
+        │   └── mutations.ts       ← shared mutate→broadcast→emit write paths
+        └── engine/                ← pure game logic, zero I/O (incl. lawoffice.ts)
             ├── index.ts           ← engine entry point
             ├── turn.ts            ← turn state machine
             ├── board.ts           ← tile definitions, region map
@@ -139,11 +140,11 @@ tuan-tanah/
 │                                                          │
 └──────────────────────────────────────────────────────────┘
                               │
-                              │ HTTPS (Supabase SDK)
+                              │ Kysely (pg, in-cluster)
                               ▼
                   ┌───────────────────────┐
-                  │   Supabase (hosted)   │
-                  │  PostgreSQL + Auth    │
+                  │  Postgres Container    │
+                  │  Game-history archive  │
                   └───────────────────────┘
 ```
 
@@ -318,7 +319,7 @@ All game state fits in a single key per room. On every state change, the full Ga
 
 ---
 
-## 9. Supabase (PostgreSQL) Schema
+## 9. Postgres Schema (game-history archive, via Kysely)
 
 ```sql
 -- Player accounts (future feature)
@@ -401,8 +402,7 @@ services:
     env_file: .env
     environment:
       - REDIS_URL=redis://redis:6379
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_KEY=${SUPABASE_SERVICE_KEY}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-tuan}:${POSTGRES_PASSWORD:-tuan}@postgres:5432/${POSTGRES_DB:-tuan_tanah}
       - NODE_ENV=production
     depends_on:
       - redis
@@ -459,7 +459,7 @@ server {
 | Frontend    | `vite dev` (hot reload)      | Built static files served by Nginx                |
 | Backend     | `tsx watch src/index.ts`     | Docker container via PM2 or Docker restart policy |
 | Redis       | Local install or Docker      | Docker container with persistent volume           |
-| Database    | Supabase hosted (same)       | Supabase hosted (same)                            |
+| Database    | Postgres container (same)    | Postgres container (same)                         |
 | Run command | `npm run dev` in each folder | `docker compose up -d`                            |
 
 ---
@@ -471,9 +471,8 @@ server {
 NODE_ENV=production
 PORT=3000
 
-# Supabase
-SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_SERVICE_KEY=eyJ...
+# Postgres (game-history archive; blank disables persistence)
+DATABASE_URL=postgres://tuan:tuan@postgres:5432/tuan_tanah
 
 # Redis
 REDIS_URL=redis://redis:6379
@@ -491,7 +490,7 @@ MAX_PLAYERS_PER_ROOM=8
 # On Contabo VPS — initial setup
 git clone https://github.com/your-org/tuan-tanah.git
 cd tuan-tanah
-cp .env.example .env && nano .env   # fill in Supabase keys
+cp .env.example .env && nano .env   # set DATABASE_URL (+ run `pnpm --filter server migrate`)
 
 # Build frontend
 cd client && npm install && npm run build && cd ..
@@ -515,7 +514,7 @@ docker compose up -d --build backend
 - No auction mechanic (per game design)
 - No mobile-first UI (desktop only for MVP)
 - No persistent player accounts (session-based names only for MVP)
-- No leaderboards (Supabase schema ready, feature deferred)
+- No leaderboards (Postgres schema ready, feature deferred)
 - No SSL/HTTPS (add Certbot + Let's Encrypt after MVP)
 - No spectator chat
 
@@ -523,14 +522,14 @@ docker compose up -d --build backend
 
 ## 17. Summary
 
-| Concern            | Solution                                           |
-| ------------------ | -------------------------------------------------- |
-| Real-time sync     | Socket.io — server is source of truth              |
-| Game logic         | Pure TypeScript engine — no I/O, fully testable    |
-| State persistence  | Redis on same VPS — survives server restart        |
-| Timed card effects | `roundsRemaining` decremented per round tick       |
-| Negotiation        | Mini state machine in `negotiation.ts`             |
-| Auth + history     | Supabase (deferred to post-MVP)                    |
-| Deployment         | Docker Compose on Contabo VPS                      |
-| Latency (170ms)    | Acceptable — turn-based game, imperceptible        |
-| Cost               | Rp 0 extra — VPS already owned, Supabase free tier |
+| Concern            | Solution                                                       |
+| ------------------ | -------------------------------------------------------------- |
+| Real-time sync     | Socket.io — server is source of truth                          |
+| Game logic         | Pure TypeScript engine — no I/O, fully testable                |
+| State persistence  | Redis on same VPS — survives server restart                    |
+| Timed card effects | `roundsRemaining` decremented per round tick                   |
+| Negotiation        | Mini state machine in `negotiation.ts`                         |
+| Auth + history     | Self-hosted Postgres (history live; auth deferred to post-MVP) |
+| Deployment         | Docker Compose on Contabo VPS                                  |
+| Latency (170ms)    | Acceptable — turn-based game, imperceptible                    |
+| Cost               | Rp 0 extra — VPS already owned, Postgres self-hosted           |

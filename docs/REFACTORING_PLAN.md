@@ -1,6 +1,17 @@
 # Refactoring & Restructuring Plan — Tuan Tanah
 
-_Status: proposed (not yet executed). Authored 2026-06-26._
+_Status: **executed** 2026-06-27 (branch `refactor/foundational-reorg`). Authored 2026-06-26._
+
+> **Execution note.** Phases 0–3 and 5–7 landed in full. Phase 4 delivered its core — the
+> client Vitest harness + the tested tile-value de-dup — but the larger component-internal
+> rewrites (decompose `PropertyModal`; `NegotiationModal`/`Game.tsx` state to reducers/hooks)
+> were **deferred** as test-first follow-ups: they are the lowest-value, highest-regression-risk
+> work in the effort and have no render-test net yet. Two intentional structural deviations from
+> the original target: `gameStore`/`socket` stay shared at `client/src/` root (they back the
+> lobby too, so they're app infra, not a game-feature internal); and the realtime mutation
+> helpers live in `realtime/mutations.ts` rather than `common.ts` (which would cycle with
+> `afk.ts`). The Postgres swap's code is complete and SQL-verified, but live row-insertion was
+> not exercised here (no Docker in the build environment) — run it once with Postgres up.
 
 ## Goal
 
@@ -207,8 +218,8 @@ Create the module skeletons so the big plan slots in without restructuring:
 
 ## Flagged, NOT fixed (track separately — not part of this refactor)
 
-1. **Possible bug:** `repay_pinjol` is the only mutation handler skipping `concludeIfWon()`
-   (`game.ts:340`). Investigate; fix in its own commit if real.
+1. ~~**Possible bug:** `repay_pinjol` skips `concludeIfWon()`.~~ **Not a bug / already fixed:**
+   `repay_pinjol` does call `concludeIfWon` (commit `b523bf9`, pre-dating this refactor).
 2. **Role TODOs (content/balance):** `rentenir` forced loans, `sales` 15% bonus (`roles.ts`).
 3. ~~**Server-side i18n gap:** engine log/error strings are English-only.~~ **Done (TTG-33):**
    engine log/error strings are now keyed + localized EN/ID (`logKey` / `EngineError(code, params)`,

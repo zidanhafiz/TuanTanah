@@ -16,9 +16,9 @@ The full game loop is playable end-to-end, synced over Socket.io:
 - Pinjol (loan) system + debt resolution
 - Structured negotiation deals between players
 - Role active abilities, voting, elimination / bankruptcy cascade, and win conditions
-- Game-over standings, optionally archived to Supabase
+- Game-over standings, optionally archived to Postgres
 
-Client extras: neobrutalist design system, framer-motion animations, a sound system, and per-player EN/ID i18n. The engine is covered by a Vitest suite. Remaining work is balance/content tuning and server-side log/error i18n — see `CLAUDE.md`.
+Client extras: neobrutalist design system, framer-motion animations, a sound system, and per-player EN/ID i18n. The engine and the client both have Vitest suites. Remaining work is balance/content tuning and a couple of residual server-side i18n gaps — see `CLAUDE.md`.
 
 ## Monorepo layout
 
@@ -68,8 +68,8 @@ If `REDIS_URL` is unset or unreachable, the server falls back to an in-memory ga
 ## Production (VPS, HTTPS)
 
 The prod stack is Docker Compose: **Caddy** (serves the built client, proxies the
-API, auto-issues Let's Encrypt TLS) + **backend** + **redis**. No host build step —
-the client is built inside the image.
+API, auto-issues Let's Encrypt TLS) + **backend** + **redis** + **postgres**. No host
+build step — the client is built inside the image.
 
 ```bash
 cp .env.example .env      # set NODE_ENV, CORS_ORIGINS, DOMAIN, ACME_EMAIL
@@ -80,4 +80,4 @@ See [`docs/DEPLOY.md`](docs/DEPLOY.md) for the full runbook (DNS, firewall, veri
 
 ## Environment
 
-Copy `.env.example` to `.env`. Supabase is optional — it archives final game history on game-over; leave the keys blank to disable it (live state lives in Redis/memory regardless).
+Copy `.env.example` to `.env`. Postgres (game-history archive) is optional — set `DATABASE_URL` and run `pnpm --filter server migrate` to enable it; leave it blank to disable (live state lives in Redis/memory regardless). For local dev, `docker compose -f docker-compose.dev.yml up -d` brings up both Redis and Postgres.
