@@ -90,6 +90,7 @@
     "skipEndTurn": "Skip & end turn",
     "endTurn": "End turn",
     "pinjol": "🏦 Pinjol",
+    "forcePinjol": "💰 Force pinjol",
     "negotiate": "🤝 Negotiate",
     "selectTarget": "Select a {{target}} on the {{location}}…",
     "targetPlayer": "player",
@@ -106,6 +107,7 @@
       "eliminated": "eliminated"
     },
     "pinjolDesc": "Take a quick loan for cash now — repay it later with steep interest.",
+    "forcePinjolDesc": "Loanshark power (once per round): force a rival to take a pinjol you fund and collect the interest on.",
     "negotiateDesc": "Propose a deal to another player: swap properties, trade cash, rent immunity, or revenue share."
   },
   "board": {
@@ -169,6 +171,20 @@
     "overBorrowLimit": "Over borrow limit",
     "lenderShort": "Lender short on cash",
     "borrow": "Borrow {{amount}}",
+    "cancel": "Cancel"
+  },
+  "forcePinjol": {
+    "title": "💰 Force pinjol",
+    "terms": "Fund a rival's loan and collect {{rate}}% interest/lap · once per round",
+    "target": "Target",
+    "loanSize": "Loan size",
+    "targetLoans": "{{name}}: {{count}}/{{max}} loans · borrow limit {{limit}}",
+    "targetMaxLoans": "Target at max loans",
+    "targetOverLimit": "Over target's borrow limit",
+    "cannotFund": "You can't fund this loan",
+    "pickTarget": "Pick a target",
+    "alreadyUsed": "Already used this round",
+    "force": "Force {{amount}} on {{name}}",
     "cancel": "Cancel"
   },
   "judol": {

@@ -22,6 +22,7 @@ import { MetaActionBar, type MetaActionDef } from '../components/MetaActionBar/M
 import { JudolModal } from '../components/JudolModal/JudolModal.js'
 import { KantorHukumModal } from '../components/KantorHukumModal/KantorHukumModal.js'
 import { NegotiationModal } from '../components/NegotiationModal/NegotiationModal.js'
+import { ForcePinjolModal } from '../components/ForcePinjolModal/ForcePinjolModal.js'
 import { PinjolModal } from '../components/PinjolModal/PinjolModal.js'
 import { PlayerPanel } from '../components/PlayerPanel/PlayerPanel.js'
 import { PlayerStatus } from '../components/PlayerStatus/PlayerStatus.js'
@@ -58,6 +59,7 @@ export function Game() {
     target: 'player' | 'tile'
   } | null>(null)
   const [showPinjol, setShowPinjol] = useState(false)
+  const [showForcePinjol, setShowForcePinjol] = useState(false)
   const [showJudol, setShowJudol] = useState(false)
   const [selectedTile, setSelectedTile] = useState<TileId | null>(null)
   // Negotiation modal: null = closed; an object = open, optionally prefilled
@@ -195,6 +197,19 @@ export function Game() {
         <Tooltip content={t('game.pinjolDesc')} className="w-full">
           <Button variant="secondary" size="sm" block onClick={() => setShowPinjol(true)}>
             {t('game.pinjol')}
+          </Button>
+        </Tooltip>
+      )}
+      {!rolling && me?.role === 'rentenir' && (
+        <Tooltip content={t('game.forcePinjolDesc')} className="w-full">
+          <Button
+            variant="secondary"
+            size="sm"
+            block
+            disabled={me.forcedLoanRound === state.round}
+            onClick={() => setShowForcePinjol(true)}
+          >
+            {t('game.forcePinjol')}
           </Button>
         </Tooltip>
       )}
@@ -383,6 +398,7 @@ export function Game() {
       </div>
 
       <PinjolModal open={showPinjol} onClose={() => setShowPinjol(false)} />
+      <ForcePinjolModal open={showForcePinjol} onClose={() => setShowForcePinjol(false)} />
       <JudolModal open={showJudol} onClose={() => setShowJudol(false)} />
       <KantorHukumModal
         open={isMyTurn && turn.pendingLawOffice && !rolling && !lawOfficeDismissed}

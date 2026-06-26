@@ -90,6 +90,7 @@
     "skipEndTurn": "Lewati & akhiri giliran",
     "endTurn": "Akhiri giliran",
     "pinjol": "🏦 Pinjol",
+    "forcePinjol": "💰 Paksa pinjol",
     "negotiate": "🤝 Negosiasi",
     "selectTarget": "Pilih {{target}} di {{location}}…",
     "targetPlayer": "pemain",
@@ -106,6 +107,7 @@
       "eliminated": "tersingkir"
     },
     "pinjolDesc": "Ambil pinjaman cepat untuk uang tunai sekarang — bayar kembali dengan bunga tinggi.",
+    "forcePinjolDesc": "Kekuatan rentenir (sekali per putaran): paksa lawan mengambil pinjol yang kamu danai dan tarik bunganya.",
     "negotiateDesc": "Ajukan kesepakatan ke pemain lain: tukar properti, jual-beli tunai, imunitas sewa, atau bagi hasil."
   },
   "board": {
@@ -169,6 +171,20 @@
     "overBorrowLimit": "Melebihi batas pinjam",
     "lenderShort": "Kas pemberi pinjaman kurang",
     "borrow": "Pinjam {{amount}}",
+    "cancel": "Batal"
+  },
+  "forcePinjol": {
+    "title": "💰 Paksa pinjol",
+    "terms": "Danai pinjaman lawan dan tarik bunga {{rate}}%/putaran · sekali per putaran",
+    "target": "Sasaran",
+    "loanSize": "Besar pinjaman",
+    "targetLoans": "{{name}}: {{count}}/{{max}} pinjaman · batas pinjam {{limit}}",
+    "targetMaxLoans": "Sasaran sudah maks pinjaman",
+    "targetOverLimit": "Melebihi batas pinjam sasaran",
+    "cannotFund": "Kas kamu tidak cukup untuk mendanai",
+    "pickTarget": "Pilih sasaran",
+    "alreadyUsed": "Sudah dipakai putaran ini",
+    "force": "Paksa {{amount}} ke {{name}}",
     "cancel": "Batal"
   },
   "judol": {

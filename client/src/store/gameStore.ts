@@ -157,6 +157,7 @@ interface GameStore {
   ) => void
   useAbility: (ability: AbilityType) => void
   takePinjol: (amount: RupiahAmount, lenderId?: string) => void
+  forcePinjol: (targetId: string, amount: RupiahAmount) => void
   repayPinjol: (loanId?: string) => void
   resolveDebt: (giveUp: boolean) => void
   payJail: () => void
@@ -395,6 +396,7 @@ export const useGame = create<GameStore>((set, get) => ({
     getActiveSocket().emit('use_ability', { ability })
   },
   takePinjol: (amount, lenderId) => getActiveSocket().emit('take_pinjol', { amount, lenderId }),
+  forcePinjol: (targetId, amount) => getActiveSocket().emit('force_pinjol', { targetId, amount }),
   repayPinjol: (loanId) => {
     playSound('click', { volume: 0.5 })
     getActiveSocket().emit('repay_pinjol', { loanId })
