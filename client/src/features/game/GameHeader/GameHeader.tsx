@@ -1,7 +1,7 @@
 import { Flag, House, LogOut } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useGame } from '@/store/gameStore.js'
-import { GameTimer } from '@/components/GameTimer/GameTimer.js'
+import { GameTimer } from '@/features/game/GameTimer/GameTimer.js'
 import { LeaveButton, SurrenderButton } from '@/components/RoomActions.js'
 import { SoundToggle } from '@/components/SoundToggle.js'
 

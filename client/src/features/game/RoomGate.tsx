@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Button, Card } from '@/components/ui/index.js'
 import { useGame } from '@/store/gameStore.js'
 import { Game } from './Game.js'
-import { Lobby } from './Lobby.js'
+import { Lobby } from '@/features/lobby/Lobby.js'
 
 /**
  * Resolves a `/room/:roomId` URL into the right view:

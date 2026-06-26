@@ -2,8 +2,8 @@ import { BOARD, type TileId } from '@tuan-tanah/shared'
 import { useEffect, useState } from 'react'
 import { useGame } from '@/store/gameStore.js'
 import { Badge, Button, Card } from '@/components/ui/index.js'
-import { Game } from './Game.js'
-import { Lobby } from './Lobby.js'
+import { Game } from '@/features/game/Game.js'
+import { Lobby } from '@/features/lobby/Lobby.js'
 
 /**
  * DEV-only hotseat (pass-and-play) harness. The socket/store are singletons, so

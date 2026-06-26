@@ -29,7 +29,7 @@ import {
   tileEffectLabel,
   tileName,
 } from '@/i18n/gameData.js'
-import { EffectIcon, isTileEffect } from '@/components/Board/icons.js'
+import { EffectIcon, isTileEffect } from '@/features/game/Board/icons.js'
 import { Badge, Button, Card, Modal } from '@/components/ui/index.js'
 import { formatRupiah, useGame } from '@/store/gameStore.js'
 
