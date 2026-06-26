@@ -342,6 +342,12 @@ export function registerGameHandlers(io: TTServer, socket: TTSocket, store: Game
       const { roomId, playerId } = requireSession(socket)
       await mutateRoom(store, roomId, (state) => repayPinjol(state, playerId, payload.loanId))
       await broadcastAndArm(io, store, roomId)
+      // Repaying credits the loan amount to the lender's cash, which can tip the
+      // lender across the wealth target (the win check evaluates the richest
+      // active player, not just the actor). No elimination machinery is needed:
+      // repayPinjol requires the payer to fully afford the repayment, so it can
+      // never create a debt/charge that bankrupts anyone.
+      await concludeIfWon(io, store, roomId)
     }),
   )
 }
