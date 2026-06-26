@@ -1,7 +1,7 @@
 import { BOARD, type TileId } from '@tuan-tanah/shared'
 import { useEffect, useState } from 'react'
-import { useGame } from '../store/gameStore.js'
-import { Badge, Button, Card } from '../components/ui/index.js'
+import { useGame } from '@/store/gameStore.js'
+import { Badge, Button, Card } from '@/components/ui/index.js'
 import { Game } from './Game.js'
 import { Lobby } from './Lobby.js'
 

@@ -29,8 +29,8 @@ import {
   tileEffectLabel,
   tileName,
 } from '@/i18n/gameData.js'
-import { EffectIcon, isTileEffect } from '../Board/icons.js'
-import { Badge, Button, Card, Modal } from '../ui/index.js'
+import { EffectIcon, isTileEffect } from '@/components/Board/icons.js'
+import { Badge, Button, Card, Modal } from '@/components/ui/index.js'
 import { formatRupiah, useGame } from '@/store/gameStore.js'
 
 /** True if `ownerId` owns every tile in `region`. Mirrors the engine's ownsFullRegion. */

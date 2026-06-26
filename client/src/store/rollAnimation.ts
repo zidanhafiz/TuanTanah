@@ -1,6 +1,6 @@
 import { JAIL_GO_TILE_ID, JAIL_TILE_ID, type GameState } from '@tuan-tanah/shared'
 import { create } from 'zustand'
-import { playSound, type SoundName } from '../sound/index.js'
+import { playSound, type SoundName } from '@/sound/index.js'
 
 /**
  * Cinematic phase machine for a dice roll. The server broadcasts the dice, the

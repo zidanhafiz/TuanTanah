@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { LanguageSwitcher } from '../components/LanguageSwitcher.js'
-import { SoundToggle } from '../components/SoundToggle.js'
-import { Button, Card } from '../components/ui/index.js'
-import { useGame } from '../store/gameStore.js'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher.js'
+import { SoundToggle } from '@/components/SoundToggle.js'
+import { Button, Card } from '@/components/ui/index.js'
+import { useGame } from '@/store/gameStore.js'
 
 export function Home() {
   const { t } = useTranslation()

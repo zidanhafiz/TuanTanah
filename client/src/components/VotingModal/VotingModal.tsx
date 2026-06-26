@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Badge, Button, Card, Modal } from '../ui/index.js'
+import { Badge, Button, Card, Modal } from '@/components/ui/index.js'
 import { useGame } from '@/store/gameStore.js'
 
 /**

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Badge, Button, Card, Modal, Toast } from '../components/ui/index.js'
+import { Badge, Button, Card, Modal, Toast } from '@/components/ui/index.js'
 
 /**
  * Living design-system reference at /design. Built entirely from the `ui/`

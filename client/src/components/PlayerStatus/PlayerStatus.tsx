@@ -2,8 +2,8 @@ import type { TileId } from '@tuan-tanah/shared'
 import { useTranslation } from 'react-i18next'
 import { tierName, tileName } from '@/i18n/gameData.js'
 import { formatRupiah, useGame } from '@/store/gameStore.js'
-import { MoneyDelta } from '../ui/MoneyDelta.js'
-import { Badge, Button, Card } from '../ui/index.js'
+import { MoneyDelta } from '@/components/ui/MoneyDelta.js'
+import { Badge, Button, Card } from '@/components/ui/index.js'
 
 /**
  * "Me" side panel: the player's own cash, owned properties (click to open the

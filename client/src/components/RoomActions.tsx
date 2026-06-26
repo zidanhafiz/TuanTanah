@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { useGame } from '../store/gameStore.js'
+import { useGame } from '@/store/gameStore.js'
 import { Button, Modal } from './ui/index.js'
 
 /** Copies the shareable room link (`/room/CODE`) to the clipboard. */

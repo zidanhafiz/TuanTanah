@@ -15,17 +15,17 @@ import {
   type TileId,
 } from '@tuan-tanah/shared'
 import { create } from 'zustand'
-import i18n from '../i18n/index.js'
-import { renderErrorMessage } from '../i18n/messages.js'
-import { onResync } from '../lib/resync.js'
+import i18n from '@/i18n/index.js'
+import { renderErrorMessage } from '@/i18n/messages.js'
+import { onResync } from '@/lib/resync.js'
 import {
   type ClientSocket,
   createSocket,
   getActiveSocket,
   setActiveSocket,
   socket,
-} from '../socket.js'
-import { audio, playSound, playStateSounds } from '../sound/index.js'
+} from '@/socket.js'
+import { audio, playSound, playStateSounds } from '@/sound/index.js'
 import {
   isRollAnimStuck,
   noteIncomingState,

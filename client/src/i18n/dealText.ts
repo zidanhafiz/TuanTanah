@@ -1,6 +1,6 @@
 import { type GameState, type NegotiationDeal } from '@tuan-tanah/shared'
 import { type useTranslation } from 'react-i18next'
-import { formatRupiah } from '../store/gameStore.js'
+import { formatRupiah } from '@/store/gameStore.js'
 import { tileName } from './gameData.js'
 
 type TFunc = ReturnType<typeof useTranslation>['t']

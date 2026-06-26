@@ -1,6 +1,6 @@
 import { META_ACTIONS_PER_LAP, type MetaActionType, type TurnState } from '@tuan-tanah/shared'
 import { useTranslation } from 'react-i18next'
-import { Button, Tooltip } from '../ui/index.js'
+import { Button, Tooltip } from '@/components/ui/index.js'
 
 export type MetaTarget = 'none' | 'player' | 'tile'
 

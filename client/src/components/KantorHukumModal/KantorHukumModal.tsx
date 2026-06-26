@@ -20,7 +20,7 @@ import {
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { tileName } from '@/i18n/gameData.js'
-import { Button, Card, Modal } from '../ui/index.js'
+import { Button, Card, Modal } from '@/components/ui/index.js'
 import { formatRupiah, useGame } from '@/store/gameStore.js'
 
 type Mode = 'menu' | 'buy' | 'transfer' | 'jail' | 'freepass' | 'upgrade'

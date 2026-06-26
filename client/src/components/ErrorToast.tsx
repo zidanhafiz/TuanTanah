@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useGame } from '../store/gameStore.js'
+import { useGame } from '@/store/gameStore.js'
 import { Toast } from './ui/index.js'
 
 export function ErrorToast() {

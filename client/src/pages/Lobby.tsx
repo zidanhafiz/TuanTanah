@@ -12,12 +12,12 @@ import {
 } from '@tuan-tanah/shared'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { roleAbility, roleName } from '../i18n/gameData.js'
-import { LanguageSwitcher } from '../components/LanguageSwitcher.js'
-import { SoundToggle } from '../components/SoundToggle.js'
-import { LeaveButton, ShareLinkButton } from '../components/RoomActions.js'
-import { Badge, Button, Card } from '../components/ui/index.js'
-import { formatRupiah, useGame } from '../store/gameStore.js'
+import { roleAbility, roleName } from '@/i18n/gameData.js'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher.js'
+import { SoundToggle } from '@/components/SoundToggle.js'
+import { LeaveButton, ShareLinkButton } from '@/components/RoomActions.js'
+import { Badge, Button, Card } from '@/components/ui/index.js'
+import { formatRupiah, useGame } from '@/store/gameStore.js'
 
 export function Lobby() {
   const { t } = useTranslation()

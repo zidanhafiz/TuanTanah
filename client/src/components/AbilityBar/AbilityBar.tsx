@@ -1,6 +1,6 @@
 import type { AbilityType, Player } from '@tuan-tanah/shared'
 import { useTranslation } from 'react-i18next'
-import { Button } from '../ui/index.js'
+import { Button } from '@/components/ui/index.js'
 
 interface AbilityDef {
   ability: AbilityType

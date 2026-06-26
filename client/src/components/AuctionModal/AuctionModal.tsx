@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useNow } from '@/hooks/useNow.js'
 import { tileName } from '@/i18n/gameData.js'
 import { formatRupiah, useGame } from '@/store/gameStore.js'
-import { Badge, Button, Card, Modal } from '../ui/index.js'
+import { Badge, Button, Card, Modal } from '@/components/ui/index.js'
 
 /**
  * Kantor Hukum force-buy auction. Driven entirely by `state.pendingAuction`: the

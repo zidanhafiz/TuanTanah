@@ -1,7 +1,7 @@
 import { JUDOL_PRESET_DEPOSITS, type RupiahAmount } from '@tuan-tanah/shared'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Card, Modal } from '../ui/index.js'
+import { Button, Card, Modal } from '@/components/ui/index.js'
 import { formatRupiah, useGame } from '@/store/gameStore.js'
 
 const JUTA = 1_000_000

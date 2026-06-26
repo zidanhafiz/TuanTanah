@@ -1,9 +1,9 @@
 import { Flag, House, LogOut } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useGame } from '@/store/gameStore.js'
-import { GameTimer } from '../GameTimer/GameTimer.js'
-import { LeaveButton, SurrenderButton } from '../RoomActions.js'
-import { SoundToggle } from '../SoundToggle.js'
+import { GameTimer } from '@/components/GameTimer/GameTimer.js'
+import { LeaveButton, SurrenderButton } from '@/components/RoomActions.js'
+import { SoundToggle } from '@/components/SoundToggle.js'
 
 /**
  * Full-width page header above the board + sidebar: the Tuan Tanah brand and

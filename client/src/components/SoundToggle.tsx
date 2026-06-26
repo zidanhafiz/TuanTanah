@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { useSoundSettings } from '../sound/index.js'
+import { useSoundSettings } from '@/sound/index.js'
 
 /**
  * Per-player mute toggle. Mirrors LanguageSwitcher's styling and persistence

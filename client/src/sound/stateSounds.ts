@@ -1,6 +1,6 @@
 import type { GameState } from '@tuan-tanah/shared'
 import { playSound } from './AudioManager.js'
-import { playOnMoveSettled } from '../store/rollAnimation.js'
+import { playOnMoveSettled } from '@/store/rollAnimation.js'
 
 /**
  * Derive sound effects from a server state broadcast by diffing the previous

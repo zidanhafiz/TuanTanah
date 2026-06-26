@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { SUPPORTED_LANGUAGES, type Language } from '../i18n/index.js'
+import { SUPPORTED_LANGUAGES, type Language } from '@/i18n/index.js'
 
 /**
  * Per-player language toggle. Writes through i18next (persisted to localStorage

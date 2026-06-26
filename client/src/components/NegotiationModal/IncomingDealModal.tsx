@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { describeDeal, playerName } from '@/i18n/dealText.js'
-import { Button, Card, Modal } from '../ui/index.js'
+import { Button, Card, Modal } from '@/components/ui/index.js'
 import { useGame } from '@/store/gameStore.js'
 
 export function IncomingDealModal() {

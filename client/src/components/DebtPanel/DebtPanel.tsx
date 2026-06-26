@@ -2,7 +2,7 @@ import { type PendingDebt } from '@tuan-tanah/shared'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatRupiah, useGame } from '@/store/gameStore.js'
-import { Button, Card } from '../ui/index.js'
+import { Button, Card } from '@/components/ui/index.js'
 
 /**
  * Shown in place of the turn controls when the current player owes an unpayable

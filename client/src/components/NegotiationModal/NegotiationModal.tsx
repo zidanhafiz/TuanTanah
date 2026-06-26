@@ -10,7 +10,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { describeDeal } from '@/i18n/dealText.js'
 import { tileName } from '@/i18n/gameData.js'
-import { Button, Card, Modal } from '../ui/index.js'
+import { Button, Card, Modal } from '@/components/ui/index.js'
 import { formatRupiah, useGame } from '@/store/gameStore.js'
 
 const DEAL_TYPES: NegotiationDealType[] = [
