@@ -26,9 +26,9 @@ import {
   upgradeProperty,
   useAbility,
 } from '../engine/index.js'
-import { isDev } from '../env.js'
-import { mutateRoom } from '../rooms.js'
-import type { GameStore } from '../store.js'
+import { isDev } from '../bootstrap/env.js'
+import { mutateRoom } from '../rooms/rooms.js'
+import type { GameStore } from '../rooms/store.js'
 import { armAuction, broadcastAndArm, clearAuctionTimer } from './afk.js'
 import { guard, requireSession, type TTServer, type TTSocket } from './common.js'
 import { concludeIfWon } from './gameOver.js'

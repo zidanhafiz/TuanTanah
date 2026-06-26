@@ -8,9 +8,9 @@ import {
   startGame,
   updateSettings,
 } from '../engine/index.js'
-import { createRoom, mutateRoom } from '../rooms.js'
-import { clearSession, setSession } from '../sessions.js'
-import type { GameStore } from '../store.js'
+import { createRoom, mutateRoom } from '../rooms/rooms.js'
+import { clearSession, setSession } from '../rooms/sessions.js'
+import type { GameStore } from '../rooms/store.js'
 import { broadcastAndArm } from './afk.js'
 import {
   broadcastState,

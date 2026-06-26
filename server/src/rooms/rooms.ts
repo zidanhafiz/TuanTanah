@@ -2,7 +2,7 @@
 // concurrent socket events on the same room never race on read-modify-write.
 import { randomInt } from 'node:crypto'
 import type { GameState } from '@tuan-tanah/shared'
-import { createGameState } from './engine/index.js'
+import { createGameState } from '../engine/index.js'
 import type { GameStore } from './store.js'
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789' // no ambiguous 0/O/1/I/L

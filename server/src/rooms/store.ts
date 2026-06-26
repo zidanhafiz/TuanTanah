@@ -2,7 +2,7 @@
 // falls back to an in-memory Map so local dev needs no Docker.
 import { Redis } from 'ioredis'
 import type { GameState } from '@tuan-tanah/shared'
-import { env } from './env.js'
+import { env } from '../bootstrap/env.js'
 
 export interface GameStore {
   readonly backend: 'redis' | 'memory'

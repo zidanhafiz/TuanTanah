@@ -3,8 +3,8 @@
 // end_turn handler call `concludeIfWon`, so the resolution path is identical
 // whether the game ends by inactivity or by a player's action.
 import { finalStandings, resolveGameOver } from '../engine/index.js'
-import { mutateRoom } from '../rooms.js'
-import type { GameStore } from '../store.js'
+import { mutateRoom } from '../rooms/rooms.js'
+import type { GameStore } from '../rooms/store.js'
 import { persistGameResult } from '../supabase.js'
 import { clearAfkTimer } from './afk.js'
 import { broadcastState, type TTServer } from './common.js'

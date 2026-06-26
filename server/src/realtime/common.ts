@@ -1,7 +1,7 @@
 import type { Server, Socket } from 'socket.io'
 import type { ClientToServerEvents, LogParams, ServerToClientEvents } from '@tuan-tanah/shared'
-import type { GameStore } from '../store.js'
-import { getSession } from '../sessions.js'
+import type { GameStore } from '../rooms/store.js'
+import { getSession } from '../rooms/sessions.js'
 
 export type TTServer = Server<ClientToServerEvents, ServerToClientEvents>
 export type TTSocket = Socket<ClientToServerEvents, ServerToClientEvents>

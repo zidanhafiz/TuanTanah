@@ -5,10 +5,10 @@ import Fastify from 'fastify'
 import { Server } from 'socket.io'
 import type { ClientToServerEvents, ServerToClientEvents } from '@tuan-tanah/shared'
 import { assertSafeCors, env, isDev } from './env.js'
-import { registerGameHandlers } from './handlers/game.js'
-import { registerLobbyHandlers } from './handlers/lobby.js'
-import { connectionGate, trackConnection } from './security.js'
-import { createStore } from './store.js'
+import { registerGameHandlers } from '../realtime/game.js'
+import { registerLobbyHandlers } from '../realtime/lobby.js'
+import { connectionGate, trackConnection } from '../security.js'
+import { createStore } from '../rooms/store.js'
 
 async function main() {
   assertSafeCors()

@@ -10,8 +10,8 @@
 import { AFK_TIMEOUT_MS, AUCTION_TIMEOUT_MS } from '@tuan-tanah/shared'
 import type { GameState } from '@tuan-tanah/shared'
 import { applyAfkTimeout, resolveAuctionTimeout } from '../engine/index.js'
-import { mutateRoom } from '../rooms.js'
-import type { GameStore } from '../store.js'
+import { mutateRoom } from '../rooms/rooms.js'
+import type { GameStore } from '../rooms/store.js'
 import { broadcastState, type TTServer } from './common.js'
 import { concludeIfWon } from './gameOver.js'
 

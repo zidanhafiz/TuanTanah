@@ -3,7 +3,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { GameState } from '@tuan-tanah/shared'
 import { playerWealth } from './engine/index.js'
-import { env } from './env.js'
+import { env } from './bootstrap/env.js'
 
 let client: SupabaseClient | null = null
 
