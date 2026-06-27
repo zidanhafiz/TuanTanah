@@ -1,11 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "mcp__claude_ai_Notion__notion-fetch",
-      "mcp__claude_ai_Notion__notion-search",
-      "mcp__claude_ai_Notion__notion-get-teams",
-      "mcp__claude_ai_Notion__notion-get-users",
-      "mcp__claude_ai_Notion__notion-get-comments"
+      "mcp__clickup__clickup_get_workspace_hierarchy",
+      "mcp__clickup__clickup_get_list",
+      "mcp__clickup__clickup_get_folder",
+      "mcp__clickup__clickup_get_task",
+      "mcp__clickup__clickup_search",
+      "mcp__clickup__clickup_filter_tasks",
+      "mcp__clickup__clickup_get_task_comments",
+      "mcp__clickup__clickup_get_custom_fields",
+      "mcp__clickup__clickup_get_workspace_members",
+      "mcp__clickup__clickup_find_member_by_name",
+      "mcp__clickup__clickup_resolve_assignees",
+      "mcp__clickup__clickup_list_document_pages",
+      "mcp__clickup__clickup_get_document_pages"
     ]
   },
   "hooks": {

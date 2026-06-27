@@ -119,34 +119,35 @@ Remaining gaps are balance/content TODOs, not missing systems — search for `TO
 - TypeScript is strict (`noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`, `verbatimModuleSyntax`). Use `import type` for type-only imports.
 - Server runs via `tsx` (no build step for dev or prod `start`); only the client is bundled.
 
-## Project management — Notion is the source of truth
+## Project management — ClickUp is the source of truth
 
-This project is managed in the **Tuan Tanah Game** Notion teamspace via the connected Notion MCP (`mcp__claude_ai_Notion__*`). Tasks and design docs live there, not in the repo. Use Notion for PM; use the repo for code.
+This project is managed in ClickUp under the **Nekobytes** workspace → **TuanTanah** space, via the connected ClickUp MCP (`mcp__clickup__*`). Tasks and design docs live there, not in the repo. Use ClickUp for PM; use the repo for code.
 
-**Canonical IDs** (pass to `notion-fetch` / as `data_source_url` for `notion-search`):
+**Canonical IDs** (ClickUp's hierarchy is Workspace › Space › Folder › List › Task — most MCP tools also resolve names, so IDs are for disambiguation):
 
-| Thing                         | ID                                                                                            |
-| ----------------------------- | --------------------------------------------------------------------------------------------- |
-| Teamspace "Tuan Tanah Game"   | `37c01c5a-d049-815a-9168-0042fbce481e` (use as `teamspace_id` filter; not directly fetchable) |
-| **Tasks Tracker** database    | `37c01c5a-d049-80fa-8d47-f0072913043f`                                                        |
-| Tasks Tracker data source     | `collection://37c01c5a-d049-80d1-a958-000bf10981cf`                                           |
-| **Document Hub** database     | `37c01c5a-d049-80ab-bb1a-d8b0c8a4dc01`                                                        |
-| Document Hub data source      | `collection://37c01c5a-d049-807e-a9f8-000b3959700c`                                           |
-| Game Design doc (master spec) | `37d01c5a-d049-809d-8a1f-c46a07b60b86`                                                        |
+| Thing                               | ID                                                    |
+| ----------------------------------- | ----------------------------------------------------- |
+| Workspace "Nekobytes"               | `90182053080`                                         |
+| Space "TuanTanah"                   | `901811581330`                                        |
+| **Tasks** list (the default list)   | `901819061453` (named "List"; rename when convenient) |
+| Docs location (Document Hub equiv.) | _not created yet_                                     |
+| Game Design doc (master spec)       | _not created yet_                                     |
 
-**Tasks Tracker schema** — when creating a task page in the Tasks Tracker data source, set:
+> **Space is freshly provisioned:** the TuanTanah space currently holds a single default list with no folders, no ClickUp Docs, and **no custom fields** yet. The task list uses ClickUp's stock statuses **`to do` / `in progress` / `complete`** and the built-in **Priority** field (`Urgent` / `High` / `Normal` / `Low`). The `Effort` / `Task type` custom fields and the Docs/Game-Design pages described below don't exist yet — create them in ClickUp before relying on them.
 
-- `Task name` (title), `Status` (`Not started` / `In progress` / `Done`), `Priority` (`High` / `Medium` / `Low`), `Effort level` (`Small` / `Medium` / `Large`), `Task type` (multi: `🐞 Bug` / `💬 Feature request` / `💅 Polish`), `Description`, `Due date`, `Assignee`.
+**Tasks schema** — when creating a task, set:
 
-**Document Hub schema** — `Doc name` (title), `Category` (multi: `Proposal` / `Customer research` / `Strategy doc` / `Planning`).
+- `Name` (title), `Status` (`to do` / `in progress` / `complete`), `Priority` (`Urgent` / `High` / `Normal` / `Low`), `Description`, `Due date`, `Assignee`. Once added in ClickUp: an `Effort` custom field (`Small` / `Medium` / `Large`) and a `Task type` tag/field (`🐞 Bug` / `💬 Feature request` / `💅 Polish`).
 
-**CRUD mapping** (the connection is already authenticated — no setup needed):
+**Docs schema** (once a Docs space/folder exists) — `Doc name` (title), `Category` tag (`Proposal` / `Customer research` / `Strategy doc` / `Planning`).
 
-- **Read** → `notion-search` (semantic; pass `data_source_url` to scope to a database) or `notion-fetch` (by ID).
-- **Create** → `notion-create-pages` with the target data source as parent.
-- **Update** (status, props, body) → `notion-update-page`.
-- **Delete** → no hard delete; archive via `notion-update-page` (Notion archives, doesn't destroy).
+**CRUD mapping** (via the ClickUp MCP):
 
-**Permissions:** read-only Notion tools are allowlisted in `.claude/settings.json` (run without prompting). Writes (`create-pages`, `update-page`, `create-comment`, `move-pages`, `duplicate-page`, `update-data-source`) intentionally prompt for confirmation each time — don't add them to the allowlist without asking.
+- **Read** → `clickup_search` / `clickup_filter_tasks` (scope by List ID `901819061453`) or `clickup_get_task` by ID. `clickup_get_workspace_hierarchy` for structure.
+- **Create** → `clickup_create_task` under the Tasks list.
+- **Update** (status, fields, body) → `clickup_update_task` by ID.
+- **Delete** → `clickup_delete_task` (prefer setting status to `complete` / archiving over hard-deleting).
 
-The Game Design doc is marked "100% locked" and is the master spec that `docs/GAME_DESIGN.md` + `shared/data/` derive from. If gameplay/balance changes, update Notion and the repo together.
+**Permissions:** read-only ClickUp tools are allowlisted in `.claude/settings.json` (run without prompting). Write tools (`clickup_create_task`, `clickup_update_task`, `clickup_delete_task`, `clickup_create_document`, etc.) intentionally prompt for confirmation each time — don't add writes to the allowlist without asking. Notion's MCP allowlists and references have been removed.
+
+The Game Design doc is the "100% locked" master spec that `docs/GAME_DESIGN.md` + `shared/data/` derive from. If gameplay/balance changes, update ClickUp and the repo together.
