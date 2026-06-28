@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Doc layering.** This root file is the canonical **map** (what/where + invariants) — always loaded. The **skills** (`backend`, `frontend`, `game`, `database`, `web`, `add-game-*`, `senior-developer`) are the **detailed how-to** layer — loaded on demand. The per-workspace `CLAUDE.md` files (`server/`, `client/`, `shared/`) are **guardrails only** — the always-loaded subset of invariants that apply when editing that subtree. Keep them thin (~30 lines, rules not architecture); put detail in a skill, not there. Don't duplicate this root or the skills.
+
 ## What this is
 
 Tuan Tanah is a real-time multiplayer Indonesian-themed Monopoly web game (2–8 players). It's a pnpm monorepo with three workspaces: `shared` (types + game data), `server` (Fastify + Socket.io + game engine), `client` (React + Vite + Zustand). The full game loop is implemented end-to-end — property/tier upgrades, the pinjol (loan) system, meta-actions, structured negotiation, role abilities, voting, elimination/bankruptcy cascade, and win conditions all work. A few balance/content TODOs remain (see "Implementation status" below). The client ships a neobrutalist design system, framer-motion animations, a sound system, and EN/ID i18n.
