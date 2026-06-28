@@ -21,22 +21,25 @@ const loan = (amount: number, lenderId: string | null = null) => ({
 })
 
 describe('chargeInterest', () => {
-  it('charges 10% per loan and pays the bank when affordable', () => {
+  it('charges the per-lap interest rate per loan and pays the bank when affordable', () => {
     const { state, players } = makeGame(2, { cash: 5_000_000 })
     const p = players[0]!
     p.loans = [loan(2_000_000)]
+    const interest = Math.round(2_000_000 * PINJOL_INTEREST_RATE)
     const bankBefore = state.bank
     const total = chargeInterest(state, p)
-    expect(total).toBe(200_000)
-    expect(p.cash).toBe(4_800_000)
-    expect(state.bank).toBe(bankBefore + 200_000)
+    expect(total).toBe(interest)
+    expect(p.cash).toBe(5_000_000 - interest)
+    expect(state.bank).toBe(bankBefore + interest)
   })
 
   it('sums interest across multiple loans', () => {
     const { state, players } = makeGame(2, { cash: 50_000_000 })
     const p = players[0]!
     p.loans = [loan(2_000_000), loan(5_000_000)]
-    expect(chargeInterest(state, p)).toBe(700_000)
+    const expected =
+      Math.round(2_000_000 * PINJOL_INTEREST_RATE) + Math.round(5_000_000 * PINJOL_INTEREST_RATE)
+    expect(chargeInterest(state, p)).toBe(expected)
   })
 
   it('routes interest to a Rentenir lender', () => {
@@ -45,7 +48,7 @@ describe('chargeInterest', () => {
     rentenir.cash = 0
     borrower.loans = [loan(5_000_000, rentenir.id)]
     chargeInterest(state, borrower)
-    expect(rentenir.cash).toBe(500_000)
+    expect(rentenir.cash).toBe(Math.round(5_000_000 * PINJOL_INTEREST_RATE))
   })
 
   it('opens a pending debt when the player cannot cover interest', () => {
@@ -55,7 +58,10 @@ describe('chargeInterest', () => {
     p.loans = [loan(10_000_000)]
     chargeInterest(state, p)
     expect(state.pendingDebts).toHaveLength(1)
-    expect(state.pendingDebts[0]).toMatchObject({ amount: 1_000_000, type: 'interest' })
+    expect(state.pendingDebts[0]).toMatchObject({
+      amount: Math.round(10_000_000 * PINJOL_INTEREST_RATE),
+      type: 'interest',
+    })
   })
 })
 
@@ -70,7 +76,7 @@ describe('canTakeLoan', () => {
   it('allows a loan within the borrow limit', () => {
     const { state, players } = makeGame(2)
     const p = players[0]!
-    own(state, 35, p.id) // jakarta buyPrice 6jt => limit 18jt; 10jt loan fits
+    own(state, 35, p.id) // jakarta buyPrice 5jt => limit 15jt; 10jt loan fits
     expect(canTakeLoan(state, p, 10_000_000)).toBe(true)
   })
 
@@ -180,12 +186,12 @@ describe('repayPinjol', () => {
 })
 
 describe('forceLoan', () => {
-  // Rentenir on turn (index 0) forcing a target who owns jakarta (limit 18jt).
+  // Rentenir on turn (index 0) forcing a target who owns jakarta (limit 15jt).
   function setup() {
     const { state, players } = makeGame(2, { cash: 50_000_000, roles: ['rentenir', null] })
     const [rentenir, target] = [players[0]!, players[1]!]
     state.currentPlayerIndex = 0
-    own(state, 35, target.id) // jakarta buyPrice 6jt => borrow limit 18jt
+    own(state, 35, target.id) // jakarta buyPrice 5jt => borrow limit 15jt
     return { state, rentenir, target }
   }
 
@@ -209,7 +215,7 @@ describe('forceLoan', () => {
     forceLoan(state, rentenir.id, target.id, 5_000_000)
     rentenir.cash = 0
     chargeInterest(state, target)
-    expect(rentenir.cash).toBe(500_000)
+    expect(rentenir.cash).toBe(Math.round(5_000_000 * PINJOL_INTEREST_RATE))
   })
 
   it('marks the round used and rejects a second force in the same round', () => {

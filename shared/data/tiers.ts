@@ -11,12 +11,12 @@ export interface HouseTierDef {
 }
 export const HOUSE_TIERS: HouseTierDef[] = [
   { tier: 1, name: 'Rumah Kecil', buildCostMult: 0.5, rentMult: 1 },
-  { tier: 2, name: 'Rumah Sedang', buildCostMult: 1, rentMult: 2.5 },
-  { tier: 3, name: 'Rumah Besar', buildCostMult: 2, rentMult: 5 },
-  { tier: 4, name: 'Villa / Hotel', buildCostMult: 4, rentMult: 10 },
+  { tier: 2, name: 'Rumah Sedang', buildCostMult: 1, rentMult: 3 },
+  { tier: 3, name: 'Rumah Besar', buildCostMult: 2, rentMult: 6 },
+  { tier: 4, name: 'Villa / Hotel', buildCostMult: 4, rentMult: 12 },
 ]
 
-// ---- Property track (5 tiers) ----
+// ---- Property track (4 tiers) ----
 export interface PropertyTierDef {
   tier: number
   name: string
@@ -26,10 +26,9 @@ export interface PropertyTierDef {
 }
 export const PROPERTY_TIERS: PropertyTierDef[] = [
   { tier: 1, name: 'Warung', buildCostMult: 0.3, rentMult: 0.5, passiveMult: 1 },
-  { tier: 2, name: 'Toko', buildCostMult: 0.7, rentMult: 1, passiveMult: 2 },
-  { tier: 3, name: 'Minimarket', buildCostMult: 1.5, rentMult: 2, passiveMult: 4 },
-  { tier: 4, name: 'Mall', buildCostMult: 3, rentMult: 4, passiveMult: 7 },
-  { tier: 5, name: 'Konglomerat', buildCostMult: 6, rentMult: 7, passiveMult: 12 },
+  { tier: 2, name: 'Toko', buildCostMult: 0.7, rentMult: 1, passiveMult: 1.6 },
+  { tier: 3, name: 'Minimarket', buildCostMult: 1.5, rentMult: 2, passiveMult: 2.2 },
+  { tier: 4, name: 'Mall', buildCostMult: 3, rentMult: 4, passiveMult: 3 },
 ]
 
 // ---- Special tiles (board re-layout, TTG-29) ----
@@ -47,22 +46,24 @@ export interface LandTierDef {
   passive: RupiahAmount // per-lap passive income at this tier
 }
 
-// Starting balance — all tunable here. Rent ≈ 30% of cumulative investment
-// (land 1.5jt + builds): tier totals 3.5 / 6.5 / 11.5 / 19.5jt.
+// Two distinct identities (Balance Pass v2): Warkop is a guaranteed single-tile
+// rent wall (no set needed — a maxed Coffee Chain hits for 15jt), Dapur is a
+// passive floor (high per-lap passive, modest landing rent). Cumulative invest
+// per tier (land 1.5jt + builds): 3.5 / 6.5 / 11.5 / 19.5jt.
 export const LAND_BUSINESS_TIERS: Record<LandBusiness, LandTierDef[]> = {
   dapur_mbg: [
-    // passive-leaning
-    { tier: 1, name: 'Dapur Rumahan', buildCost: jt(2), rent: jt(1), passive: jt(1.5) },
-    { tier: 2, name: 'Katering MBG', buildCost: jt(3), rent: jt(1.5), passive: jt(2.5) },
-    { tier: 3, name: 'Dapur Sentral', buildCost: jt(5), rent: jt(2.5), passive: jt(4) },
-    { tier: 4, name: 'Dapur MBG Nasional', buildCost: jt(8), rent: jt(4), passive: jt(6) },
+    // passive floor (high guaranteed passive, low landing rent)
+    { tier: 1, name: 'Dapur Rumahan', buildCost: jt(2), rent: jt(1), passive: jt(1.2) },
+    { tier: 2, name: 'Katering MBG', buildCost: jt(3), rent: jt(1.5), passive: jt(2) },
+    { tier: 3, name: 'Dapur Sentral', buildCost: jt(5), rent: jt(2), passive: jt(3) },
+    { tier: 4, name: 'Dapur MBG Nasional', buildCost: jt(8), rent: jt(3), passive: jt(4.5) },
   ],
   warkop_cafe: [
-    // rent-leaning
-    { tier: 1, name: 'Warkop', buildCost: jt(2), rent: jt(1.5), passive: jt(0.8) },
-    { tier: 2, name: 'Kopi Kekinian', buildCost: jt(3), rent: jt(3), passive: jt(1.2) },
-    { tier: 3, name: 'Cafe', buildCost: jt(5), rent: jt(5), passive: jt(2) },
-    { tier: 4, name: 'Coffee Chain', buildCost: jt(8), rent: jt(8), passive: jt(3.5) },
+    // rent wall (single-tile weapon — steep landing rent, modest passive)
+    { tier: 1, name: 'Warkop', buildCost: jt(2), rent: jt(2), passive: jt(0.8) },
+    { tier: 2, name: 'Kopi Kekinian', buildCost: jt(3), rent: jt(5), passive: jt(1.2) },
+    { tier: 3, name: 'Cafe', buildCost: jt(5), rent: jt(9), passive: jt(1.8) },
+    { tier: 4, name: 'Coffee Chain', buildCost: jt(8), rent: jt(15), passive: jt(2.5) },
   ],
 }
 

@@ -27,6 +27,7 @@ import {
   STARTING_CASH_DEFAULT,
   STARTING_CASH_MAX,
   STARTING_CASH_MIN,
+  TARGET_WEALTH_DEFAULT,
   TARGET_WEALTH_MAX,
   TARGET_WEALTH_MIN,
   tierP,
@@ -118,7 +119,7 @@ export function createGameState(roomId: string, now: number): GameState {
     settings: {
       winCondition: 'both',
       timeLimitMinutes: 60,
-      targetWealth: 100_000_000,
+      targetWealth: TARGET_WEALTH_DEFAULT,
       startingCash: STARTING_CASH_DEFAULT,
       enabledRoles: [...ALL_ROLES],
       requireFullRegionToBuild: true,

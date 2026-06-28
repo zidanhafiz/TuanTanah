@@ -1,4 +1,9 @@
-import { LAHAN_LAND_PRICE, LAND_BUSINESS_TIERS, landTier } from '@tuan-tanah/shared'
+import {
+  LAHAN_LAND_PRICE,
+  LAND_BUSINESS_TIERS,
+  landTier,
+  SELL_REFUND_RATE,
+} from '@tuan-tanah/shared'
 import { describe, expect, it } from 'vitest'
 import {
   buildLahan,
@@ -133,6 +138,6 @@ describe('Lahan Kosong (buildable_land)', () => {
     downgradeProperty(state, a.id, 9)
     expect(state.tiles[9]!.tier).toBe(0)
     expect(state.tiles[9]!.landBuild).toBeNull()
-    expect(a.cash).toBe(cash + Math.round(dapur(1).buildCost * 0.5))
+    expect(a.cash).toBe(cash + Math.round(dapur(1).buildCost * SELL_REFUND_RATE))
   })
 })

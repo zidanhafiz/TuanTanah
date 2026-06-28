@@ -16,7 +16,7 @@ import {
   settleIfAble,
   tileValue,
 } from '../src/engine/elimination.js'
-import { EngineError } from '../src/engine/index.js'
+import { computeRent, EngineError } from '../src/engine/index.js'
 import { addDebt, makeGame, own } from './helpers.js'
 
 describe('tileValue', () => {
@@ -41,14 +41,33 @@ describe('tileValue', () => {
     expect(tileValue(state, state.tiles[1]!)).toBe(expected)
   })
 
-  it('doubles a tile value when the owner holds the full region', () => {
+  it('does not inflate tile value on a full region (set-value bonus removed in Balance Pass v2)', () => {
     const { state, players } = makeGame(2)
     const owner = players[0]!.id
     own(state, 1, owner)
     const single = tileValue(state, state.tiles[1]!)
     expect(single).toBe(REGIONS.papua.buyPrice)
     for (const id of REGIONS.papua.tileIds) own(state, id, owner)
+    // REGION_SET_VALUE_MULTIPLIER is now 1 → owning the full region leaves value unchanged.
     expect(tileValue(state, state.tiles[1]!)).toBe(single * REGION_SET_VALUE_MULTIPLIER)
+    expect(tileValue(state, state.tiles[1]!)).toBe(single)
+  })
+})
+
+describe('rent is the weapon (Balance Pass v2)', () => {
+  it('lets a developed full-set Villa wall on the cheapest region bankrupt a careless player', () => {
+    const { state, players } = makeGame(2, { cash: 0 })
+    const [owner, victim] = [players[0]!, players[1]!]
+    // Owner develops the FULL Papua set (the cheapest region) to Villa / Hotel.
+    for (const id of REGIONS.papua.tileIds) own(state, id, owner.id, { track: 'house', tier: 4 })
+    // Papua rentBase 0.6jt × Villa ×12 × full-set ×2 = 14.4jt — a one-shot wall.
+    const rent = computeRent(state, REGIONS.papua.tileIds[0]!)
+    expect(rent).toBe(14_400_000)
+    // A careless player sitting under that hit, owning nothing, is wiped out.
+    victim.cash = 14_000_000
+    state.currentPlayerIndex = 0 // the owner is to-act, so the victim's elimination resolves now
+    charge(state, victim, rent, owner.id, 'rent', 'rent', REGIONS.papua.tileIds[0]!)
+    expect(victim.isEliminated).toBe(true)
   })
 })
 

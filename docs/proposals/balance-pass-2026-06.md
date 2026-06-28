@@ -1,9 +1,24 @@
 # Balance Pass v2 — Rent-Dominant Rebalance (2026-06)
 
-**Status:** Proposal (awaiting lock) · **Scope:** rebalance only — **zero engine code**, all `shared/data/` · **Owner:** design
+**Status:** ✅ Locked & implemented (2026-06-29, ClickUp 86ey2z88x) · **Scope:** rebalance — `shared/data/`
+plus one constant-default touch in `engine/index.ts` (the win-target default; see deviation 2) · **Owner:** design
 
-Supersedes the earlier "reprice-only ROI flatten" draft. Implementation is gated on this doc being
-approved; once locked, mirror to the ClickUp Game Design doc and implement against the checklist (§7).
+Supersedes the earlier "reprice-only ROI flatten" draft. The numbers below are the proposal as drafted;
+**two adjustments were locked in at implementation** (see "Implementation deviations"). The implemented
+values live in `shared/data/regions.ts` / `tiers.ts` / `economy.ts`.
+
+## Implementation deviations (locked 2026-06-29)
+
+1. **Premium buff** — `rentBase` raised above §3.1 for the two premiums: **Jakarta 1.15 → 1.30jt**,
+   **Tangerang 1.25 → 1.45jt**. The §3.1 numbers left premiums the worst ROI (6.7-lap payback vs Papua's
+   2.7); this widens the rent-weapon spread 2.08× → **2.42×** so premiums justify their price while cheap
+   regions keep the best ROI. Re-validated: rent still dominates everywhere (min EV/floor 1.96×), passive
+   floor unchanged (max 8.1jt), Papua Villa one-shot intact (14.4jt), premiums now top the EV table.
+2. **Win target lowered** — `TARGET_WEALTH_DEFAULT` 100jt → **80jt** (the §6 ripple, acted on now rather
+   than deferred). Required referencing the constant from `createGameState` in `engine/index.ts` (was a
+   magic literal) — the only engine touch.
+
+Out of scope: role balance (`shared/data/roles.ts`) — tracked separately.
 
 ---
 

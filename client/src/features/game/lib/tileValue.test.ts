@@ -39,13 +39,14 @@ describe('tileValue', () => {
     expect(tileValue(tiles[1]!, tiles)).toBe(papuaBuy * 3)
   })
 
-  it('doubles when the owner holds the full region', () => {
+  it('applies the full-region value multiplier (now 1 — no inflation in Balance Pass v2)', () => {
     const tiles = makeTiles()
     for (const id of PAPUA.tileIds) tiles[id]!.ownerId = 'p1'
     expect(tileValue(tiles[1]!, tiles)).toBe(papuaBuy * REGION_SET_VALUE_MULTIPLIER)
+    expect(tileValue(tiles[1]!, tiles)).toBe(papuaBuy)
   })
 
-  it('does not double when the region is only partly owned', () => {
+  it('is unchanged when the region is only partly owned', () => {
     const tiles = makeTiles()
     tiles[1]!.ownerId = 'p1'
     tiles[2]!.ownerId = 'p1' // tile 3 still unowned -> not a full set

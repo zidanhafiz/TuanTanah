@@ -79,18 +79,22 @@ Richest = total cash + all property values at current tier
 
 ### 🏘️ Region Pricing
 
-| Region     | Color      | Buy Price   | House Rent Base | Property Passive Base |
-| ---------- | ---------- | ----------- | --------------- | --------------------- |
-| Papua      | Brown      | Rp 1 juta   | Rp 400rb        | Rp 290rb              |
-| Kalimantan | Dark Green | Rp 1.6 juta | Rp 660rb        | Rp 470rb              |
-| Medan      | Yellow     | Rp 2.2 juta | Rp 920rb        | Rp 650rb              |
-| Yogyakarta | Light Blue | Rp 2.8 juta | Rp 1.2 juta     | Rp 850rb              |
-| Lombok     | Pink       | Rp 3.4 juta | Rp 1.45 juta    | Rp 1 juta             |
-| Surabaya   | Red        | Rp 4 juta   | Rp 1.75 juta    | Rp 1.25 juta          |
-| Bali       | Orange     | Rp 4.5 juta | Rp 1.4 juta     | Rp 1 juta             |
-| Jakarta    | Dark Grey  | Rp 6 juta   | Rp 2.8 juta     | Rp 2 juta             |
+| Region     | Color       | Buy Price   | House Rent Base | Property Passive Base |
+| ---------- | ----------- | ----------- | --------------- | --------------------- |
+| Papua      | Brown       | Rp 1 juta   | Rp 600rb        | Rp 400rb              |
+| Kalimantan | Dark Green  | Rp 1.5 juta | Rp 700rb        | Rp 500rb              |
+| Medan      | Yellow      | Rp 2 juta   | Rp 800rb        | Rp 600rb              |
+| Yogyakarta | Light Blue  | Rp 2.5 juta | Rp 850rb        | Rp 700rb              |
+| Lombok     | Pink        | Rp 3 juta   | Rp 950rb        | Rp 800rb              |
+| Surabaya   | Red         | Rp 3.5 juta | Rp 1 juta       | Rp 900rb              |
+| Bali       | Orange      | Rp 4 juta   | Rp 1.1 juta     | Rp 950rb              |
+| Jakarta    | Dark Grey   | Rp 5 juta   | Rp 1.3 juta     | Rp 1.05 juta          |
+| Tangerang  | Deep Purple | Rp 6 juta   | Rp 1.45 juta    | Rp 1.15 juta          |
 
-Region bonus when full set owned: **rent ×2, passive ×2**
+Region bonus when full set owned: **rent ×2** only. Passive income and tile market value do **not**
+change on a full set (Balance Pass v2 — passive is a survival floor, not a snowball; rent is the weapon).
+`rentBase` is deliberately regressive vs `buyPrice` so a developed wall on even the cheapest region
+(Papua: 0.6jt × Villa ×12 × set ×2 = **14.4jt**) can bankrupt a careless player.
 
 Bare-land rent (a tile owned but with no house/property built) is normally the full House Rent Base. On the premium regions **Bali, Jakarta & Tangerang** it is discounted to **60% of base** (`landRentMult` 0.6), so landing on undeveloped premium land isn't punishing. The discount applies only at tier 0; once a building is added, rent scales by tier as usual. The full-set ×2 bonus applies on top of the discounted land rent.
 
@@ -114,9 +118,9 @@ During **Mudik Season** card: all transport tiles earn 2x
 | Tier | Name          | Build Cost       | Rent Multiplier |
 | ---- | ------------- | ---------------- | --------------- |
 | 1    | Rumah Kecil   | Base price × 0.5 | Base × 1        |
-| 2    | Rumah Sedang  | Base price × 1   | Base × 2.5      |
-| 3    | Rumah Besar   | Base price × 2   | Base × 5        |
-| 4    | Villa / Hotel | Base price × 4   | Base × 10       |
+| 2    | Rumah Sedang  | Base price × 1   | Base × 3        |
+| 3    | Rumah Besar   | Base price × 2   | Base × 6        |
+| 4    | Villa / Hotel | Base price × 4   | Base × 12       |
 
 - High one-time rent when opponent lands
 - No passive income
@@ -124,15 +128,14 @@ During **Mudik Season** card: all transport tiles earn 2x
 
 ---
 
-### 🏗️ Property Track (5 Tiers)
+### 🏗️ Property Track (4 Tiers)
 
-| Tier | Name        | Build Cost       | Rent Multiplier | Passive Multiplier |
-| ---- | ----------- | ---------------- | --------------- | ------------------ |
-| 1    | Warung      | Base price × 0.3 | Base × 0.5      | Base × 1           |
-| 2    | Toko        | Base price × 0.7 | Base × 1        | Base × 2           |
-| 3    | Minimarket  | Base price × 1.5 | Base × 2        | Base × 4           |
-| 4    | Mall        | Base price × 3   | Base × 4        | Base × 7           |
-| 5    | Konglomerat | Base price × 6   | Base × 7        | Base × 12          |
+| Tier | Name       | Build Cost       | Rent Multiplier | Passive Multiplier |
+| ---- | ---------- | ---------------- | --------------- | ------------------ |
+| 1    | Warung     | Base price × 0.3 | Base × 0.5      | Base × 1           |
+| 2    | Toko       | Base price × 0.7 | Base × 1        | Base × 1.6         |
+| 3    | Minimarket | Base price × 1.5 | Base × 2        | Base × 2.2         |
+| 4    | Mall       | Base price × 3   | Base × 4        | Base × 3           |
 
 - Lower rent than House when opponent lands
 - Passive income collected at start of owner's turn every round

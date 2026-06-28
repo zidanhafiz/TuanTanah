@@ -93,14 +93,14 @@ export const TYPE_COLOR: Record<TileType, string> = {
  * count ("3×" + house). The icon depends on track + tier — early tiers stack the
  * same building (house / minimart), while the top tier swaps to a premium icon:
  *   house track → Hotel at tier 4 (Villa / Hotel)
- *   property track → Building2 at tier 5 (Konglomerat)
+ *   property track → Building2 at tier 4 (Mall, the top tier)
  */
 function devIcon(track: PropertyTrack, tier: number): { Icon: LucideIcon; counted: boolean } {
   if (track === 'house') {
     return tier >= 4 ? { Icon: Hotel, counted: false } : { Icon: House, counted: true }
   }
-  // property track (Warung → Mall stack the Store; Konglomerat is its own icon)
-  return tier >= 5 ? { Icon: Building2, counted: false } : { Icon: Store, counted: true }
+  // property track (Warung → Minimarket stack the Store; Mall is its own icon)
+  return tier >= 4 ? { Icon: Building2, counted: false } : { Icon: Store, counted: true }
 }
 
 /** A development badge: tier count + building icon in the owner's color. */

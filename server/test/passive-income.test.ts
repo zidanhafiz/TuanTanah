@@ -10,7 +10,7 @@ describe('collectPassiveIncome', () => {
     const { state, players } = makeGame(2, { cash: 0 })
     const p = players[0]!
     own(state, 1, p.id, { track: 'property', tier: 3 })
-    const expected = PAPUA.passiveBase * PROPERTY_TIERS[2]!.passiveMult // ×4
+    const expected = Math.round(PAPUA.passiveBase * PROPERTY_TIERS[2]!.passiveMult) // ×2.2
     expect(collectPassiveIncome(state, p)).toBe(expected)
     expect(p.cash).toBe(expected)
     expect(state.bank).toBe(1_000_000_000_000 - expected)
